@@ -66,4 +66,4 @@ jobs:
 
       # 9️⃣ Docker Hub Push
       - name: Push Docker image
-        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/ncareer:${{ env.IMAGE_TAG }}
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/finvibe:${{ env.IMAGE_TAG }}
