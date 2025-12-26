@@ -61,7 +61,7 @@ jobs:
       - name: Build Docker image
         run: |
           docker build \
-            -t ${{ secrets.DOCKERHUB_USERNAME }}/ncareer:${{ env.IMAGE_TAG }} \
+            -t ${{ secrets.DOCKERHUB_USERNAME }}/finvibe:${{ env.IMAGE_TAG }} \
             -f deploy/Dockerfile .
 
       # 9️⃣ Docker Hub Push
