@@ -21,7 +21,7 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      # 3️⃣ Gradle 캐시 설정
+      # 3️⃣ Gradle 캐시 설정 (의존성 + 빌드 결과 캐시)
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
@@ -33,18 +33,18 @@ jobs:
         run: |
           mkdir -p src/main/resources
           mkdir -p src/test/resources
-
           echo "${{ secrets.APPLICATION_YAML }}" > src/main/resources/application.yaml
-        
-      # 5️⃣ Gradle Build (Test 포함)
-      - name: Build with Gradle
+
+      # 5️⃣ Gradle Build (캐시 활성화)
+      # 👉 필요하면 -x test 로 테스트 스킵 가능
+      - name: Build with Gradle (cached)
         env:
           SPRING_PROFILES_ACTIVE: test
           SPRING_DATASOURCE_URL: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1
           SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.h2.Driver
           SPRING_DATASOURCE_USERNAME: sa
           SPRING_DATASOURCE_PASSWORD: ""
-        run: ./gradlew clean build --no-daemon
+        run: ./gradlew clean build --no-daemon --build-cache
 
       # 6️⃣ Docker Hub 로그인
       - name: Docker login
@@ -57,13 +57,17 @@ jobs:
       - name: Set image tag
         run: echo "IMAGE_TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
 
-      # 8️⃣ Docker 이미지 빌드
-      - name: Build Docker image
-        run: |
-          docker build \
-            -t ${{ secrets.DOCKERHUB_USERNAME }}/finvibe:${{ env.IMAGE_TAG }} \
-            -f deploy/Dockerfile .
+      # 8️⃣ Docker Buildx 설정 (캐시 사용 가능)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      # 9️⃣ Docker Hub Push
-      - name: Push Docker image
-        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/finvibe:${{ env.IMAGE_TAG }}
+      # 9️⃣ Docker 이미지 빌드 & Push (GHA 캐시 사용)
+      - name: Build & Push Docker image (cached)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deploy/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/finvibe:${{ env.IMAGE_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
