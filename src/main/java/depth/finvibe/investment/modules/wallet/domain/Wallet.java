@@ -1,14 +1,12 @@
 package depth.finvibe.investment.modules.wallet.domain;
 
 import depth.finvibe.investment.shared.domain.TimeStampedBaseEntity;
-import jakarta.persistence.Embedded;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.util.UUID;
 
 @Entity
 @AllArgsConstructor
@@ -19,6 +17,9 @@ public class Wallet extends TimeStampedBaseEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
+  @Column(nullable = false)
+  private UUID userId;
+
   @Embedded
   private Money balance;
 
@@ -28,5 +29,9 @@ public class Wallet extends TimeStampedBaseEntity {
 
   public void withdraw(Money amount) {
     this.balance = this.balance.minus(amount);
+  }
+
+  public static Wallet create(UUID userId) {
+    return new Wallet(null, userId, new Money(0L));
   }
 }
