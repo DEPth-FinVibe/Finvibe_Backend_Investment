@@ -18,6 +18,9 @@ public class WalletService {
 
     @Transactional
     public Wallet createWallet(UUID userId) {
+        if (userId == null) {
+            throw new DomainException(WalletErrorCode.INVALID_USER_ID);
+        }
         Wallet wallet = Wallet.create(userId);
         return walletRepository.save(wallet);
     }
@@ -26,24 +29,21 @@ public class WalletService {
     public void deposit(Long walletId, Long amount) {
         Wallet wallet = walletRepository.findById(walletId)
                 .orElseThrow(() -> new DomainException(WalletErrorCode.WALLET_NOT_FOUND));
+        validateAmount(amount);
         wallet.deposit(new Money(amount));
-        walletRepository.save(wallet);
     }
 
     @Transactional
     public void withdraw(Long walletId, Long amount) {
         Wallet wallet = walletRepository.findById(walletId)
                 .orElseThrow(() -> new DomainException(WalletErrorCode.WALLET_NOT_FOUND));
-
-        validateSufficientBalance(wallet, amount);
-
+        validateAmount(amount);
         wallet.withdraw(new Money(amount));
-        walletRepository.save(wallet);
     }
 
-    private void validateSufficientBalance(Wallet wallet, Long amount) {
-        if (wallet.getBalance().getAmount() < amount) {
-            throw new DomainException(WalletErrorCode.INSUFFICIENT_BALANCE);
+    private void validateAmount(Long amount) {
+        if (amount == null || amount <= 0) {
+            throw new DomainException(WalletErrorCode.INVALID_MONEY_AMOUNT);
         }
     }
 
