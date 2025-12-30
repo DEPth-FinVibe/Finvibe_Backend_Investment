@@ -10,6 +10,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
@@ -18,6 +20,8 @@ public class Wallet extends TimeStampedBaseEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
+
+  private UUID userId;
 
   @Embedded
   private Money balance;
@@ -28,5 +32,9 @@ public class Wallet extends TimeStampedBaseEntity {
 
   public void withdraw(Money amount) {
     this.balance = this.balance.minus(amount);
+  }
+
+  public static Wallet create(UUID userId) {
+    return new Wallet(null, userId, new Money(0L));
   }
 }
