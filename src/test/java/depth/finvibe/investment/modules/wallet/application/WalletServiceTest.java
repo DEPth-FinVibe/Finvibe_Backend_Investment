@@ -60,7 +60,6 @@ class WalletServiceTest {
     Long depositAmount = 500L;
 
     when(walletRepository.findById(walletId)).thenReturn(Optional.of(wallet));
-    when(walletRepository.save(any(Wallet.class))).thenReturn(wallet);
 
     // when
     walletService.deposit(walletId, depositAmount);
@@ -68,7 +67,7 @@ class WalletServiceTest {
     // then
     assertThat(wallet.getBalance().getAmount()).isEqualTo(1500L);
     verify(walletRepository, times(1)).findById(walletId);
-    verify(walletRepository, times(1)).save(wallet);
+    // JPA 더티 체킹으로 자동 저장되므로 save() verify 불필요
   }
 
   @Test
@@ -96,7 +95,6 @@ class WalletServiceTest {
     Long withdrawAmount = 400L;
 
     when(walletRepository.findById(walletId)).thenReturn(Optional.of(wallet));
-    when(walletRepository.save(any(Wallet.class))).thenReturn(wallet);
 
     // when
     walletService.withdraw(walletId, withdrawAmount);
@@ -104,7 +102,7 @@ class WalletServiceTest {
     // then
     assertThat(wallet.getBalance().getAmount()).isEqualTo(600L);
     verify(walletRepository, times(1)).findById(walletId);
-    verify(walletRepository, times(1)).save(wallet);
+    // JPA 더티 체킹으로 자동 저장되므로 save() verify 불필요
   }
 
   @Test
@@ -149,12 +147,13 @@ class WalletServiceTest {
     Long withdrawAmount = 1000L;
 
     when(walletRepository.findById(walletId)).thenReturn(Optional.of(wallet));
-    when(walletRepository.save(any(Wallet.class))).thenReturn(wallet);
 
     // when
     walletService.withdraw(walletId, withdrawAmount);
 
     // then
     assertThat(wallet.getBalance().getAmount()).isEqualTo(0L);
+    verify(walletRepository, times(1)).findById(walletId);
+    // JPA 더티 체킹으로 자동 저장되므로 save() verify 불필요
   }
 }
