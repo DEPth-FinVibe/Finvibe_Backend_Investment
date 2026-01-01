@@ -2,7 +2,7 @@ package depth.finvibe.investment.shared.infra.error;
 
 import depth.finvibe.investment.shared.error.DomainErrorCode;
 import depth.finvibe.investment.shared.error.DomainException;
-import depth.finvibe.investment.shared.error.RestException;
+
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,11 +20,10 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(DomainException.class)
   public ResponseEntity<ErrorResponse> handleDomainException(DomainException ex) {
     HttpStatusCode status = resolveStatus(ex.getErrorCode());
-    RestException restEx = new RestException(ex.getErrorCode(), status);
 
     ErrorResponse body = ErrorResponse.of(
-        restEx.getErrorCode().getCode(),
-        restEx.getErrorCode().getMessageKey()
+        ex.getErrorCode().getCode(),
+        ex.getErrorCode().getMessageKey()
     );
     return ResponseEntity.status(status).body(body);
   }
