@@ -10,7 +10,6 @@ import static org.mockito.Mockito.when;
 import depth.finvibe.investment.modules.wallet.domain.Money;
 import depth.finvibe.investment.modules.wallet.domain.Wallet;
 import depth.finvibe.investment.modules.wallet.domain.error.WalletErrorCode;
-import depth.finvibe.investment.modules.wallet.infra.WalletRepository;
 import depth.finvibe.investment.shared.error.DomainException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -51,71 +50,69 @@ class WalletServiceTest {
   }
 
   @Test
-  @DisplayName("지갑에 금액을 입금할 수 있다.")
+  @DisplayName("사용자 ID로 지갑에 금액을 입금할 수 있다.")
   void deposit_success() {
     // given
-    Long walletId = 1L;
     UUID userId = UUID.randomUUID();
-    Wallet wallet = new Wallet(walletId, userId, new Money(1000L));
+    Wallet wallet = new Wallet(1L, userId, new Money(1000L));
     Long depositAmount = 500L;
 
-    when(walletRepository.findById(walletId)).thenReturn(Optional.of(wallet));
+    when(walletRepository.findByUserId(userId)).thenReturn(Optional.of(wallet));
 
     // when
-    walletService.deposit(walletId, depositAmount);
+    walletService.deposit(userId, depositAmount);
 
     // then
     assertThat(wallet.getBalance().getAmount()).isEqualTo(1500L);
-    verify(walletRepository, times(1)).findById(walletId);
+    verify(walletRepository, times(1)).findByUserId(userId);
     // JPA 더티 체킹으로 자동 저장되므로 save() verify 불필요
   }
 
   @Test
-  @DisplayName("존재하지 않는 지갑에 입금하면 WALLET_NOT_FOUND 에러를 발생시킨다.")
+  @DisplayName("존재하지 않는 사용자 ID로 입금하면 WALLET_NOT_FOUND 에러를 발생시킨다.")
   void deposit_walletNotFound() {
     // given
-    Long walletId = 999L;
+    UUID userId = UUID.randomUUID();
     Long depositAmount = 500L;
 
-    when(walletRepository.findById(walletId)).thenReturn(Optional.empty());
+    when(walletRepository.findByUserId(userId)).thenReturn(Optional.empty());
 
     // when & then
-    assertThatThrownBy(() -> walletService.deposit(walletId, depositAmount))
+    assertThatThrownBy(() -> walletService.deposit(userId, depositAmount))
         .isInstanceOf(DomainException.class)
         .hasFieldOrPropertyWithValue("errorCode", WalletErrorCode.WALLET_NOT_FOUND);
   }
 
   @Test
-  @DisplayName("지갑에서 금액을 출금할 수 있다.")
+  @DisplayName("사용자 ID로 지갑에서 금액을 출금할 수 있다.")
   void withdraw_success() {
     // given
-    Long walletId = 1L;
     UUID userId = UUID.randomUUID();
-    Wallet wallet = new Wallet(walletId, userId, new Money(1000L));
+    Wallet wallet = new Wallet(1L, userId, new Money(1000L));
     Long withdrawAmount = 400L;
 
-    when(walletRepository.findById(walletId)).thenReturn(Optional.of(wallet));
+    when(walletRepository.findByUserId(userId)).thenReturn(Optional.of(wallet));
 
     // when
-    walletService.withdraw(walletId, withdrawAmount);
+    walletService.withdraw(userId, withdrawAmount);
 
     // then
     assertThat(wallet.getBalance().getAmount()).isEqualTo(600L);
-    verify(walletRepository, times(1)).findById(walletId);
+    verify(walletRepository, times(1)).findByUserId(userId);
     // JPA 더티 체킹으로 자동 저장되므로 save() verify 불필요
   }
 
   @Test
-  @DisplayName("존재하지 않는 지갑에서 출금하면 WALLET_NOT_FOUND 에러를 발생시킨다.")
+  @DisplayName("존재하지 않는 사용자 ID로 출금하면 WALLET_NOT_FOUND 에러를 발생시킨다.")
   void withdraw_walletNotFound() {
     // given
-    Long walletId = 999L;
+    UUID userId = UUID.randomUUID();
     Long withdrawAmount = 400L;
 
-    when(walletRepository.findById(walletId)).thenReturn(Optional.empty());
+    when(walletRepository.findByUserId(userId)).thenReturn(Optional.empty());
 
     // when & then
-    assertThatThrownBy(() -> walletService.withdraw(walletId, withdrawAmount))
+    assertThatThrownBy(() -> walletService.withdraw(userId, withdrawAmount))
         .isInstanceOf(DomainException.class)
         .hasFieldOrPropertyWithValue("errorCode", WalletErrorCode.WALLET_NOT_FOUND);
   }
@@ -124,36 +121,34 @@ class WalletServiceTest {
   @DisplayName("잔액보다 많은 금액을 출금하면 INSUFFICIENT_BALANCE 에러를 발생시킨다.")
   void withdraw_insufficientBalance() {
     // given
-    Long walletId = 1L;
     UUID userId = UUID.randomUUID();
-    Wallet wallet = new Wallet(walletId, userId, new Money(500L));
+    Wallet wallet = new Wallet(1L, userId, new Money(500L));
     Long withdrawAmount = 1000L;
 
-    when(walletRepository.findById(walletId)).thenReturn(Optional.of(wallet));
+    when(walletRepository.findByUserId(userId)).thenReturn(Optional.of(wallet));
 
     // when & then
-    assertThatThrownBy(() -> walletService.withdraw(walletId, withdrawAmount))
+    assertThatThrownBy(() -> walletService.withdraw(userId, withdrawAmount))
         .isInstanceOf(DomainException.class)
         .hasFieldOrPropertyWithValue("errorCode", WalletErrorCode.INSUFFICIENT_BALANCE);
   }
 
   @Test
-  @DisplayName("정확히 현재 잔액과 같은 금액을 출금할 수 있다.")
+  @DisplayName("정확히 현재 잔액과 같은 금액을 사용자 ID로 출금할 수 있다.")
   void withdraw_exactBalance() {
     // given
-    Long walletId = 1L;
     UUID userId = UUID.randomUUID();
-    Wallet wallet = new Wallet(walletId, userId, new Money(1000L));
+    Wallet wallet = new Wallet(1L, userId, new Money(1000L));
     Long withdrawAmount = 1000L;
 
-    when(walletRepository.findById(walletId)).thenReturn(Optional.of(wallet));
+    when(walletRepository.findByUserId(userId)).thenReturn(Optional.of(wallet));
 
     // when
-    walletService.withdraw(walletId, withdrawAmount);
+    walletService.withdraw(userId, withdrawAmount);
 
     // then
     assertThat(wallet.getBalance().getAmount()).isEqualTo(0L);
-    verify(walletRepository, times(1)).findById(walletId);
+    verify(walletRepository, times(1)).findByUserId(userId);
     // JPA 더티 체킹으로 자동 저장되므로 save() verify 불필요
   }
 }
