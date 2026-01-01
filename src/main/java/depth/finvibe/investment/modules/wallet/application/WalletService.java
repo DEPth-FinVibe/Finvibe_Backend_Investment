@@ -3,7 +3,6 @@ package depth.finvibe.investment.modules.wallet.application;
 import depth.finvibe.investment.modules.wallet.domain.Wallet;
 import depth.finvibe.investment.modules.wallet.domain.Money;
 import depth.finvibe.investment.modules.wallet.domain.error.WalletErrorCode;
-import depth.finvibe.investment.modules.wallet.infra.WalletRepository;
 import depth.finvibe.investment.shared.error.DomainException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -26,16 +25,16 @@ public class WalletService {
     }
 
     @Transactional
-    public void deposit(Long walletId, Long amount) {
-        Wallet wallet = walletRepository.findById(walletId)
+    public void deposit(UUID userId, Long amount) {
+        Wallet wallet = walletRepository.findByUserId(userId)
                 .orElseThrow(() -> new DomainException(WalletErrorCode.WALLET_NOT_FOUND));
         validateAmount(amount);
         wallet.deposit(new Money(amount));
     }
 
     @Transactional
-    public void withdraw(Long walletId, Long amount) {
-        Wallet wallet = walletRepository.findById(walletId)
+    public void withdraw(UUID userId, Long amount) {
+        Wallet wallet = walletRepository.findByUserId(userId)
                 .orElseThrow(() -> new DomainException(WalletErrorCode.WALLET_NOT_FOUND));
         validateAmount(amount);
         wallet.withdraw(new Money(amount));

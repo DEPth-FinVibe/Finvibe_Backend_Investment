@@ -15,7 +15,7 @@ import lombok.Getter;
 @AllArgsConstructor
 @Getter
 public enum WalletErrorCode implements DomainErrorCode {
-    INVALID_USER_ID("WALLET_INVALID_USER_ID", "error.wallet.invalid_user_id"),
+  INVALID_USER_ID("WALLET_INVALID_USER_ID", "error.wallet.invalid_user_id"),
   WALLET_NOT_FOUND("WALLET_NOT_FOUND", "error.wallet.not_found"),
   INSUFFICIENT_BALANCE("WALLET_INSUFFICIENT_BALANCE", "error.wallet.insufficient_balance"),
   INVALID_MONEY_AMOUNT("WALLET_INVALID_MONEY_AMOUNT", "error.wallet.invalid_money_amount");
