@@ -1,8 +1,8 @@
 package depth.finvibe.investment.modules.wallet.infra.messaging;
 
 import depth.finvibe.investment.modules.wallet.application.WalletEventService;
-import depth.finvibe.investment.modules.wallet.infra.messaging.dto.FirstLoginedEvent;
-import depth.finvibe.investment.modules.wallet.infra.messaging.dto.TradeExecutedEvent;
+import depth.finvibe.investment.modules.wallet.dto.FirstLoginedEvent;
+import depth.finvibe.investment.modules.wallet.dto.TradeExecutedEvent;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;

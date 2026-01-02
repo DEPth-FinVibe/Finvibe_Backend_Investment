@@ -1,4 +1,4 @@
-package depth.finvibe.investment.modules.wallet.application;
+package depth.finvibe.investment.modules.wallet.application.port.out;
 
 import java.util.Optional;
 import java.util.UUID;

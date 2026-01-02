@@ -1,8 +1,8 @@
 package depth.finvibe.investment.modules.wallet.application;
 
 import depth.finvibe.investment.modules.wallet.application.port.in.WalletCommandUseCase;
-import depth.finvibe.investment.modules.wallet.infra.messaging.dto.FirstLoginedEvent;
-import depth.finvibe.investment.modules.wallet.infra.messaging.dto.TradeExecutedEvent;
+import depth.finvibe.investment.modules.wallet.dto.FirstLoginedEvent;
+import depth.finvibe.investment.modules.wallet.dto.TradeExecutedEvent;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

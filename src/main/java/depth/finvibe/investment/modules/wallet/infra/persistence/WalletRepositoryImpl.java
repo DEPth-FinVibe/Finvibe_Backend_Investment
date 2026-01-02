@@ -1,6 +1,6 @@
 package depth.finvibe.investment.modules.wallet.infra.persistence;
 
-import depth.finvibe.investment.modules.wallet.application.WalletRepository;
+import depth.finvibe.investment.modules.wallet.application.port.out.WalletRepository;
 import depth.finvibe.investment.modules.wallet.domain.Wallet;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;

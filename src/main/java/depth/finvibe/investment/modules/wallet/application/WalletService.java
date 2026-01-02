@@ -2,6 +2,7 @@ package depth.finvibe.investment.modules.wallet.application;
 
 import depth.finvibe.investment.modules.wallet.application.port.in.WalletCommandUseCase;
 import depth.finvibe.investment.modules.wallet.application.port.in.WalletQueryUseCase;
+import depth.finvibe.investment.modules.wallet.application.port.out.WalletRepository;
 import depth.finvibe.investment.modules.wallet.domain.Wallet;
 import depth.finvibe.investment.modules.wallet.domain.Money;
 import depth.finvibe.investment.modules.wallet.domain.error.WalletErrorCode;

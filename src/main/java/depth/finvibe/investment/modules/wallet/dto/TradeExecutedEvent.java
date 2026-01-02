@@ -1,4 +1,4 @@
-package depth.finvibe.investment.modules.wallet.infra.messaging.dto;
+package depth.finvibe.investment.modules.wallet.dto;
 
 public record TradeExecutedEvent (
         String tradeId,
