@@ -1,5 +1,8 @@
 package depth.finvibe.investment.modules.wallet.application;
 
+import depth.finvibe.investment.modules.wallet.api.dto.WalletDto;
+import depth.finvibe.investment.modules.wallet.application.port.in.WalletCommandUseCase;
+import depth.finvibe.investment.modules.wallet.application.port.in.WalletQueryUseCase;
 import depth.finvibe.investment.modules.wallet.domain.Wallet;
 import depth.finvibe.investment.modules.wallet.domain.Money;
 import depth.finvibe.investment.modules.wallet.domain.error.WalletErrorCode;
@@ -12,32 +15,41 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class WalletService {
+public class WalletService implements WalletCommandUseCase, WalletQueryUseCase {
     private final WalletRepository walletRepository;
 
     @Transactional
-    public Wallet createWallet(UUID userId) {
+    public WalletDto.WalletResponse createWallet(UUID userId) {
         if (userId == null) {
             throw new DomainException(WalletErrorCode.INVALID_USER_ID);
         }
+
         Wallet wallet = Wallet.create(userId);
-        return walletRepository.save(wallet);
+        Wallet saved = walletRepository.save(wallet);
+
+        return WalletDto.WalletResponse.from(saved);
     }
 
     @Transactional
-    public void deposit(UUID userId, Long amount) {
+    public WalletDto.WalletResponse deposit(UUID userId, Long amount) {
         Wallet wallet = walletRepository.findByUserId(userId)
                 .orElseThrow(() -> new DomainException(WalletErrorCode.WALLET_NOT_FOUND));
+
         validateAmount(amount);
         wallet.deposit(new Money(amount));
+
+        return WalletDto.WalletResponse.from(wallet);
     }
 
     @Transactional
-    public void withdraw(UUID userId, Long amount) {
+    public WalletDto.WalletResponse withdraw(UUID userId, Long amount) {
         Wallet wallet = walletRepository.findByUserId(userId)
                 .orElseThrow(() -> new DomainException(WalletErrorCode.WALLET_NOT_FOUND));
+
         validateAmount(amount);
         wallet.withdraw(new Money(amount));
+
+        return WalletDto.WalletResponse.from(wallet);
     }
 
     private void validateAmount(Long amount) {
@@ -46,4 +58,11 @@ public class WalletService {
         }
     }
 
+    @Override
+    public WalletDto.WalletResponse getWalletByUserId(UUID userId) {
+        Wallet wallet = walletRepository.findByUserId(userId)
+                .orElseThrow(() -> new DomainException(WalletErrorCode.WALLET_NOT_FOUND));
+
+        return WalletDto.WalletResponse.from(wallet);
+    }
 }
