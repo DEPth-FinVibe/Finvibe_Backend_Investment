@@ -1,4 +1,4 @@
-package depth.finvibe.investment.modules.wallet.application.dto;
+package depth.finvibe.investment.modules.wallet.dto;
 
 import depth.finvibe.investment.modules.wallet.domain.Wallet;
 import lombok.AllArgsConstructor;

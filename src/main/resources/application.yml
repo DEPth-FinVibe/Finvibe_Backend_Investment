@@ -1,0 +1,21 @@
+spring:
+  kafka:
+    bootstrap-servers: kafka-external:9092
+    properties:
+      schema.registry.url: http://kafka-external:8081 # [중요] 스키마 레지스트리 주소
+
+    # [Consumer 설정: Wallet 서비스는 이벤트를 받으니까 중요]
+    consumer:
+      group-id: wallet-service-group
+      # Key는 String으로 받음 (userId 등)
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # Value는 Avro로 받음
+      value-deserializer: io.confluent.kafka.serializers.JsonDeserializer
+      properties:
+        # 모든 패키지를 신뢰하도록 설정
+        spring.json.trusted.packages: "*"
+
+    # [Producer 설정: 만약 Wallet에서도 이벤트를 발행한다면]
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.JsonSerializer
