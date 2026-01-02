@@ -1,11 +1,11 @@
 package depth.finvibe.investment.modules.wallet.application;
 
-import depth.finvibe.investment.modules.wallet.api.dto.WalletDto;
 import depth.finvibe.investment.modules.wallet.application.port.in.WalletCommandUseCase;
 import depth.finvibe.investment.modules.wallet.application.port.in.WalletQueryUseCase;
 import depth.finvibe.investment.modules.wallet.domain.Wallet;
 import depth.finvibe.investment.modules.wallet.domain.Money;
 import depth.finvibe.investment.modules.wallet.domain.error.WalletErrorCode;
+import depth.finvibe.investment.modules.wallet.dto.WalletDto;
 import depth.finvibe.investment.shared.error.DomainException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
