@@ -7,6 +7,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import depth.finvibe.investment.modules.wallet.api.dto.WalletDto;
 import depth.finvibe.investment.modules.wallet.domain.Money;
 import depth.finvibe.investment.modules.wallet.domain.Wallet;
 import depth.finvibe.investment.modules.wallet.domain.error.WalletErrorCode;
@@ -40,12 +41,12 @@ class WalletServiceTest {
     when(walletRepository.save(any(Wallet.class))).thenReturn(savedWallet);
 
     // when
-    Wallet result = walletService.createWallet(userId);
+    WalletDto.WalletResponse result = walletService.createWallet(userId);
 
     // then
-    assertThat(result.getId()).isEqualTo(1L);
+    assertThat(result.getWalletId()).isEqualTo(1L);
     assertThat(result.getUserId()).isEqualTo(userId);
-    assertThat(result.getBalance().getAmount()).isEqualTo(0L);
+    assertThat(result.getBalance()).isEqualTo(0L);
     verify(walletRepository, times(1)).save(any(Wallet.class));
   }
 
@@ -60,10 +61,11 @@ class WalletServiceTest {
     when(walletRepository.findByUserId(userId)).thenReturn(Optional.of(wallet));
 
     // when
-    walletService.deposit(userId, depositAmount);
+    WalletDto.WalletResponse result = walletService.deposit(userId, depositAmount);
 
     // then
     assertThat(wallet.getBalance().getAmount()).isEqualTo(1500L);
+    assertThat(result.getBalance()).isEqualTo(1500L);
     verify(walletRepository, times(1)).findByUserId(userId);
     // JPA 더티 체킹으로 자동 저장되므로 save() verify 불필요
   }
@@ -94,10 +96,11 @@ class WalletServiceTest {
     when(walletRepository.findByUserId(userId)).thenReturn(Optional.of(wallet));
 
     // when
-    walletService.withdraw(userId, withdrawAmount);
+    WalletDto.WalletResponse result = walletService.withdraw(userId, withdrawAmount);
 
     // then
     assertThat(wallet.getBalance().getAmount()).isEqualTo(600L);
+    assertThat(result.getBalance()).isEqualTo(600L);
     verify(walletRepository, times(1)).findByUserId(userId);
     // JPA 더티 체킹으로 자동 저장되므로 save() verify 불필요
   }
@@ -144,10 +147,11 @@ class WalletServiceTest {
     when(walletRepository.findByUserId(userId)).thenReturn(Optional.of(wallet));
 
     // when
-    walletService.withdraw(userId, withdrawAmount);
+    WalletDto.WalletResponse result = walletService.withdraw(userId, withdrawAmount);
 
     // then
     assertThat(wallet.getBalance().getAmount()).isEqualTo(0L);
+    assertThat(result.getBalance()).isEqualTo(0L);
     verify(walletRepository, times(1)).findByUserId(userId);
     // JPA 더티 체킹으로 자동 저장되므로 save() verify 불필요
   }
