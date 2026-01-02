@@ -7,7 +7,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import depth.finvibe.investment.modules.wallet.api.dto.WalletDto;
+import depth.finvibe.investment.modules.wallet.dto.WalletDto;
 import depth.finvibe.investment.modules.wallet.domain.Money;
 import depth.finvibe.investment.modules.wallet.domain.Wallet;
 import depth.finvibe.investment.modules.wallet.domain.error.WalletErrorCode;
