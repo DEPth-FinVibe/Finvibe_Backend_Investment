@@ -22,7 +22,7 @@ import java.util.UUID;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class Trade extends TimeStampedBaseEntity{
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
