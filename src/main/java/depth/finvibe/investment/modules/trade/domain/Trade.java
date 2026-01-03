@@ -3,7 +3,9 @@ package depth.finvibe.investment.modules.trade.domain;
 import depth.finvibe.investment.modules.trade.domain.enums.MarketType;
 import depth.finvibe.investment.modules.trade.domain.enums.TradeType;
 import depth.finvibe.investment.modules.trade.domain.enums.TransactionType;
+import depth.finvibe.investment.modules.trade.domain.error.TradeErrorCode;
 import depth.finvibe.investment.shared.domain.TimeStampedBaseEntity;
+import depth.finvibe.investment.shared.error.DomainException;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -58,6 +60,9 @@ public class Trade extends TimeStampedBaseEntity{
     }
 
     public void cancel(){
+        if (this.tradeType == TradeType.CANCELLED) {
+            throw new DomainException(TradeErrorCode.ALREADY_CANCELLED_TRADE);
+        }
         this.tradeType = TradeType.CANCELLED;
     }
 }
