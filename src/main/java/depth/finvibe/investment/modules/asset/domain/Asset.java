@@ -1,14 +1,20 @@
 package depth.finvibe.investment.modules.asset.domain;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 import depth.finvibe.investment.shared.domain.TimeStampedBaseEntity;
+import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.AttributeOverrides;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,15 +24,20 @@ import lombok.experimental.SuperBuilder;
 @Entity
 @Getter
 @SuperBuilder
-@AllArgsConstructor
-@NoArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Asset extends TimeStampedBaseEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Double amount;
+    private BigDecimal amount;
 
-    private Long totalPrice;
+    @Embedded
+    @AttributeOverrides({
+        @AttributeOverride(name = "amount", column = @Column(name = "total_price_amount")),
+        @AttributeOverride(name = "currency", column = @Column(name = "total_price_currency"))
+    })
+    private Money totalPrice;
 
     private String name;
 
@@ -35,10 +46,20 @@ public class Asset extends TimeStampedBaseEntity {
     private UUID userId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @Setter
+    @Setter(AccessLevel.PROTECTED)
     private PortfolioGroup portfolioGroup;
 
-    public static Asset create(Double amount, Long totalPrice, String name, Long stockId, UUID userId) {
+    public void additionalBuy(BigDecimal amount, Money totalPrice) {
+        this.amount = this.amount.add(amount);
+        this.totalPrice = this.totalPrice.plus(totalPrice);
+    }
+
+    public void partialSell(BigDecimal amount, Money totalPrice) {
+        this.amount = this.amount.subtract(amount);
+        this.totalPrice = this.totalPrice.minus(totalPrice);
+    }
+
+    public static Asset create(BigDecimal amount, Money totalPrice, String name, Long stockId, UUID userId) {
         return Asset.builder()
             .amount(amount)
             .totalPrice(totalPrice)
