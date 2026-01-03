@@ -108,4 +108,20 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
                 request.getIconCode()
         );
     }
+
+    @Override
+    @Transactional
+    public void deletePortfolioGroup(Long portfolioGroupId, UUID requesterUserId) {
+        PortfolioGroup existing = portfolioGroupRepository.findById(portfolioGroupId)
+                .orElseThrow(() -> new DomainException(AssetErrorCode.PORTFOLIO_GROUP_NOT_FOUND));
+
+        existing.ensureDeletable(requesterUserId);
+
+        PortfolioGroup defaultGroup = portfolioGroupRepository.findDefaultByUserId(requesterUserId)
+                .orElseThrow(() -> new DomainException(AssetErrorCode.DEFAULT_PORTFOLIO_GROUP_NOT_FOUND));
+
+        existing.transferAssetsTo(defaultGroup);
+
+        portfolioGroupRepository.delete(existing);
+    }
 }

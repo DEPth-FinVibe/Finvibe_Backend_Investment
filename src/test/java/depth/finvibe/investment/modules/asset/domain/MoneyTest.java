@@ -3,6 +3,8 @@ package depth.finvibe.investment.modules.asset.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.math.BigDecimal;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -58,5 +60,29 @@ class MoneyTest {
     assertThatThrownBy(() -> krw.minus(bigger))
         .isInstanceOf(DomainException.class)
         .satisfies(ex -> assertThat(((DomainException) ex).getErrorCode()).isEqualTo(AssetErrorCode.NEGATIVE_MONEY_AMOUNT));
+  }
+
+  @Test
+  @DisplayName("Money를 더하면 합계가 반환된다.")
+  void plus_success() {
+    Money m1 = Money.of(1000d, Currency.KRW);
+    Money m2 = Money.of(500d, Currency.KRW);
+
+    Money result = m1.plus(m2);
+
+    assertThat(result.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(1500));
+    assertThat(result.getCurrency()).isEqualTo(Currency.KRW);
+  }
+
+  @Test
+  @DisplayName("Money를 빼면 차액이 반환된다.")
+  void minus_success() {
+    Money m1 = Money.of(1000d, Currency.KRW);
+    Money m2 = Money.of(300d, Currency.KRW);
+
+    Money result = m1.minus(m2);
+
+    assertThat(result.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(700));
+    assertThat(result.getCurrency()).isEqualTo(Currency.KRW);
   }
 }

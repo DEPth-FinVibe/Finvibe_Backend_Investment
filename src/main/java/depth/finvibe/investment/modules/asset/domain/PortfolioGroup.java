@@ -58,7 +58,24 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
             .build();
     }
 
+    public static PortfolioGroup createDefault(UUID userId) {
+        if(userId == null) {
+            throw new DomainException(AssetErrorCode.INVALID_PORTFOLIO_GROUP_PARAMS);
+        }
+
+        return PortfolioGroup.builder()
+            .name("기본 포트폴리오")
+            .userId(userId)
+            .iconCode("default_icon")
+            .isDefault(true)
+            .build();
+    }
+
     public void patch(String name, String iconCode) {
+        if(this.isDefault) {
+            throw new DomainException(AssetErrorCode.CANNOT_MODIFY_DEFAULT_PORTFOLIO_GROUP);
+        }
+
         if(name != null && !name.isBlank()) {
             this.name = name;
         }
@@ -110,5 +127,31 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
             return false;
         }
         return amount.abs().compareTo(AMOUNT_ZERO_THRESHOLD) <= 0;
+    }
+
+    public void ensureDeletable(UUID requesterUserId) {
+        if(this.isDefault) {
+            throw new DomainException(AssetErrorCode.CANNOT_DELETE_DEFAULT_PORTFOLIO_GROUP);
+        }
+        if(!this.userId.equals(requesterUserId)) {
+            throw new DomainException(AssetErrorCode.ONLY_OWNER_CAN_DELETE_PORTFOLIO_GROUP);
+        }
+    }
+
+    public void transferAssetsTo(PortfolioGroup targetGroup) {
+        for (Asset asset : new ArrayList<>(this.assets)) {
+            Optional<Asset> existingAsset = targetGroup.assets.stream()
+                    .filter(a -> a.getStockId().equals(asset.getStockId()))
+                    .findFirst();
+
+            if (existingAsset.isPresent()) {
+                existingAsset.get().additionalBuy(asset.getAmount(), asset.getTotalPrice());
+                asset.setPortfolioGroup(null);
+            } else {
+                asset.setPortfolioGroup(targetGroup);
+                targetGroup.assets.add(asset);
+            }
+        }
+        this.assets.clear();
     }
 }

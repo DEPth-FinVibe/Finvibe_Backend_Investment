@@ -34,4 +34,14 @@ public class PortfolioGroupRepositoryImpl implements PortfolioGroupRepository {
     public List<PortfolioGroup> findAllByUserId(UUID userId) {
         return jpaRepository.findAllByUserId(userId);
     }
+
+    @Override
+    public Optional<PortfolioGroup> findDefaultByUserId(UUID userId) {
+        return queryRepository.findDefaultByUserId(userId);
+    }
+
+    @Override
+    public void delete(PortfolioGroup existing) {
+        jpaRepository.delete(existing);
+    }
 }

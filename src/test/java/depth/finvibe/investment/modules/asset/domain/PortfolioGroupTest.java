@@ -197,4 +197,154 @@ class PortfolioGroupTest {
         .isInstanceOf(DomainException.class)
         .satisfies(ex -> assertThat(((DomainException) ex).getErrorCode()).isEqualTo(AssetErrorCode.CANNOT_SELL_NON_EXISTENT_ASSET));
   }
+
+  @Test
+  @DisplayName("기본 포트폴리오 그룹을 생성할 수 있다.")
+  void createDefault_success() {
+    // given
+    UUID userId = UUID.randomUUID();
+
+    // when
+    PortfolioGroup defaultGroup = PortfolioGroup.createDefault(userId);
+
+    // then
+    assertThat(defaultGroup.getName()).isEqualTo("기본 포트폴리오");
+    assertThat(defaultGroup.getUserId()).isEqualTo(userId);
+    assertThat(defaultGroup.getIsDefault()).isTrue();
+  }
+
+  @Test
+  @DisplayName("포트폴리오 그룹 정보를 수정할 수 있다.")
+  void patch_success() {
+    // given
+    PortfolioGroup group = PortfolioGroup.builder()
+        .name("기존 이름")
+        .iconCode("OLD")
+        .isDefault(false)
+        .build();
+
+    // when
+    group.patch("새 이름", "NEW");
+
+    // then
+    assertThat(group.getName()).isEqualTo("새 이름");
+    assertThat(group.getIconCode()).isEqualTo("NEW");
+  }
+
+  @Test
+  @DisplayName("기본 포트폴리오 그룹은 수정할 수 없다.")
+  void patch_defaultGroup_fail() {
+    // given
+    PortfolioGroup defaultGroup = PortfolioGroup.builder()
+        .isDefault(true)
+        .build();
+
+    // when / then
+    assertThatThrownBy(() -> defaultGroup.patch("새 이름", "NEW"))
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).getErrorCode()).isEqualTo(AssetErrorCode.CANNOT_MODIFY_DEFAULT_PORTFOLIO_GROUP));
+  }
+
+  @Test
+  @DisplayName("자산을 다른 그룹으로 이전할 수 있다. (중복 종목 병합)")
+  void transferAssetsTo_merge_success() {
+    // given
+    UUID userId = UUID.randomUUID();
+    PortfolioGroup source = PortfolioGroup.builder()
+        .userId(userId)
+        .assets(new ArrayList<>())
+        .build();
+    Asset asset1 = Asset.create(BigDecimal.valueOf(10), Money.of(1000d, Currency.KRW), "자산1", 1L, userId);
+    source.register(asset1, userId);
+
+    PortfolioGroup target = PortfolioGroup.builder()
+        .userId(userId)
+        .assets(new ArrayList<>())
+        .build();
+    Asset asset2 = Asset.create(BigDecimal.valueOf(5), Money.of(500d, Currency.KRW), "자산1", 1L, userId);
+    target.register(asset2, userId);
+
+    // when
+    source.transferAssetsTo(target);
+
+    // then
+    assertThat(source.getAssets()).isEmpty();
+    assertThat(target.getAssets()).hasSize(1);
+    assertThat(target.getAssets().get(0).getAmount()).isEqualByComparingTo(BigDecimal.valueOf(15));
+    assertThat(target.getAssets().get(0).getTotalPrice().getAmount()).isEqualByComparingTo(BigDecimal.valueOf(1500));
+  }
+
+  @Test
+  @DisplayName("자산을 다른 그룹으로 이전할 수 있다. (새 종목 추가)")
+  void transferAssetsTo_move_success() {
+    // given
+    UUID userId = UUID.randomUUID();
+    PortfolioGroup source = PortfolioGroup.builder()
+        .userId(userId)
+        .assets(new ArrayList<>())
+        .build();
+    Asset asset1 = Asset.create(BigDecimal.valueOf(10), Money.of(1000d, Currency.KRW), "자산1", 1L, userId);
+    source.register(asset1, userId);
+
+    PortfolioGroup target = PortfolioGroup.builder()
+        .userId(userId)
+        .assets(new ArrayList<>())
+        .build();
+
+    // when
+    source.transferAssetsTo(target);
+
+    // then
+    assertThat(source.getAssets()).isEmpty();
+    assertThat(target.getAssets()).hasSize(1);
+    assertThat(target.getAssets().get(0).getName()).isEqualTo("자산1");
+    assertThat(target.getAssets().get(0).getPortfolioGroup()).isEqualTo(target);
+  }
+
+  @Test
+  @DisplayName("삭제 가능 여부 확인 - 성공")
+  void ensureDeletable_success() {
+    // given
+    UUID userId = UUID.randomUUID();
+    PortfolioGroup group = PortfolioGroup.builder()
+        .userId(userId)
+        .isDefault(false)
+        .build();
+
+    // when / then (no exception)
+    group.ensureDeletable(userId);
+  }
+
+  @Test
+  @DisplayName("삭제 가능 여부 확인 - 기본 그룹 실패")
+  void ensureDeletable_defaultGroup_fail() {
+    // given
+    UUID userId = UUID.randomUUID();
+    PortfolioGroup group = PortfolioGroup.builder()
+        .userId(userId)
+        .isDefault(true)
+        .build();
+
+    // when / then
+    assertThatThrownBy(() -> group.ensureDeletable(userId))
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).getErrorCode()).isEqualTo(AssetErrorCode.CANNOT_DELETE_DEFAULT_PORTFOLIO_GROUP));
+  }
+
+  @Test
+  @DisplayName("삭제 가능 여부 확인 - 소유자 아님 실패")
+  void ensureDeletable_notOwner_fail() {
+    // given
+    UUID ownerId = UUID.randomUUID();
+    UUID otherId = UUID.randomUUID();
+    PortfolioGroup group = PortfolioGroup.builder()
+        .userId(ownerId)
+        .isDefault(false)
+        .build();
+
+    // when / then
+    assertThatThrownBy(() -> group.ensureDeletable(otherId))
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).getErrorCode()).isEqualTo(AssetErrorCode.ONLY_OWNER_CAN_DELETE_PORTFOLIO_GROUP));
+  }
 }

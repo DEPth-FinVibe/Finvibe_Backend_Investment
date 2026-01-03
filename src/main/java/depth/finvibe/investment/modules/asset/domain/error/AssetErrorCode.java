@@ -17,7 +17,11 @@ public enum AssetErrorCode implements DomainErrorCode {
     NEGATIVE_MONEY_AMOUNT("NEGATIVE_MONEY_AMOUNT", "error.asset.negative_money_amount"),
     INVALID_MONEY_PARAMS("INVALID_MONEY_PARAMS", "error.asset.invalid_money_params"),
     CANNOT_ADD_DIFFERENT_CURRENCIES("CANNOT_ADD_DIFFERENT_CURRENCIES", "error.asset.cannot_add_different_currencies"),
-    CANNOT_SUBTRACT_DIFFERENT_CURRENCIES("CANNOT_SUBTRACT_DIFFERENT_CURRENCIES", "error.asset.cannot_subtract_different_currencies");
+    CANNOT_SUBTRACT_DIFFERENT_CURRENCIES("CANNOT_SUBTRACT_DIFFERENT_CURRENCIES", "error.asset.cannot_subtract_different_currencies"),
+    CANNOT_MODIFY_DEFAULT_PORTFOLIO_GROUP("CANNOT_MODIFY_DEFAULT_PORTFOLIO_GROUP", "error.asset.cannot_modify_default_portfolio_group"),
+    CANNOT_DELETE_DEFAULT_PORTFOLIO_GROUP("CANNOT_DELETE_DEFAULT_PORTFOLIO_GROUP", "error.asset.cannot_delete_default_portfolio_group"),
+    ONLY_OWNER_CAN_DELETE_PORTFOLIO_GROUP("ONLY_OWNER_CAN_DELETE_PORTFOLIO_GROUP", "error.asset.only_owner_can_delete_portfolio_group"),
+    DEFAULT_PORTFOLIO_GROUP_NOT_FOUND("DEFAULT_PORTFOLIO_GROUP_NOT_FOUND", "error.asset.default_portfolio_group_not_found");
 
     private final String code;
     private final String messageKey;
