@@ -48,7 +48,7 @@ class AssetServiceTest {
         .iconCode("ICON")
         .assets(new ArrayList<>())
         .build();
-    when(portfolioGroupRepository.findById(1L)).thenReturn(Optional.of(existing));
+    when(portfolioGroupRepository.findByIdWithAssets(1L)).thenReturn(Optional.of(existing));
 
     PortfolioGroupDto.RegisterAssetRequest request = PortfolioGroupDto.RegisterAssetRequest.builder()
         .stockId(10L)
@@ -74,7 +74,7 @@ class AssetServiceTest {
   @DisplayName("없는 포트폴리오에 등록 시 예외를 던진다.")
   void registerAsset_notFound_fail() {
     // given
-    when(portfolioGroupRepository.findById(99L)).thenReturn(Optional.empty());
+    when(portfolioGroupRepository.findByIdWithAssets(99L)).thenReturn(Optional.empty());
 
     PortfolioGroupDto.RegisterAssetRequest request = PortfolioGroupDto.RegisterAssetRequest.builder()
         .stockId(10L)
@@ -96,7 +96,7 @@ class AssetServiceTest {
     // given
     UUID userId = UUID.randomUUID();
     PortfolioGroup portfolioGroup = org.mockito.Mockito.mock(PortfolioGroup.class);
-    when(portfolioGroupRepository.findById(1L)).thenReturn(Optional.of(portfolioGroup));
+    when(portfolioGroupRepository.findByIdWithAssets(1L)).thenReturn(Optional.of(portfolioGroup));
 
     PortfolioGroupDto.UnregisterAssetRequest request = PortfolioGroupDto.UnregisterAssetRequest.builder()
         .stockId(5L)
@@ -121,7 +121,7 @@ class AssetServiceTest {
   @DisplayName("없는 포트폴리오에서 자산 해제 시 예외를 던진다.")
   void unregisterAsset_notFound_fail() {
     // given
-    when(portfolioGroupRepository.findById(99L)).thenReturn(Optional.empty());
+    when(portfolioGroupRepository.findByIdWithAssets(99L)).thenReturn(Optional.empty());
 
     PortfolioGroupDto.UnregisterAssetRequest request = PortfolioGroupDto.UnregisterAssetRequest.builder()
         .stockId(10L)

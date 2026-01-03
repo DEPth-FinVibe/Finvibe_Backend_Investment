@@ -9,5 +9,6 @@ import java.util.UUID;
 public interface PortfolioGroupRepository {
     PortfolioGroup save(PortfolioGroup portfolioGroup);
     Optional<PortfolioGroup> findById(Long id);
+    Optional<PortfolioGroup> findByIdWithAssets(Long id);
     List<PortfolioGroup> findAllByUserId(UUID userId);
 }

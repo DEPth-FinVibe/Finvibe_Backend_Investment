@@ -25,7 +25,7 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
     @Override
     @Transactional(readOnly = true)
     public List<PortfolioGroupDto.AssetResponse> getAssetsByPortfolio(Long portfolioId, UUID requesterUserId) {
-        PortfolioGroup portfolioGroup = portfolioGroupRepository.findById(portfolioId)
+        PortfolioGroup portfolioGroup = portfolioGroupRepository.findByIdWithAssets(portfolioId)
                 .orElseThrow(() -> new DomainException(AssetErrorCode.PORTFOLIO_GROUP_NOT_FOUND));
 
         if (!portfolioGroup.getUserId().equals(requesterUserId)) {
@@ -57,8 +57,9 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
     }
 
     @Override
+    @Transactional
     public void registerAsset(Long portfolioId, PortfolioGroupDto.RegisterAssetRequest request, UUID requesterUserId) {
-        PortfolioGroup foundPortfolioGroup = portfolioGroupRepository.findById(portfolioId)
+        PortfolioGroup foundPortfolioGroup = portfolioGroupRepository.findByIdWithAssets(portfolioId)
                 .orElseThrow(() -> new DomainException(AssetErrorCode.PORTFOLIO_GROUP_NOT_FOUND));
 
         Asset toRegister = Asset.create(
@@ -72,8 +73,9 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
     }
 
     @Override
+    @Transactional
     public void unregisterAsset(Long portfolioId, PortfolioGroupDto.UnregisterAssetRequest request, UUID requesterUserId) {
-        PortfolioGroup foundPortfolioGroup = portfolioGroupRepository.findById(portfolioId)
+        PortfolioGroup foundPortfolioGroup = portfolioGroupRepository.findByIdWithAssets(portfolioId)
                 .orElseThrow(() -> new DomainException(AssetErrorCode.PORTFOLIO_GROUP_NOT_FOUND));
 
         foundPortfolioGroup.unregister(

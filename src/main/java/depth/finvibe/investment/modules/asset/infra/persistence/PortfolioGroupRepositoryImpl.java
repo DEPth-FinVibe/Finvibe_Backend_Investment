@@ -13,6 +13,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PortfolioGroupRepositoryImpl implements PortfolioGroupRepository {
     private final PortfolioGroupJpaRepository jpaRepository;
+    private final PortfolioGroupQueryRepository queryRepository;
 
     @Override
     public PortfolioGroup save(PortfolioGroup portfolioGroup) {
@@ -22,6 +23,11 @@ public class PortfolioGroupRepositoryImpl implements PortfolioGroupRepository {
     @Override
     public Optional<PortfolioGroup> findById(Long id) {
         return jpaRepository.findById(id);
+    }
+
+    @Override
+    public Optional<PortfolioGroup> findByIdWithAssets(Long id) {
+        return queryRepository.findByIdWithAssets(id);
     }
 
     @Override
