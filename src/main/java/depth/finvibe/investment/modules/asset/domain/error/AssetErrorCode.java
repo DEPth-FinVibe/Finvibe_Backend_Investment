@@ -21,7 +21,8 @@ public enum AssetErrorCode implements DomainErrorCode {
     CANNOT_MODIFY_DEFAULT_PORTFOLIO_GROUP("CANNOT_MODIFY_DEFAULT_PORTFOLIO_GROUP", "error.asset.cannot_modify_default_portfolio_group"),
     CANNOT_DELETE_DEFAULT_PORTFOLIO_GROUP("CANNOT_DELETE_DEFAULT_PORTFOLIO_GROUP", "error.asset.cannot_delete_default_portfolio_group"),
     ONLY_OWNER_CAN_DELETE_PORTFOLIO_GROUP("ONLY_OWNER_CAN_DELETE_PORTFOLIO_GROUP", "error.asset.only_owner_can_delete_portfolio_group"),
-    DEFAULT_PORTFOLIO_GROUP_NOT_FOUND("DEFAULT_PORTFOLIO_GROUP_NOT_FOUND", "error.asset.default_portfolio_group_not_found");
+    DEFAULT_PORTFOLIO_GROUP_NOT_FOUND("DEFAULT_PORTFOLIO_GROUP_NOT_FOUND", "error.asset.default_portfolio_group_not_found"),
+    DEFAULT_PORTFOLIO_GROUP_ALREADY_EXISTS("DEFAULT_PORTFOLIO_GROUP_ALREADY_EXISTS", "error.asset.default_portfolio_group_already_exists");
 
     private final String code;
     private final String messageKey;

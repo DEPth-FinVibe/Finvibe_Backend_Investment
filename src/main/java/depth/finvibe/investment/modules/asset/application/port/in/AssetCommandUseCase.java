@@ -10,4 +10,5 @@ public interface AssetCommandUseCase {
     void createPortfolioGroup(PortfolioGroupDto.CreatePortfolioGroupRequest request, UUID requesterUserId);
     void updatePortfolioGroup(Long portfolioGroupId, PortfolioGroupDto.UpdatePortfolioGroupRequest request, UUID requesterUserId);
     void deletePortfolioGroup(Long portfolioGroupId, UUID requesterUserId);
+    void createDefaultPortfolioGroup(UUID targetUserId);
 }

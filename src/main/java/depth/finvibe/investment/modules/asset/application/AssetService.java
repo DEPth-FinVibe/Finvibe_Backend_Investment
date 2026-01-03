@@ -124,4 +124,17 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
 
         portfolioGroupRepository.delete(existing);
     }
+
+    @Override
+    @Transactional
+    public void createDefaultPortfolioGroup(UUID targetUserId) {
+        PortfolioGroup toSave = PortfolioGroup.createDefault(targetUserId);
+
+        //cannot Create If Already Exists
+        if (portfolioGroupRepository.existDefaultByUserId(targetUserId)) {
+            throw new DomainException(AssetErrorCode.DEFAULT_PORTFOLIO_GROUP_ALREADY_EXISTS);
+        }
+
+        portfolioGroupRepository.save(toSave);
+    }
 }

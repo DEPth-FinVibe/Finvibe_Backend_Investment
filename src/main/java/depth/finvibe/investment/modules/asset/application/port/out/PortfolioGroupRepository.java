@@ -16,6 +16,8 @@ public interface PortfolioGroupRepository {
     List<PortfolioGroup> findAllByUserId(UUID userId);
 
     Optional<PortfolioGroup> findDefaultByUserId(UUID userId);
-    
+
     void delete(PortfolioGroup existing);
+
+    boolean existDefaultByUserId(UUID userId);
 }

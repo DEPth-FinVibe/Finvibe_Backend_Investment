@@ -35,4 +35,11 @@ public class PortfolioGroupQueryRepository {
                         .fetchOne()
         );
     }
+
+    public boolean existDefaultByUserId(UUID userId) {
+        return queryFactory
+                .selectFrom(portfolioGroup)
+                .where(portfolioGroup.userId.eq(userId).and(portfolioGroup.isDefault.eq(true)))
+                .fetchFirst() != null;
+    }
 }
