@@ -22,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import depth.finvibe.investment.modules.asset.application.port.out.PortfolioGroupRepository;
 import depth.finvibe.investment.modules.asset.domain.Asset;
 import depth.finvibe.investment.modules.asset.domain.Currency;
+import depth.finvibe.investment.modules.asset.domain.Money;
 import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
 import depth.finvibe.investment.modules.asset.domain.error.AssetErrorCode;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
@@ -85,6 +86,52 @@ class AssetServiceTest {
 
     // when / then
     assertThatThrownBy(() -> assetService.registerAsset(99L, request, UUID.randomUUID()))
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).getErrorCode()).isEqualTo(AssetErrorCode.PORTFOLIO_GROUP_NOT_FOUND));
+  }
+
+  @Test
+  @DisplayName("자산 해제 시 포트폴리오를 찾아 매도 요청을 전달한다.")
+  void unregisterAsset_success() {
+    // given
+    UUID userId = UUID.randomUUID();
+    PortfolioGroup portfolioGroup = org.mockito.Mockito.mock(PortfolioGroup.class);
+    when(portfolioGroupRepository.findById(1L)).thenReturn(Optional.of(portfolioGroup));
+
+    PortfolioGroupDto.UnregisterAssetRequest request = PortfolioGroupDto.UnregisterAssetRequest.builder()
+        .stockId(5L)
+        .amount(1.5)
+        .stockPrice(3_000L)
+        .currency(Currency.KRW)
+        .build();
+
+    ArgumentCaptor<Money> moneyCaptor = ArgumentCaptor.forClass(Money.class);
+
+    // when
+    assetService.unregisterAsset(1L, request, userId);
+
+    // then
+    verify(portfolioGroup).unregister(eq(5L), eq(1.5), moneyCaptor.capture(), eq(userId));
+    Money paidMoney = moneyCaptor.getValue();
+    assertThat(paidMoney.getAmount()).isEqualTo(3_000d);
+    assertThat(paidMoney.getCurrency()).isEqualTo(Currency.KRW);
+  }
+
+  @Test
+  @DisplayName("없는 포트폴리오에서 자산 해제 시 예외를 던진다.")
+  void unregisterAsset_notFound_fail() {
+    // given
+    when(portfolioGroupRepository.findById(99L)).thenReturn(Optional.empty());
+
+    PortfolioGroupDto.UnregisterAssetRequest request = PortfolioGroupDto.UnregisterAssetRequest.builder()
+        .stockId(10L)
+        .amount(1.0)
+        .stockPrice(1_000L)
+        .currency(Currency.KRW)
+        .build();
+
+    // when / then
+    assertThatThrownBy(() -> assetService.unregisterAsset(99L, request, UUID.randomUUID()))
         .isInstanceOf(DomainException.class)
         .satisfies(ex -> assertThat(((DomainException) ex).getErrorCode()).isEqualTo(AssetErrorCode.PORTFOLIO_GROUP_NOT_FOUND));
   }
