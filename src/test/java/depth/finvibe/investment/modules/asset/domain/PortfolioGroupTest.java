@@ -57,7 +57,7 @@ class PortfolioGroupTest {
         .iconCode("ICON")
         .assets(new ArrayList<>())
         .build();
-    Asset asset = Asset.create(BigDecimal.valueOf(1.0), Money.of(5_000d, Currency.KRW), "자산", 1L, userId);
+    Asset asset = Asset.create(BigDecimal.valueOf(1.0), BigDecimal.valueOf(5_000), Currency.KRW, "자산", 1L, userId);
 
     // when
     portfolioGroup.register(asset, userId);
@@ -78,7 +78,7 @@ class PortfolioGroupTest {
         .iconCode("ICON")
         .assets(new ArrayList<>())
         .build();
-    Asset asset = Asset.create(BigDecimal.valueOf(1.0), Money.of(5_000d, Currency.KRW), "자산", 1L, userId);
+    Asset asset = Asset.create(BigDecimal.valueOf(1.0), BigDecimal.valueOf(5_000), Currency.KRW, "자산", 1L, userId);
     portfolioGroup.register(asset, userId);
 
     // when
@@ -100,7 +100,7 @@ class PortfolioGroupTest {
         .iconCode("ICON")
         .assets(new ArrayList<>())
         .build();
-    Asset asset = Asset.create(new BigDecimal("1.0"), Money.of(5_000d, Currency.KRW), "자산", 1L, userId);
+    Asset asset = Asset.create(new BigDecimal("1.0"), BigDecimal.valueOf(5_000), Currency.KRW, "자산", 1L, userId);
     portfolioGroup.register(asset, userId);
 
     // when: 1.0 - 0.9999995 = 0.0000005 (threshold 0.000001 이하)
@@ -122,7 +122,7 @@ class PortfolioGroupTest {
         .iconCode("ICON")
         .assets(new ArrayList<>())
         .build();
-    Asset asset = Asset.create(new BigDecimal("1.0"), Money.of(5_000d, Currency.KRW), "자산", 1L, userId);
+    Asset asset = Asset.create(new BigDecimal("1.0"), BigDecimal.valueOf(5_000), Currency.KRW, "자산", 1L, userId);
     portfolioGroup.register(asset, userId);
 
     // when: 1.0 - 0.999998 = 0.000002 (threshold 초과)
@@ -145,7 +145,7 @@ class PortfolioGroupTest {
         .iconCode("ICON")
         .assets(new ArrayList<>())
         .build();
-    Asset asset = Asset.create(BigDecimal.valueOf(1.0), Money.of(5_000d, Currency.KRW), "자산", 1L, ownerId);
+    Asset asset = Asset.create(BigDecimal.valueOf(1.0), BigDecimal.valueOf(5_000), Currency.KRW, "자산", 1L, ownerId);
 
     // when / then
     assertThatThrownBy(() -> portfolioGroup.register(asset, otherUser))
@@ -164,10 +164,10 @@ class PortfolioGroupTest {
         .iconCode("ICON")
         .assets(new ArrayList<>())
         .build();
-    Asset existing = Asset.create(BigDecimal.valueOf(1.0), Money.of(5_000d, Currency.KRW), "자산", 1L, userId);
+    Asset existing = Asset.create(BigDecimal.valueOf(1.0), BigDecimal.valueOf(5_000), Currency.KRW, "자산", 1L, userId);
     portfolioGroup.register(existing, userId);
 
-    Asset additional = Asset.create(BigDecimal.valueOf(2.0), Money.of(10_000d, Currency.KRW), "자산", 1L, userId);
+    Asset additional = Asset.create(BigDecimal.valueOf(2.0), BigDecimal.valueOf(5_000), Currency.KRW, "자산", 1L, userId);
 
     // when
     portfolioGroup.register(additional, userId);
@@ -254,14 +254,14 @@ class PortfolioGroupTest {
         .userId(userId)
         .assets(new ArrayList<>())
         .build();
-    Asset asset1 = Asset.create(BigDecimal.valueOf(10), Money.of(1000d, Currency.KRW), "자산1", 1L, userId);
+    Asset asset1 = Asset.create(BigDecimal.valueOf(10), BigDecimal.valueOf(100), Currency.KRW, "자산1", 1L, userId);
     source.register(asset1, userId);
 
     PortfolioGroup target = PortfolioGroup.builder()
         .userId(userId)
         .assets(new ArrayList<>())
         .build();
-    Asset asset2 = Asset.create(BigDecimal.valueOf(5), Money.of(500d, Currency.KRW), "자산1", 1L, userId);
+    Asset asset2 = Asset.create(BigDecimal.valueOf(5), BigDecimal.valueOf(100), Currency.KRW, "자산1", 1L, userId);
     target.register(asset2, userId);
 
     // when
@@ -283,7 +283,7 @@ class PortfolioGroupTest {
         .userId(userId)
         .assets(new ArrayList<>())
         .build();
-    Asset asset1 = Asset.create(BigDecimal.valueOf(10), Money.of(1000d, Currency.KRW), "자산1", 1L, userId);
+    Asset asset1 = Asset.create(BigDecimal.valueOf(10), BigDecimal.valueOf(1000), Currency.KRW, "자산1", 1L, userId);
     source.register(asset1, userId);
 
     PortfolioGroup target = PortfolioGroup.builder()

@@ -15,17 +15,18 @@ class AssetTest {
   void createAsset_success() {
     // given
     BigDecimal amount = BigDecimal.valueOf(3.5d);
-    Money totalPrice = Money.of(10_000d, Currency.KRW);
+    BigDecimal unitPrice = BigDecimal.valueOf(10_000d);
+    Currency currency = Currency.KRW;
     String name = "테스트자산";
     Long stockId = 123L;
     UUID userId = UUID.randomUUID();
 
     // when
-    Asset asset = Asset.create(amount, totalPrice, name, stockId, userId);
+    Asset asset = Asset.create(amount, unitPrice, currency, name, stockId, userId);
 
     // then
     assertThat(asset.getAmount()).isEqualByComparingTo(amount);
-    assertThat(asset.getTotalPrice().getAmount()).isEqualByComparingTo(totalPrice.getAmount());
+    assertThat(asset.getTotalPrice().getAmount()).isEqualByComparingTo(unitPrice.multiply(amount));
     assertThat(asset.getTotalPrice().getCurrency()).isEqualTo(Currency.KRW);
     assertThat(asset.getName()).isEqualTo(name);
     assertThat(asset.getStockId()).isEqualTo(stockId);
@@ -39,7 +40,7 @@ class AssetTest {
   void additionalBuy_success() {
     // given
     UUID userId = UUID.randomUUID();
-    Asset asset = Asset.create(BigDecimal.valueOf(1.0), Money.of(10_000d, Currency.KRW), "자산", 1L, userId);
+    Asset asset = Asset.create(BigDecimal.valueOf(1.0), BigDecimal.valueOf(10_000d), Currency.KRW, "자산", 1L, userId);
 
     // when
     asset.additionalBuy(BigDecimal.valueOf(0.5), Money.of(5_000d, Currency.KRW));
@@ -55,7 +56,7 @@ class AssetTest {
   void partialSell_success() {
     // given
     UUID userId = UUID.randomUUID();
-    Asset asset = Asset.create(BigDecimal.valueOf(2.0), Money.of(20_000d, Currency.KRW), "자산", 1L, userId);
+    Asset asset = Asset.create(BigDecimal.valueOf(2.0), BigDecimal.valueOf(10_000d), Currency.KRW, "자산", 1L, userId);
 
     // when
     asset.partialSell(BigDecimal.valueOf(0.5), Money.of(5_000d, Currency.KRW));

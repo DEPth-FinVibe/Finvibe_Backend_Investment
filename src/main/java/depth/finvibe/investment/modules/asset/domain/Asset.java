@@ -59,7 +59,8 @@ public class Asset extends TimeStampedBaseEntity {
         this.totalPrice = this.totalPrice.minus(totalPrice);
     }
 
-    public static Asset create(BigDecimal amount, Money totalPrice, String name, Long stockId, UUID userId) {
+    public static Asset create(BigDecimal amount, BigDecimal unitPrice, Currency currency, String name, Long stockId, UUID userId) {
+        Money totalPrice = Money.of(unitPrice.multiply(amount), currency);
         return Asset.builder()
             .amount(amount)
             .totalPrice(totalPrice)

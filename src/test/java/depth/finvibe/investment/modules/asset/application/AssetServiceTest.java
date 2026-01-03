@@ -8,7 +8,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -174,7 +173,7 @@ class AssetServiceTest {
         .userId(userId)
         .assets(new ArrayList<>())
         .build();
-    when(portfolioGroupRepository.findById(1L)).thenReturn(Optional.of(existing));
+    when(portfolioGroupRepository.findByIdWithAssets(1L)).thenReturn(Optional.of(existing));
 
     PortfolioGroupDto.UpdatePortfolioGroupRequest request = PortfolioGroupDto.UpdatePortfolioGroupRequest.builder()
         .name("새 이름")
@@ -193,7 +192,7 @@ class AssetServiceTest {
   @DisplayName("존재하지 않는 포트폴리오 그룹 수정 시 예외를 던진다.")
   void updatePortfolioGroup_notFound_fail() {
     // given
-    when(portfolioGroupRepository.findById(99L)).thenReturn(Optional.empty());
+    when(portfolioGroupRepository.findByIdWithAssets(99L)).thenReturn(Optional.empty());
 
     PortfolioGroupDto.UpdatePortfolioGroupRequest request = PortfolioGroupDto.UpdatePortfolioGroupRequest.builder()
         .name("새 이름")
@@ -211,7 +210,7 @@ class AssetServiceTest {
   void getAssetsByPortfolio_success() {
     // given
     UUID userId = UUID.randomUUID();
-    Asset asset = Asset.create(BigDecimal.valueOf(10), Money.of(100000d, Currency.KRW), "삼성전자", 1L, userId);
+    Asset asset = Asset.create(BigDecimal.valueOf(10), BigDecimal.valueOf(10000d), Currency.KRW, "삼성전자", 1L, userId);
     PortfolioGroup portfolioGroup = PortfolioGroup.builder()
         .id(1L)
         .name("주식")
@@ -273,7 +272,7 @@ class AssetServiceTest {
   void deletePortfolioGroup_success() {
     // given
     UUID userId = UUID.randomUUID();
-    Asset asset = Asset.create(BigDecimal.valueOf(10), Money.of(100000d, Currency.KRW), "삼성전자", 1L, userId);
+    Asset asset = Asset.create(BigDecimal.valueOf(10), BigDecimal.valueOf(10000d), Currency.KRW, "삼성전자", 1L, userId);
     PortfolioGroup existing = PortfolioGroup.builder()
         .id(1L)
         .name("삭제할 그룹")
@@ -291,7 +290,7 @@ class AssetServiceTest {
         .assets(new ArrayList<>())
         .build();
 
-    when(portfolioGroupRepository.findById(1L)).thenReturn(Optional.of(existing));
+    when(portfolioGroupRepository.findByIdWithAssets(1L)).thenReturn(Optional.of(existing));
     when(portfolioGroupRepository.findDefaultByUserId(userId)).thenReturn(Optional.of(defaultGroup));
 
     // when
@@ -313,7 +312,7 @@ class AssetServiceTest {
         .isDefault(true)
         .userId(userId)
         .build();
-    when(portfolioGroupRepository.findById(1L)).thenReturn(Optional.of(defaultGroup));
+    when(portfolioGroupRepository.findByIdWithAssets(1L)).thenReturn(Optional.of(defaultGroup));
 
     // when / then
     assertThatThrownBy(() -> assetService.deletePortfolioGroup(1L, userId))

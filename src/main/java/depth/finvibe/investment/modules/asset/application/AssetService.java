@@ -128,10 +128,10 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
     }
 
     private Asset toAssetEntity(PortfolioGroupDto.RegisterAssetRequest request, UUID requesterUserId) {
-        Money totalPrice = Money.of(request.getStockPrice().multiply(request.getAmount()), request.getCurrency());
         return Asset.create(
                 request.getAmount(),
-                totalPrice,
+                request.getStockPrice(),
+                request.getCurrency(),
                 request.getName(),
                 request.getStockId(),
                 requesterUserId
