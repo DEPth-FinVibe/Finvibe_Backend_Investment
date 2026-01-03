@@ -26,7 +26,7 @@ public class Asset extends TimeStampedBaseEntity {
 
     private Double amount;
 
-    private Long totalPrice;
+    private Money totalPrice;
 
     private String name;
 
@@ -38,7 +38,17 @@ public class Asset extends TimeStampedBaseEntity {
     @Setter
     private PortfolioGroup portfolioGroup;
 
-    public static Asset create(Double amount, Long totalPrice, String name, Long stockId, UUID userId) {
+    public void additionalBuy(Double amount, Money totalPrice) {
+        this.amount += amount;
+        this.totalPrice = this.totalPrice.plus(totalPrice);
+    }
+
+    public void partialSell(Double amount, Money totalPrice) {
+        this.amount -= amount;
+        this.totalPrice = this.totalPrice.minus(totalPrice);
+    }
+
+    public static Asset create(Double amount, Money totalPrice, String name, Long stockId, UUID userId) {
         return Asset.builder()
             .amount(amount)
             .totalPrice(totalPrice)

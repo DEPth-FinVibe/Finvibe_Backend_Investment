@@ -1,16 +1,12 @@
 package depth.finvibe.investment.modules.asset.domain;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import depth.finvibe.investment.modules.asset.domain.error.AssetErrorCode;
 import depth.finvibe.investment.shared.domain.TimeStampedBaseEntity;
 import depth.finvibe.investment.shared.error.DomainException;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.FetchType;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Builder;
@@ -37,7 +33,7 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
     @Builder.Default
     private Boolean isDefault = false;
 
-    @OneToMany(mappedBy = "portfolioGroup", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "portfolioGroup", fetch = FetchType.LAZY, orphanRemoval = true, cascade = CascadeType.ALL)
     @Builder.Default
     private List<Asset> assets = new ArrayList<>();
 
@@ -62,13 +58,37 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
         }
     }
 
-    public void registerAsset(Asset asset) {
-        this.assets.add(asset);
-        asset.setPortfolioGroup(this);
+    public void register(Asset asset, UUID requesterId) {
+        if(!this.userId.equals(requesterId)) {
+            throw new DomainException(AssetErrorCode.ONLY_OWNER_CAN_REGISTER_ASSET);
+        }
+
+        Optional<Asset> foundAsset = assets.stream()
+                .filter(it -> it.getStockId().equals(asset.getStockId()))
+                .findFirst();
+
+        if(foundAsset.isPresent()) {
+            foundAsset.get().additionalBuy(asset.getAmount(), asset.getTotalPrice());
+        } else {
+            this.assets.add(asset); // cascade 옵션으로 인해 PortfolioGroup이 저장될 때 Asset도 함께 저장
+            asset.setPortfolioGroup(this);
+        }
     }
 
-    public void unregisterAsset(Asset asset) {
-        this.assets.remove(asset);
-        asset.setPortfolioGroup(null);
+    public void unregister(Long stockId, Double amount, Money paidMoney) {
+        Optional<Asset> foundAsset = assets.stream()
+                .filter(it -> it.getStockId().equals(stockId))
+                .findFirst();
+
+        if(foundAsset.isEmpty()) {
+            throw new DomainException(AssetErrorCode.CANNOT_SELL_NON_EXISTENT_ASSET);
+        }
+
+        foundAsset.get().partialSell(amount, paidMoney);
+
+        if(foundAsset.get().getAmount() == 0) {
+            this.assets.remove(foundAsset.get()); // orphanRemoval을 사용해 0주가 된 자산을 자동으로 삭제
+            foundAsset.get().setPortfolioGroup(null);
+        }
     }
 }

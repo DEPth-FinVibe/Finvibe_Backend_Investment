@@ -4,7 +4,8 @@ import java.util.UUID;
 
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
 
-public interface PortfolioGroupCommandUseCase {
+public interface AssetCommandUseCase {
+    void registerAsset(Long portfolioId, PortfolioGroupDto.RegisterAssetRequest request, UUID requesterUserId);
     void createPortfolioGroup(PortfolioGroupDto.CreatePortfolioGroupRequest request, UUID requesterUserId);
     void updatePortfolioGroup(Long portfolioGroupId, PortfolioGroupDto.UpdatePortfolioGroupRequest request, UUID requesterUserId);
 }

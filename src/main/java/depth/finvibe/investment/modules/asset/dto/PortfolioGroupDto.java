@@ -1,5 +1,6 @@
 package depth.finvibe.investment.modules.asset.dto;
 
+import depth.finvibe.investment.modules.asset.domain.Currency;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -33,5 +34,17 @@ public class PortfolioGroupDto {
     public static class UpdatePortfolioGroupRequest {
         private String name;
         private String iconCode;
+    }
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Data
+    @Builder
+    public static class RegisterAssetRequest {
+        private Long stockId;
+        private Double amount;
+        private Long price;
+        private String name;
+        private Currency currency;
     }
 }
