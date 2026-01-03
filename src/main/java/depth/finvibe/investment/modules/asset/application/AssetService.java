@@ -27,12 +27,25 @@ public class AssetService implements AssetCommandUseCase {
 
         Asset toRegister = Asset.create(
                 request.getAmount(),
-                Money.of(request.getPrice() * request.getAmount(), request.getCurrency()),
+                Money.of(request.getStockPrice() * request.getAmount(), request.getCurrency()),
                 request.getName(),
                 request.getStockId(),
                 requesterUserId
         );
         foundPortfolioGroup.register(toRegister, requesterUserId);
+    }
+
+    @Override
+    public void unregisterAsset(Long portfolioId, PortfolioGroupDto.UnregisterAssetRequest request, UUID requesterUserId) {
+        PortfolioGroup foundPortfolioGroup = portfolioGroupRepository.findById(portfolioId)
+                .orElseThrow(() -> new DomainException(AssetErrorCode.PORTFOLIO_GROUP_NOT_FOUND));
+
+        foundPortfolioGroup.unregister(
+                request.getStockId(),
+                request.getAmount(),
+                Money.of(request.getStockPrice().doubleValue(), request.getCurrency()),
+                requesterUserId
+        );
     }
 
     @Override

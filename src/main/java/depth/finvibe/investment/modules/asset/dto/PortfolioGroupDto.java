@@ -43,8 +43,19 @@ public class PortfolioGroupDto {
     public static class RegisterAssetRequest {
         private Long stockId;
         private Double amount;
-        private Long price;
+        private Long stockPrice;
         private String name;
+        private Currency currency;
+    }
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Data
+    @Builder
+    public static class UnregisterAssetRequest {
+        private Long stockId;
+        private Double amount;
+        private Long stockPrice;
         private Currency currency;
     }
 }

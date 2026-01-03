@@ -75,7 +75,11 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
         }
     }
 
-    public void unregister(Long stockId, Double amount, Money paidMoney) {
+    public void unregister(Long stockId, Double amount, Money paidMoney, UUID requesterId) {
+        if(!this.userId.equals(requesterId)) {
+            throw new DomainException(AssetErrorCode.ONLY_OWNER_CAN_UNREGISTER_ASSET);
+        }
+
         Optional<Asset> foundAsset = assets.stream()
                 .filter(it -> it.getStockId().equals(stockId))
                 .findFirst();
@@ -86,7 +90,7 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
 
         foundAsset.get().partialSell(amount, paidMoney);
 
-        if(foundAsset.get().getAmount() == 0) {
+        if(foundAsset.get().getAmount() < 1) {
             this.assets.remove(foundAsset.get()); // orphanRemoval을 사용해 0주가 된 자산을 자동으로 삭제
             foundAsset.get().setPortfolioGroup(null);
         }

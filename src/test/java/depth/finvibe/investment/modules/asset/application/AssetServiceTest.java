@@ -22,7 +22,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import depth.finvibe.investment.modules.asset.application.port.out.PortfolioGroupRepository;
 import depth.finvibe.investment.modules.asset.domain.Asset;
 import depth.finvibe.investment.modules.asset.domain.Currency;
-import depth.finvibe.investment.modules.asset.domain.Money;
 import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
 import depth.finvibe.investment.modules.asset.domain.error.AssetErrorCode;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
@@ -53,7 +52,7 @@ class AssetServiceTest {
     PortfolioGroupDto.RegisterAssetRequest request = PortfolioGroupDto.RegisterAssetRequest.builder()
         .stockId(10L)
         .amount(2.0)
-        .price(5_000L)
+        .stockPrice(5_000L)
         .name("자산")
         .currency(Currency.KRW)
         .build();
@@ -79,7 +78,7 @@ class AssetServiceTest {
     PortfolioGroupDto.RegisterAssetRequest request = PortfolioGroupDto.RegisterAssetRequest.builder()
         .stockId(10L)
         .amount(1.0)
-        .price(1_000L)
+        .stockPrice(1_000L)
         .name("자산")
         .currency(Currency.KRW)
         .build();

@@ -7,6 +7,7 @@ import lombok.Getter;
 @AllArgsConstructor
 @Getter
 public enum AssetErrorCode implements DomainErrorCode {
+    ONLY_OWNER_CAN_UNREGISTER_ASSET("ONLY_OWNER_CAN_UNREGISTER_ASSET", "error.asset.only_owner_can_unregister_asset"),
     ONLY_OWNER_CAN_REGISTER_ASSET("ONLY_OWNER_CAN_REGISTER_ASSET", "error.asset.only_owner_can_register_asset"),
     CANNOT_SELL_NON_EXISTENT_ASSET("CANNOT_SELL_NON_EXISTENT_ASSET", "error.asset.cannot_sell_non_existent_asset"),
     ASSET_NOT_FOUND("ASSET_NOT_FOUND", "error.asset.not_found"),

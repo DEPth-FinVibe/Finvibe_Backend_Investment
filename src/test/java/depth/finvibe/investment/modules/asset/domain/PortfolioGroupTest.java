@@ -83,7 +83,7 @@ class PortfolioGroupTest {
     portfolioGroup.register(asset, userId);
 
     // when
-    portfolioGroup.unregister(asset.getStockId(), asset.getAmount(), asset.getTotalPrice());
+    portfolioGroup.unregister(asset.getStockId(), asset.getAmount(), asset.getTotalPrice(), userId);
 
     // then
     assertThat(portfolioGroup.getAssets()).isEmpty();
@@ -151,7 +151,7 @@ class PortfolioGroupTest {
         .build();
 
     // when / then
-    assertThatThrownBy(() -> portfolioGroup.unregister(99L, 1.0, Money.of(1_000d, Currency.KRW)))
+    assertThatThrownBy(() -> portfolioGroup.unregister(99L, 1.0, Money.of(1_000d, Currency.KRW), userId))
         .isInstanceOf(DomainException.class)
         .satisfies(ex -> assertThat(((DomainException) ex).getErrorCode()).isEqualTo(AssetErrorCode.CANNOT_SELL_NON_EXISTENT_ASSET));
   }

@@ -3,12 +3,16 @@ package depth.finvibe.investment.modules.asset.domain;
 import java.util.UUID;
 
 import depth.finvibe.investment.shared.domain.TimeStampedBaseEntity;
+import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.AttributeOverrides;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -26,6 +30,11 @@ public class Asset extends TimeStampedBaseEntity {
 
     private Double amount;
 
+    @Embedded
+    @AttributeOverrides({
+        @AttributeOverride(name = "amount", column = @Column(name = "total_price_amount")),
+        @AttributeOverride(name = "currency", column = @Column(name = "total_price_currency"))
+    })
     private Money totalPrice;
 
     private String name;
