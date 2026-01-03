@@ -25,22 +25,14 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
     @Override
     @Transactional(readOnly = true)
     public List<PortfolioGroupDto.AssetResponse> getAssetsByPortfolio(Long portfolioId, UUID requesterUserId) {
-        PortfolioGroup portfolioGroup = portfolioGroupRepository.findByIdWithAssets(portfolioId)
-                .orElseThrow(() -> new DomainException(AssetErrorCode.PORTFOLIO_GROUP_NOT_FOUND));
+        PortfolioGroup portfolioGroup = findPortfolioGroupWithAssets(portfolioId);
 
         if (!portfolioGroup.getUserId().equals(requesterUserId)) {
             throw new DomainException(AssetErrorCode.ONLY_OWNER_CAN_VIEW_ASSETS);
         }
 
         return portfolioGroup.getAssets().stream()
-                .map(asset -> PortfolioGroupDto.AssetResponse.builder()
-                        .id(asset.getId())
-                        .name(asset.getName())
-                        .amount(asset.getAmount())
-                        .totalPrice(asset.getTotalPrice().getAmount())
-                        .currency(asset.getTotalPrice().getCurrency())
-                        .stockId(asset.getStockId())
-                        .build())
+                .map(PortfolioGroupDto.AssetResponse::from)
                 .toList();
     }
 
@@ -48,40 +40,31 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
     @Transactional(readOnly = true)
     public List<PortfolioGroupDto.PortfolioGroupResponse> getPortfoliosByUser(UUID userId) {
         return portfolioGroupRepository.findAllByUserId(userId).stream()
-                .map(group -> PortfolioGroupDto.PortfolioGroupResponse.builder()
-                        .id(group.getId())
-                        .name(group.getName())
-                        .iconCode(group.getIconCode())
-                        .build())
+                .map(PortfolioGroupDto.PortfolioGroupResponse::from)
                 .toList();
     }
 
     @Override
     @Transactional
     public void registerAsset(Long portfolioId, PortfolioGroupDto.RegisterAssetRequest request, UUID requesterUserId) {
-        PortfolioGroup foundPortfolioGroup = portfolioGroupRepository.findByIdWithAssets(portfolioId)
-                .orElseThrow(() -> new DomainException(AssetErrorCode.PORTFOLIO_GROUP_NOT_FOUND));
+        PortfolioGroup foundPortfolioGroup = findPortfolioGroupWithAssets(portfolioId);
 
-        Asset toRegister = Asset.create(
-                request.getAmount(),
-                Money.of(request.getStockPrice().multiply(request.getAmount()), request.getCurrency()),
-                request.getName(),
-                request.getStockId(),
-                requesterUserId
-        );
+        Asset toRegister = toAssetEntity(request, requesterUserId);
+
         foundPortfolioGroup.register(toRegister, requesterUserId);
     }
 
     @Override
     @Transactional
     public void unregisterAsset(Long portfolioId, PortfolioGroupDto.UnregisterAssetRequest request, UUID requesterUserId) {
-        PortfolioGroup foundPortfolioGroup = portfolioGroupRepository.findByIdWithAssets(portfolioId)
-                .orElseThrow(() -> new DomainException(AssetErrorCode.PORTFOLIO_GROUP_NOT_FOUND));
+        PortfolioGroup foundPortfolioGroup = findPortfolioGroupWithAssets(portfolioId);
+
+        Money totalPrice = Money.of(request.getStockPrice(), request.getCurrency());
 
         foundPortfolioGroup.unregister(
                 request.getStockId(),
                 request.getAmount(),
-                Money.of(request.getStockPrice(), request.getCurrency()),
+                totalPrice,
                 requesterUserId
         );
     }
@@ -100,8 +83,7 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
     @Override
     @Transactional
     public void updatePortfolioGroup(Long portfolioGroupId, PortfolioGroupDto.UpdatePortfolioGroupRequest request, UUID requesterUserId) {
-        PortfolioGroup existing = portfolioGroupRepository.findById(portfolioGroupId)
-                .orElseThrow(() -> new DomainException(AssetErrorCode.PORTFOLIO_GROUP_NOT_FOUND));
+        PortfolioGroup existing = findPortfolioGroupWithAssets(portfolioGroupId);
 
         existing.patch(
                 request.getName(),
@@ -112,13 +94,11 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
     @Override
     @Transactional
     public void deletePortfolioGroup(Long portfolioGroupId, UUID requesterUserId) {
-        PortfolioGroup existing = portfolioGroupRepository.findById(portfolioGroupId)
-                .orElseThrow(() -> new DomainException(AssetErrorCode.PORTFOLIO_GROUP_NOT_FOUND));
+        PortfolioGroup existing = findPortfolioGroupWithAssets(portfolioGroupId);
 
         existing.ensureDeletable(requesterUserId);
 
-        PortfolioGroup defaultGroup = portfolioGroupRepository.findDefaultByUserId(requesterUserId)
-                .orElseThrow(() -> new DomainException(AssetErrorCode.DEFAULT_PORTFOLIO_GROUP_NOT_FOUND));
+        PortfolioGroup defaultGroup = findDefaultPortfolioGroup(requesterUserId);
 
         existing.transferAssetsTo(defaultGroup);
 
@@ -135,5 +115,26 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
         }
 
         portfolioGroupRepository.save(toSave);
+    }
+
+    private PortfolioGroup findPortfolioGroupWithAssets(Long id) {
+        return portfolioGroupRepository.findByIdWithAssets(id)
+                .orElseThrow(() -> new DomainException(AssetErrorCode.PORTFOLIO_GROUP_NOT_FOUND));
+    }
+
+    private PortfolioGroup findDefaultPortfolioGroup(UUID userId) {
+        return portfolioGroupRepository.findDefaultByUserId(userId)
+                .orElseThrow(() -> new DomainException(AssetErrorCode.DEFAULT_PORTFOLIO_GROUP_NOT_FOUND));
+    }
+
+    private Asset toAssetEntity(PortfolioGroupDto.RegisterAssetRequest request, UUID requesterUserId) {
+        Money totalPrice = Money.of(request.getStockPrice().multiply(request.getAmount()), request.getCurrency());
+        return Asset.create(
+                request.getAmount(),
+                totalPrice,
+                request.getName(),
+                request.getStockId(),
+                requesterUserId
+        );
     }
 }

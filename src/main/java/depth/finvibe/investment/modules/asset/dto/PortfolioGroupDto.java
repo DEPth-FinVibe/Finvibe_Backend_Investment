@@ -1,7 +1,10 @@
 package depth.finvibe.investment.modules.asset.dto;
 
 import java.math.BigDecimal;
+
+import depth.finvibe.investment.modules.asset.domain.Asset;
 import depth.finvibe.investment.modules.asset.domain.Currency;
+import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,6 +20,14 @@ public class PortfolioGroupDto {
         private Long id;
         private String name;
         private String iconCode;
+
+        public static PortfolioGroupResponse from(PortfolioGroup portfolioGroup) {
+            return PortfolioGroupResponse.builder()
+                    .id(portfolioGroup.getId())
+                    .name(portfolioGroup.getName())
+                    .iconCode(portfolioGroup.getIconCode())
+                    .build();
+        }
     }
     
     @AllArgsConstructor
@@ -71,5 +82,16 @@ public class PortfolioGroupDto {
         private BigDecimal totalPrice;
         private Currency currency;
         private Long stockId;
+
+        public static AssetResponse from(Asset asset) {
+            return AssetResponse.builder()
+                    .id(asset.getId())
+                    .name(asset.getName())
+                    .amount(asset.getAmount())
+                    .totalPrice(asset.getTotalPrice().getAmount())
+                    .currency(asset.getTotalPrice().getCurrency())
+                    .stockId(asset.getStockId())
+                    .build();
+        }
     }
 }
