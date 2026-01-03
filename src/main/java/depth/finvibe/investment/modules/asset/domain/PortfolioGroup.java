@@ -11,9 +11,11 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.FetchType;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Builder;
 import lombok.experimental.SuperBuilder;
 import lombok.AllArgsConstructor;
 import java.util.List;
+import java.util.ArrayList;
 
 @Entity
 @Getter
@@ -31,7 +33,8 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
     private String iconCode;
 
     @OneToMany(mappedBy = "portfolioGroup", fetch = FetchType.LAZY)
-    private List<Asset> assets;
+    @Builder.Default
+    private List<Asset> assets = new ArrayList<>();
 
     public static PortfolioGroup create(String name, UUID userId, String iconCode) {
         return PortfolioGroup.builder()
