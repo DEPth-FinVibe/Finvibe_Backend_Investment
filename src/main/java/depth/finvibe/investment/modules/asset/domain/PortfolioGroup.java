@@ -2,7 +2,9 @@ package depth.finvibe.investment.modules.asset.domain;
 
 import java.util.UUID;
 
+import depth.finvibe.investment.modules.asset.domain.error.AssetErrorCode;
 import depth.finvibe.investment.shared.domain.TimeStampedBaseEntity;
+import depth.finvibe.investment.shared.error.DomainException;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.GeneratedValue;
@@ -32,11 +34,18 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
 
     private String iconCode;
 
+    @Builder.Default
+    private Boolean isDefault = false;
+
     @OneToMany(mappedBy = "portfolioGroup", fetch = FetchType.LAZY)
     @Builder.Default
     private List<Asset> assets = new ArrayList<>();
 
     public static PortfolioGroup create(String name, UUID userId, String iconCode) {
+        if(name.isBlank() || userId == null) {
+            throw new DomainException(AssetErrorCode.INVALID_PORTFOLIO_GROUP_PARAMS);
+        }
+
         return PortfolioGroup.builder()
             .name(name)
             .userId(userId)
