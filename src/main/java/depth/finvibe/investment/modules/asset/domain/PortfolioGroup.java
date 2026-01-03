@@ -53,6 +53,15 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
             .build();
     }
 
+    public void patch(String name, String iconCode) {
+        if(name != null) {
+            this.name = name;
+        }
+        if(iconCode != null) {
+            this.iconCode = iconCode;
+        }
+    }
+
     public void registerAsset(Asset asset) {
         this.assets.add(asset);
         asset.setPortfolioGroup(this);

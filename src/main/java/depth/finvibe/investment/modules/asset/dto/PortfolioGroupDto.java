@@ -25,4 +25,13 @@ public class PortfolioGroupDto {
         private String name;
         private String iconCode;
     }
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Data
+    @Builder
+    public static class UpdatePortfolioGroupRequest {
+        private String name;
+        private String iconCode;
+    }
 }
