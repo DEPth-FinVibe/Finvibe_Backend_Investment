@@ -64,7 +64,7 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
 
         Asset toRegister = Asset.create(
                 request.getAmount(),
-                Money.of(request.getStockPrice() * request.getAmount(), request.getCurrency()),
+                Money.of(request.getStockPrice().multiply(request.getAmount()), request.getCurrency()),
                 request.getName(),
                 request.getStockId(),
                 requesterUserId
@@ -81,7 +81,7 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
         foundPortfolioGroup.unregister(
                 request.getStockId(),
                 request.getAmount(),
-                Money.of(request.getStockPrice().doubleValue(), request.getCurrency()),
+                Money.of(request.getStockPrice(), request.getCurrency()),
                 requesterUserId
         );
     }

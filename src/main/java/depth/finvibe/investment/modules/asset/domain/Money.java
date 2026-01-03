@@ -1,8 +1,11 @@
 package depth.finvibe.investment.modules.asset.domain;
 
+import java.math.BigDecimal;
+
 import depth.finvibe.investment.modules.asset.domain.error.AssetErrorCode;
 import depth.finvibe.investment.shared.error.DomainException;
 import jakarta.persistence.Embeddable;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -11,11 +14,11 @@ import lombok.NoArgsConstructor;
 @Embeddable
 @Getter
 @Builder
-@AllArgsConstructor
-@NoArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Money {
 
-    private Double amount;
+    private BigDecimal amount;
 
     private Currency currency;
 
@@ -27,6 +30,17 @@ public class Money {
             throw new DomainException(AssetErrorCode.NEGATIVE_MONEY_AMOUNT);
         }
 
+        return new Money(BigDecimal.valueOf(amount), currency);
+    }
+
+    public static Money of(BigDecimal amount, Currency currency) {
+        if(amount == null || currency == null) {
+            throw new DomainException(AssetErrorCode.INVALID_MONEY_PARAMS);
+        }
+        if(amount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new DomainException(AssetErrorCode.NEGATIVE_MONEY_AMOUNT);
+        }
+
         return new Money(amount, currency);
     }
 
@@ -34,7 +48,7 @@ public class Money {
         if (!this.currency.equals(other.currency)) {
             throw new DomainException(AssetErrorCode.CANNOT_ADD_DIFFERENT_CURRENCIES);
         }
-        return new Money(this.amount + other.amount, this.currency);
+        return new Money(this.amount.add(other.amount), this.currency);
     }
 
     public Money minus(Money other) {
@@ -42,9 +56,9 @@ public class Money {
             throw new DomainException(AssetErrorCode.CANNOT_SUBTRACT_DIFFERENT_CURRENCIES);
         }
 
-        double resultAmount = this.amount - other.amount;
+        BigDecimal resultAmount = this.amount.subtract(other.amount);
 
-        if (resultAmount < 0) {
+        if (resultAmount.compareTo(BigDecimal.ZERO) < 0) {
             throw new DomainException(AssetErrorCode.NEGATIVE_MONEY_AMOUNT);
         }
 

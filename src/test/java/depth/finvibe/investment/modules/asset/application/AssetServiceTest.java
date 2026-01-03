@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.UUID;
@@ -52,8 +53,8 @@ class AssetServiceTest {
 
     PortfolioGroupDto.RegisterAssetRequest request = PortfolioGroupDto.RegisterAssetRequest.builder()
         .stockId(10L)
-        .amount(2.0)
-        .stockPrice(5_000L)
+        .amount(BigDecimal.valueOf(2.0))
+        .stockPrice(BigDecimal.valueOf(5_000))
         .name("자산")
         .currency(Currency.KRW)
         .build();
@@ -64,8 +65,8 @@ class AssetServiceTest {
     // then
     assertThat(existing.getAssets()).hasSize(1);
     Asset registered = existing.getAssets().get(0);
-    assertThat(registered.getAmount()).isEqualTo(2.0);
-    assertThat(registered.getTotalPrice().getAmount()).isEqualTo(10_000d);
+    assertThat(registered.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(2.0));
+    assertThat(registered.getTotalPrice().getAmount()).isEqualByComparingTo(BigDecimal.valueOf(10_000));
     assertThat(registered.getTotalPrice().getCurrency()).isEqualTo(Currency.KRW);
     assertThat(registered.getPortfolioGroup()).isEqualTo(existing);
   }
@@ -78,8 +79,8 @@ class AssetServiceTest {
 
     PortfolioGroupDto.RegisterAssetRequest request = PortfolioGroupDto.RegisterAssetRequest.builder()
         .stockId(10L)
-        .amount(1.0)
-        .stockPrice(1_000L)
+        .amount(BigDecimal.valueOf(1.0))
+        .stockPrice(BigDecimal.valueOf(1_000))
         .name("자산")
         .currency(Currency.KRW)
         .build();
@@ -100,8 +101,8 @@ class AssetServiceTest {
 
     PortfolioGroupDto.UnregisterAssetRequest request = PortfolioGroupDto.UnregisterAssetRequest.builder()
         .stockId(5L)
-        .amount(1.5)
-        .stockPrice(3_000L)
+        .amount(BigDecimal.valueOf(1.5))
+        .stockPrice(BigDecimal.valueOf(3_000))
         .currency(Currency.KRW)
         .build();
 
@@ -111,9 +112,9 @@ class AssetServiceTest {
     assetService.unregisterAsset(1L, request, userId);
 
     // then
-    verify(portfolioGroup).unregister(eq(5L), eq(1.5), moneyCaptor.capture(), eq(userId));
+    verify(portfolioGroup).unregister(eq(5L), eq(BigDecimal.valueOf(1.5)), moneyCaptor.capture(), eq(userId));
     Money paidMoney = moneyCaptor.getValue();
-    assertThat(paidMoney.getAmount()).isEqualTo(3_000d);
+    assertThat(paidMoney.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(3_000));
     assertThat(paidMoney.getCurrency()).isEqualTo(Currency.KRW);
   }
 
@@ -125,8 +126,8 @@ class AssetServiceTest {
 
     PortfolioGroupDto.UnregisterAssetRequest request = PortfolioGroupDto.UnregisterAssetRequest.builder()
         .stockId(10L)
-        .amount(1.0)
-        .stockPrice(1_000L)
+        .amount(BigDecimal.valueOf(1.0))
+        .stockPrice(BigDecimal.valueOf(1_000))
         .currency(Currency.KRW)
         .build();
 

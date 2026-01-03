@@ -3,6 +3,7 @@ package depth.finvibe.investment.modules.asset.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.UUID;
 
@@ -58,7 +59,7 @@ class PortfolioGroupTest {
         .iconCode("ICON")
         .assets(new ArrayList<>())
         .build();
-    Asset asset = Asset.create(1.0, Money.of(5_000d, Currency.KRW), "자산", 1L, userId);
+    Asset asset = Asset.create(BigDecimal.valueOf(1.0), Money.of(5_000d, Currency.KRW), "자산", 1L, userId);
 
     // when
     portfolioGroup.register(asset, userId);
@@ -79,7 +80,7 @@ class PortfolioGroupTest {
         .iconCode("ICON")
         .assets(new ArrayList<>())
         .build();
-    Asset asset = Asset.create(1.0, Money.of(5_000d, Currency.KRW), "자산", 1L, userId);
+    Asset asset = Asset.create(BigDecimal.valueOf(1.0), Money.of(5_000d, Currency.KRW), "자산", 1L, userId);
     portfolioGroup.register(asset, userId);
 
     // when
@@ -102,7 +103,7 @@ class PortfolioGroupTest {
         .iconCode("ICON")
         .assets(new ArrayList<>())
         .build();
-    Asset asset = Asset.create(1.0, Money.of(5_000d, Currency.KRW), "자산", 1L, ownerId);
+    Asset asset = Asset.create(BigDecimal.valueOf(1.0), Money.of(5_000d, Currency.KRW), "자산", 1L, ownerId);
 
     // when / then
     assertThatThrownBy(() -> portfolioGroup.register(asset, otherUser))
@@ -121,11 +122,10 @@ class PortfolioGroupTest {
         .iconCode("ICON")
         .assets(new ArrayList<>())
         .build();
-    Asset existing = Asset.create(1.0, Money.of(5_000d, Currency.KRW), "자산", 1L, userId);
-    existing.setPortfolioGroup(portfolioGroup);
-    portfolioGroup.getAssets().add(existing);
+    Asset existing = Asset.create(BigDecimal.valueOf(1.0), Money.of(5_000d, Currency.KRW), "자산", 1L, userId);
+    portfolioGroup.register(existing, userId);
 
-    Asset additional = Asset.create(2.0, Money.of(10_000d, Currency.KRW), "자산", 1L, userId);
+    Asset additional = Asset.create(BigDecimal.valueOf(2.0), Money.of(10_000d, Currency.KRW), "자산", 1L, userId);
 
     // when
     portfolioGroup.register(additional, userId);
@@ -133,8 +133,8 @@ class PortfolioGroupTest {
     // then
     assertThat(portfolioGroup.getAssets()).hasSize(1);
     Asset merged = portfolioGroup.getAssets().get(0);
-    assertThat(merged.getAmount()).isEqualTo(3.0d);
-    assertThat(merged.getTotalPrice().getAmount()).isEqualTo(15_000d);
+    assertThat(merged.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(3.0d));
+    assertThat(merged.getTotalPrice().getAmount()).isEqualByComparingTo(BigDecimal.valueOf(15_000d));
     assertThat(merged.getTotalPrice().getCurrency()).isEqualTo(Currency.KRW);
   }
 
@@ -151,7 +151,7 @@ class PortfolioGroupTest {
         .build();
 
     // when / then
-    assertThatThrownBy(() -> portfolioGroup.unregister(99L, 1.0, Money.of(1_000d, Currency.KRW), userId))
+    assertThatThrownBy(() -> portfolioGroup.unregister(99L, BigDecimal.valueOf(1.0), Money.of(1_000d, Currency.KRW), userId))
         .isInstanceOf(DomainException.class)
         .satisfies(ex -> assertThat(((DomainException) ex).getErrorCode()).isEqualTo(AssetErrorCode.CANNOT_SELL_NON_EXISTENT_ASSET));
   }

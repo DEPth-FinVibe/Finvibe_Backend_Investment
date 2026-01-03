@@ -1,5 +1,6 @@
 package depth.finvibe.investment.modules.asset.domain;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -7,6 +8,7 @@ import depth.finvibe.investment.modules.asset.domain.error.AssetErrorCode;
 import depth.finvibe.investment.shared.domain.TimeStampedBaseEntity;
 import depth.finvibe.investment.shared.error.DomainException;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Builder;
@@ -18,8 +20,8 @@ import java.util.ArrayList;
 @Entity
 @Getter
 @SuperBuilder
-@AllArgsConstructor
-@NoArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PortfolioGroup extends TimeStampedBaseEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -38,7 +40,7 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
     private List<Asset> assets = new ArrayList<>();
 
     public static PortfolioGroup create(String name, UUID userId, String iconCode) {
-        if(name.isBlank() || userId == null) {
+        if(name == null || name.isBlank() || userId == null) {
             throw new DomainException(AssetErrorCode.INVALID_PORTFOLIO_GROUP_PARAMS);
         }
 
@@ -50,7 +52,7 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
     }
 
     public void patch(String name, String iconCode) {
-        if(name != null) {
+        if(name != null && !name.isBlank()) {
             this.name = name;
         }
         if(iconCode != null) {
@@ -75,7 +77,7 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
         }
     }
 
-    public void unregister(Long stockId, Double amount, Money paidMoney, UUID requesterId) {
+    public void unregister(Long stockId, BigDecimal amount, Money paidMoney, UUID requesterId) {
         if(!this.userId.equals(requesterId)) {
             throw new DomainException(AssetErrorCode.ONLY_OWNER_CAN_UNREGISTER_ASSET);
         }
@@ -90,7 +92,7 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
 
         foundAsset.get().partialSell(amount, paidMoney);
 
-        if(foundAsset.get().getAmount() < 1) {
+        if(foundAsset.get().getAmount().compareTo(BigDecimal.ZERO) <= 0) {
             this.assets.remove(foundAsset.get()); // orphanRemoval을 사용해 0주가 된 자산을 자동으로 삭제
             foundAsset.get().setPortfolioGroup(null);
         }

@@ -1,5 +1,6 @@
 package depth.finvibe.investment.modules.asset.domain;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 import depth.finvibe.investment.shared.domain.TimeStampedBaseEntity;
@@ -13,6 +14,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,13 +24,13 @@ import lombok.experimental.SuperBuilder;
 @Entity
 @Getter
 @SuperBuilder
-@AllArgsConstructor
-@NoArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Asset extends TimeStampedBaseEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Double amount;
+    private BigDecimal amount;
 
     @Embedded
     @AttributeOverrides({
@@ -44,20 +46,20 @@ public class Asset extends TimeStampedBaseEntity {
     private UUID userId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @Setter
+    @Setter(AccessLevel.PROTECTED)
     private PortfolioGroup portfolioGroup;
 
-    public void additionalBuy(Double amount, Money totalPrice) {
-        this.amount += amount;
+    public void additionalBuy(BigDecimal amount, Money totalPrice) {
+        this.amount = this.amount.add(amount);
         this.totalPrice = this.totalPrice.plus(totalPrice);
     }
 
-    public void partialSell(Double amount, Money totalPrice) {
-        this.amount -= amount;
+    public void partialSell(BigDecimal amount, Money totalPrice) {
+        this.amount = this.amount.subtract(amount);
         this.totalPrice = this.totalPrice.minus(totalPrice);
     }
 
-    public static Asset create(Double amount, Money totalPrice, String name, Long stockId, UUID userId) {
+    public static Asset create(BigDecimal amount, Money totalPrice, String name, Long stockId, UUID userId) {
         return Asset.builder()
             .amount(amount)
             .totalPrice(totalPrice)
