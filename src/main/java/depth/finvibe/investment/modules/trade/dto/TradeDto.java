@@ -2,6 +2,7 @@ package depth.finvibe.investment.modules.trade.dto;
 
 import depth.finvibe.investment.modules.trade.domain.enums.MarketType;
 import depth.finvibe.investment.modules.trade.domain.enums.TradeType;
+import depth.finvibe.investment.modules.trade.domain.enums.TransactionType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -35,9 +36,10 @@ public class TradeDto {
         private Long portfolioId;
         private UUID userId;
         private TradeType tradeType;
+        private TransactionType transactionType;
 
         public static TradeResponse from(Long tradeId, MarketType marketType, Long stockId, Double amount,
-                                         Long price, Long portfolioId, UUID userId, TradeType tradeType) {
+                                         Long price, Long portfolioId, UUID userId, TradeType tradeType, TransactionType transactionType) {
             return TradeResponse.builder()
                     .tradeId(tradeId)
                     .marketType(marketType)
@@ -47,6 +49,7 @@ public class TradeDto {
                     .portfolioId(portfolioId)
                     .userId(userId)
                     .tradeType(tradeType)
+                    .transactionType(transactionType)
                     .build();
         }
     }
