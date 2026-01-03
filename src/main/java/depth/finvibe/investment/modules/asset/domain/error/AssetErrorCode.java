@@ -9,6 +9,7 @@ import lombok.Getter;
 public enum AssetErrorCode implements DomainErrorCode {
     ONLY_OWNER_CAN_UNREGISTER_ASSET("ONLY_OWNER_CAN_UNREGISTER_ASSET", "error.asset.only_owner_can_unregister_asset"),
     ONLY_OWNER_CAN_REGISTER_ASSET("ONLY_OWNER_CAN_REGISTER_ASSET", "error.asset.only_owner_can_register_asset"),
+    ONLY_OWNER_CAN_VIEW_ASSETS("ONLY_OWNER_CAN_VIEW_ASSETS", "error.asset.only_owner_can_view_assets"),
     CANNOT_SELL_NON_EXISTENT_ASSET("CANNOT_SELL_NON_EXISTENT_ASSET", "error.asset.cannot_sell_non_existent_asset"),
     ASSET_NOT_FOUND("ASSET_NOT_FOUND", "error.asset.not_found"),
     INVALID_PORTFOLIO_GROUP_PARAMS("INVALID_PORTFOLIO_GROUP_PARAMS", "error.asset.invalid_portfolio_group_params"),

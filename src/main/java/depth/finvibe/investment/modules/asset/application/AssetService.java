@@ -1,5 +1,6 @@
 package depth.finvibe.investment.modules.asset.application;
 
+import depth.finvibe.investment.modules.asset.application.port.in.AssetQueryUseCase;
 import depth.finvibe.investment.modules.asset.application.port.out.PortfolioGroupRepository;
 import depth.finvibe.investment.modules.asset.domain.Asset;
 import depth.finvibe.investment.modules.asset.domain.Money;
@@ -13,12 +14,47 @@ import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUs
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class AssetService implements AssetCommandUseCase {
+public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
     private final PortfolioGroupRepository portfolioGroupRepository;
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PortfolioGroupDto.AssetResponse> getAssetsByPortfolio(Long portfolioId, UUID requesterUserId) {
+        PortfolioGroup portfolioGroup = portfolioGroupRepository.findById(portfolioId)
+                .orElseThrow(() -> new DomainException(AssetErrorCode.PORTFOLIO_GROUP_NOT_FOUND));
+
+        if (!portfolioGroup.getUserId().equals(requesterUserId)) {
+            throw new DomainException(AssetErrorCode.ONLY_OWNER_CAN_VIEW_ASSETS);
+        }
+
+        return portfolioGroup.getAssets().stream()
+                .map(asset -> PortfolioGroupDto.AssetResponse.builder()
+                        .id(asset.getId())
+                        .name(asset.getName())
+                        .amount(asset.getAmount())
+                        .totalPrice(asset.getTotalPrice().getAmount())
+                        .currency(asset.getTotalPrice().getCurrency())
+                        .stockId(asset.getStockId())
+                        .build())
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PortfolioGroupDto.PortfolioGroupResponse> getPortfoliosByUser(UUID userId) {
+        return portfolioGroupRepository.findAllByUserId(userId).stream()
+                .map(group -> PortfolioGroupDto.PortfolioGroupResponse.builder()
+                        .id(group.getId())
+                        .name(group.getName())
+                        .iconCode(group.getIconCode())
+                        .build())
+                .toList();
+    }
 
     @Override
     public void registerAsset(Long portfolioId, PortfolioGroupDto.RegisterAssetRequest request, UUID requesterUserId) {

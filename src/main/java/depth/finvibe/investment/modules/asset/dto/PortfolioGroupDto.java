@@ -58,4 +58,17 @@ public class PortfolioGroupDto {
         private Long stockPrice;
         private Currency currency;
     }
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Data
+    @Builder
+    public static class AssetResponse {
+        private Long id;
+        private String name;
+        private Double amount;
+        private Double totalPrice;
+        private Currency currency;
+        private Long stockId;
+    }
 }
