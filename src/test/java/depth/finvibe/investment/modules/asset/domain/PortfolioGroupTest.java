@@ -90,6 +90,50 @@ class PortfolioGroupTest {
   }
 
   @Test
+  @DisplayName("매도 후 수량이 0에 매우 가까우면(미세 잔량) 자산을 삭제한다.")
+  void unregisterAsset_effectivelyZeroAmount_removesAsset() {
+    // given
+    UUID userId = UUID.randomUUID();
+    PortfolioGroup portfolioGroup = PortfolioGroup.builder()
+        .name("미세 잔량 삭제 테스트")
+        .userId(userId)
+        .iconCode("ICON")
+        .assets(new ArrayList<>())
+        .build();
+    Asset asset = Asset.create(new BigDecimal("1.0"), Money.of(5_000d, Currency.KRW), "자산", 1L, userId);
+    portfolioGroup.register(asset, userId);
+
+    // when: 1.0 - 0.9999995 = 0.0000005 (threshold 0.000001 이하)
+    portfolioGroup.unregister(asset.getStockId(), new BigDecimal("0.9999995"), asset.getTotalPrice(), userId);
+
+    // then
+    assertThat(portfolioGroup.getAssets()).isEmpty();
+    assertThat(asset.getPortfolioGroup()).isNull();
+  }
+
+  @Test
+  @DisplayName("매도 후 수량이 임계값보다 크면 자산을 삭제하지 않는다.")
+  void unregisterAsset_aboveZeroThreshold_keepsAsset() {
+    // given
+    UUID userId = UUID.randomUUID();
+    PortfolioGroup portfolioGroup = PortfolioGroup.builder()
+        .name("임계값 초과 유지 테스트")
+        .userId(userId)
+        .iconCode("ICON")
+        .assets(new ArrayList<>())
+        .build();
+    Asset asset = Asset.create(new BigDecimal("1.0"), Money.of(5_000d, Currency.KRW), "자산", 1L, userId);
+    portfolioGroup.register(asset, userId);
+
+    // when: 1.0 - 0.999998 = 0.000002 (threshold 초과)
+    portfolioGroup.unregister(asset.getStockId(), new BigDecimal("0.999998"), Money.of(BigDecimal.ZERO, Currency.KRW), userId);
+
+    // then
+    assertThat(portfolioGroup.getAssets()).hasSize(1);
+    assertThat(portfolioGroup.getAssets().get(0).getPortfolioGroup()).isEqualTo(portfolioGroup);
+  }
+
+  @Test
   @DisplayName("소유자가 아닌 사용자가 등록하면 예외가 발생한다.")
   void registerAsset_notOwner_fail() {
     // given

@@ -23,6 +23,13 @@ import java.util.ArrayList;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PortfolioGroup extends TimeStampedBaseEntity {
+    /**
+     * 자산 수량이 "0"이 되었는지 판단할 때만 사용하는 임계값.
+     * - 금융 도메인에서 임의의 허용 오차(EPS)를 연산/정산에 쓰는 것은 위험하므로
+     * - 여기서는 "삭제(정리)" 판단에 한해서만, 프론트/전송 과정에서 생길 수 있는 미세 잔량을 0으로 간주한다.
+     */
+    private static final BigDecimal AMOUNT_ZERO_THRESHOLD = new BigDecimal("0.000001");
+
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
@@ -92,9 +99,16 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
 
         foundAsset.get().partialSell(amount, paidMoney);
 
-        if(foundAsset.get().getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+        if (isEffectivelyZero(foundAsset.get().getAmount())) {
             this.assets.remove(foundAsset.get()); // orphanRemoval을 사용해 0주가 된 자산을 자동으로 삭제
             foundAsset.get().setPortfolioGroup(null);
         }
+    }
+
+    private boolean isEffectivelyZero(BigDecimal amount) {
+        if (amount == null) {
+            return false;
+        }
+        return amount.abs().compareTo(AMOUNT_ZERO_THRESHOLD) <= 0;
     }
 }
