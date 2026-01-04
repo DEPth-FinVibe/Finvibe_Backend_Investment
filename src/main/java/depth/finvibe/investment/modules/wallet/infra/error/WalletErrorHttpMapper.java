@@ -20,7 +20,7 @@ public class WalletErrorHttpMapper implements DomainErrorHttpMapper {
     WalletErrorCode walletCode = (WalletErrorCode) code;
     return switch (walletCode) {
       case WALLET_NOT_FOUND -> HttpStatus.NOT_FOUND;
-      case INVALID_USER_ID, INVALID_MONEY_AMOUNT, INSUFFICIENT_BALANCE -> HttpStatus.BAD_REQUEST;
+      case INVALID_USER_ID, INVALID_MONEY_PRICE, INSUFFICIENT_BALANCE -> HttpStatus.BAD_REQUEST;
     };
   }
 }
