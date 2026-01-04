@@ -15,6 +15,8 @@ public class TradeDto {
 
     @Getter
     @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
     public static class TransactionRequest {
         private MarketType marketType;
         private Long stockId;
