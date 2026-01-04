@@ -17,6 +17,13 @@ public class TradeService implements TradeCommandUseCase {
 
     private final TradeRepository tradeRepository;
 
+    @Transactional()
+    public TradeDto.TradeResponse getTrade(Long tradeId) {
+        Trade trade = tradeRepository.findById(tradeId)
+                .orElseThrow(() -> new DomainException(TradeErrorCode.TRADE_NOT_FOUND));
+        return TradeDto.TradeResponse.from(trade);
+    }
+
     @Transactional
     public TradeDto.TradeResponse createTrade(TradeDto.TransactionRequest request) {
 
