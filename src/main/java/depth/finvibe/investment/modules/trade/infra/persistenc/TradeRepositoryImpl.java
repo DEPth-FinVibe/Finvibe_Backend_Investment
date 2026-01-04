@@ -2,9 +2,13 @@ package depth.finvibe.investment.modules.trade.infra.persistenc;
 
 import depth.finvibe.investment.modules.trade.application.port.out.TradeRepository;
 import depth.finvibe.investment.modules.trade.domain.Trade;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+@Repository
+@RequiredArgsConstructor
 public class TradeRepositoryImpl implements TradeRepository {
 
     @Override
