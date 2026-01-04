@@ -4,5 +4,6 @@ import depth.finvibe.investment.modules.trade.domain.Trade;
 
 public interface TradeProducer {
 
-    void publishTradeExecutedEvent(Trade trade);
+    void publishNormalTradeExecutedEvent(Trade trade);
+    void publishReservedTradeExecutedEvent(Trade trade);
 }
