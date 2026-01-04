@@ -65,4 +65,8 @@ public class Trade extends TimeStampedBaseEntity{
         }
         this.tradeType = TradeType.CANCELLED;
     }
+
+    public void execute() {
+        this.tradeType = TradeType.NORMAL;
+    }
 }
