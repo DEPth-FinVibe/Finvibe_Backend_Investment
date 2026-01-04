@@ -59,6 +59,9 @@ public class TradeService implements TradeCommandUseCase {
 
         trade.execute();
         Trade saveTrade = tradeRepository.save(trade);
+
+        // TODO: 카프카 이벤트 발행
+
         return TradeDto.TradeResponse.from(saveTrade);
     }
 
@@ -90,6 +93,8 @@ public class TradeService implements TradeCommandUseCase {
                 request.getTradeType()
         );
         Trade savedTrade = tradeRepository.save(trade);
+
+        //TODO: 카프카 이벤트 발행
 
         return TradeDto.TradeResponse.from(savedTrade);
     }
