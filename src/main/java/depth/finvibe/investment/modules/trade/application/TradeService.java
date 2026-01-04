@@ -1,6 +1,7 @@
 package depth.finvibe.investment.modules.trade.application;
 
 import depth.finvibe.investment.modules.trade.application.port.in.TradeCommandUseCase;
+import depth.finvibe.investment.modules.trade.application.port.out.TradeProducer;
 import depth.finvibe.investment.modules.trade.application.port.out.TradeRepository;
 import depth.finvibe.investment.modules.trade.domain.Trade;
 import depth.finvibe.investment.modules.trade.domain.enums.TradeType;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 public class TradeService implements TradeCommandUseCase {
 
     private final TradeRepository tradeRepository;
+    private final TradeProducer tradeProducer;
 
     @Transactional()
     public TradeDto.TradeResponse getTrade(Long tradeId) {
@@ -61,6 +63,7 @@ public class TradeService implements TradeCommandUseCase {
         Trade saveTrade = tradeRepository.save(trade);
 
         // TODO: 카프카 이벤트 발행
+        tradeProducer.publishTradeExecutedEvent(trade);
 
         return TradeDto.TradeResponse.from(saveTrade);
     }
@@ -95,6 +98,7 @@ public class TradeService implements TradeCommandUseCase {
         Trade savedTrade = tradeRepository.save(trade);
 
         //TODO: 카프카 이벤트 발행
+        tradeProducer.publishTradeExecutedEvent(trade);
 
         return TradeDto.TradeResponse.from(savedTrade);
     }
