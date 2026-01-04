@@ -20,7 +20,7 @@ class WalletTest {
     wallet.deposit(depositAmount);
 
     // then
-    assertThat(wallet.getBalance().getAmount()).isEqualTo(1500L);
+    assertThat(wallet.getBalance().getPrice()).isEqualTo(1500L);
   }
 
   @Test
@@ -34,6 +34,6 @@ class WalletTest {
     wallet.withdraw(withdrawAmount);
 
     // then
-    assertThat(wallet.getBalance().getAmount()).isEqualTo(600L);
+    assertThat(wallet.getBalance().getPrice()).isEqualTo(600L);
   }
 }
