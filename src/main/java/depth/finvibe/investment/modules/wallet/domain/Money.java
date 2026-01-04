@@ -13,26 +13,26 @@ import lombok.NoArgsConstructor;
 public class Money {
 
   @Column(name = "balance")
-  private Long amount;
+  private Long price;
 
-  public Money(Long amount) {
-    if (amount == null || amount < 0) {
-      throw new DomainException(WalletErrorCode.INVALID_MONEY_AMOUNT);
+  public Money(Long price) {
+    if (price == null || price < 0) {
+      throw new DomainException(WalletErrorCode.INVALID_MONEY_PRICE);
     }
 
-    this.amount = amount;
+    this.price = price;
   }
 
   public Money plus(Money other) {
-    return new Money(this.amount + other.amount);
+    return new Money(this.price + other.price);
   }
 
   public Money minus(Money other) {
-    if (this.amount < other.amount) {
+    if (this.price < other.price) {
       throw new DomainException(WalletErrorCode.INSUFFICIENT_BALANCE);
     }
 
-    return new Money(this.amount - other.amount);
+    return new Money(this.price - other.price);
   }
 
 }

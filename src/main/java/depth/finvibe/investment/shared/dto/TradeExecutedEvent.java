@@ -4,6 +4,6 @@ public record TradeExecutedEvent (
         String tradeId,
         String userId,
         String type, // "BUY", "SELL"
-        Long amount,
+        Double amount,
         Long price
 ) {}

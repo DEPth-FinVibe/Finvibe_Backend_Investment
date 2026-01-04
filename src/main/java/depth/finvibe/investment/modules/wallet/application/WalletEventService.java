@@ -21,9 +21,9 @@ public class WalletEventService {
         UUID userId = UUID.fromString(event.userId());
 
         if (event.type().equals("BUY")) {
-            commandUseCase.withdraw(userId, event.amount());
+            commandUseCase.withdraw(userId, event.price());
         } else if (event.type().equals("SELL")) {
-            commandUseCase.deposit(userId, event.amount());
+            commandUseCase.deposit(userId, event.price());
         } else {
             log.warn("Ignoring trade event of type: {}", event.type());
         }

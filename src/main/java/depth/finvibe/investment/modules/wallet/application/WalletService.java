@@ -32,30 +32,30 @@ public class WalletService implements WalletCommandUseCase, WalletQueryUseCase {
     }
 
     @Transactional
-    public WalletDto.WalletResponse deposit(UUID userId, Long amount) {
+    public WalletDto.WalletResponse deposit(UUID userId, Long price) {
         Wallet wallet = walletRepository.findByUserId(userId)
                 .orElseThrow(() -> new DomainException(WalletErrorCode.WALLET_NOT_FOUND));
 
-        validateAmount(amount);
-        wallet.deposit(new Money(amount));
+        validatePrice(price);
+        wallet.deposit(new Money(price));
 
         return WalletDto.WalletResponse.from(wallet);
     }
 
     @Transactional
-    public WalletDto.WalletResponse withdraw(UUID userId, Long amount) {
+    public WalletDto.WalletResponse withdraw(UUID userId, Long price) {
         Wallet wallet = walletRepository.findByUserId(userId)
                 .orElseThrow(() -> new DomainException(WalletErrorCode.WALLET_NOT_FOUND));
 
-        validateAmount(amount);
-        wallet.withdraw(new Money(amount));
+        validatePrice(price);
+        wallet.withdraw(new Money(price));
 
         return WalletDto.WalletResponse.from(wallet);
     }
 
-    private void validateAmount(Long amount) {
-        if (amount == null || amount <= 0) {
-            throw new DomainException(WalletErrorCode.INVALID_MONEY_AMOUNT);
+    private void validatePrice(Long price) {
+        if (price == null || price <= 0) {
+            throw new DomainException(WalletErrorCode.INVALID_MONEY_PRICE);
         }
     }
 
