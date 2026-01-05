@@ -3,6 +3,7 @@ package depth.finvibe.investment.modules.asset.api;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUseCase;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetQueryUseCase;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +20,6 @@ public class AssetController {
     private final AssetQueryUseCase queryUseCase;
     private final AssetCommandUseCase commandUseCase;
 
-    //자산 상태 조회 api
     @GetMapping("/{portfolioId}/assets")
     public ResponseEntity<List<PortfolioGroupDto.AssetResponse>> getAssetsByPortfolio(
             @PathVariable Long portfolioId,
@@ -29,11 +29,10 @@ public class AssetController {
         return ResponseEntity.ok(queryUseCase.getAssetsByPortfolio(portfolioId,userId));
     }
 
-    //자산 등록 api
     @PostMapping("/{portfolioId}/assets")
     public ResponseEntity<Void> registerAsset(
             @PathVariable Long portfolioId,
-            @RequestBody PortfolioGroupDto.RegisterAssetRequest request,
+            @RequestBody @Valid PortfolioGroupDto.RegisterAssetRequest request,
             @RequestParam("userId") UUID userId
     )
     {
@@ -41,11 +40,10 @@ public class AssetController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    //자산 삭제 api
     @DeleteMapping("/{portfolioId}/assets")
     public ResponseEntity<Void> unregisterAsset(
             @PathVariable Long portfolioId,
-            @RequestBody PortfolioGroupDto.UnregisterAssetRequest request,
+            @RequestBody @Valid PortfolioGroupDto.UnregisterAssetRequest request,
             @RequestParam("userId") UUID userId
     )
     {
