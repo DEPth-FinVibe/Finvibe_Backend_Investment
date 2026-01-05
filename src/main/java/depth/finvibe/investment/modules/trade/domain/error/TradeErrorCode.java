@@ -13,6 +13,7 @@ public enum TradeErrorCode implements DomainErrorCode {
     RESERVED_TRADE_ONLY_CANCELLABLE("RESERVED_TRADE_ONLY_CANCELLABLE", "trade.error.reservedTradeOnlyCancellable"),
     INVALID_TRADE_TYPE("INVALID_TRADE_TYPE", "trade.error.invalidTradeType"),
     INVALID_TRADE_ID_FORMAT("INVALID_TRADE_ID_FORMAT", "trade.error.invalidTradeIdFormat")
+    CANNOT_CANCEL_NON_RESERVED_TRADE("CANNOT_CANCEL_NON_RESERVED_TRADE", "trade.error.cannotCancelNonReservedTrade")
     ;
 
 

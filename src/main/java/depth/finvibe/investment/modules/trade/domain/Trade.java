@@ -58,9 +58,12 @@ public class Trade extends TimeStampedBaseEntity{
                 .build();
     }
 
-    public void cancel(){
+   public void cancel(){
         if (this.tradeType == TradeType.CANCELLED) {
             throw new DomainException(TradeErrorCode.ALREADY_CANCELLED_TRADE);
+        }
+        if(this.tradeType != TradeType.RESERVED){
+            throw new DomainException(TradeErrorCode.CANNOT_CANCEL_NON_RESERVED_TRADE);
         }
         this.tradeType = TradeType.CANCELLED;
     }
