@@ -97,7 +97,7 @@ class TradeServiceTest {
         given(tradeRepository.findById(1L)).willReturn(Optional.of(normalTrade));
 
         // when
-        TradeDto.TradeResponse response = tradeService.getTrade(1L);
+        TradeDto.TradeResponse response = tradeService.findTrade(1L);
 
         // then
         assertThat(response.getStockId()).isEqualTo(5930L);
@@ -112,7 +112,7 @@ class TradeServiceTest {
         given(tradeRepository.findById(1L)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> tradeService.getTrade(1L))
+        assertThatThrownBy(() -> tradeService.findTrade(1L))
                 .isInstanceOf(DomainException.class)
                 .hasFieldOrPropertyWithValue("errorCode", TradeErrorCode.TRADE_NOT_FOUND);
     }

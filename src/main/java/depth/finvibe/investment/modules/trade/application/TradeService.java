@@ -1,7 +1,7 @@
 package depth.finvibe.investment.modules.trade.application;
 
 import depth.finvibe.investment.modules.trade.application.port.in.TradeCommandUseCase;
-import depth.finvibe.investment.modules.trade.application.port.out.TradeProducer;
+import depth.finvibe.investment.modules.trade.application.port.out.TradeEventProducer;
 import depth.finvibe.investment.modules.trade.application.port.out.TradeRepository;
 import depth.finvibe.investment.modules.trade.domain.Trade;
 import depth.finvibe.investment.modules.trade.domain.enums.TradeType;
@@ -17,10 +17,10 @@ import org.springframework.stereotype.Service;
 public class TradeService implements TradeCommandUseCase {
 
     private final TradeRepository tradeRepository;
-    private final TradeProducer tradeProducer;
+    private final TradeEventProducer tradeEventProducer;
 
     @Transactional()
-    public TradeDto.TradeResponse getTrade(Long tradeId) {
+    public TradeDto.TradeResponse findTrade(Long tradeId) {
         Trade trade = tradeRepository.findById(tradeId)
                 .orElseThrow(() -> new DomainException(TradeErrorCode.TRADE_NOT_FOUND));
         return TradeDto.TradeResponse.from(trade);
@@ -43,7 +43,7 @@ public class TradeService implements TradeCommandUseCase {
         Trade trade = tradeRepository.findById(tradeId)
                 .orElseThrow(() -> new DomainException(TradeErrorCode.TRADE_NOT_FOUND));
 
-        validateCancelTrade(trade);
+        ensureTradeCancelable(trade);
 
         trade.cancel();
         Trade cancelledTrade = tradeRepository.save(trade);
@@ -57,23 +57,23 @@ public class TradeService implements TradeCommandUseCase {
         Trade trade = tradeRepository.findById(tradeId)
                 .orElseThrow(() -> new DomainException(TradeErrorCode.TRADE_NOT_FOUND));
 
-        validateReservedTradeForExecution(trade);
+        ensureTradeIsReserved(trade);
 
         trade.execute();
         Trade saveTrade = tradeRepository.save(trade);
 
-        tradeProducer.publishReservedTradeExecutedEvent(trade);
+        tradeEventProducer.publishReservedTradeExecutedEvent(trade);
 
         return TradeDto.TradeResponse.from(saveTrade);
     }
 
-    private void validateReservedTradeForExecution(Trade trade) {
+    private void ensureTradeIsReserved(Trade trade) {
         if(trade.getTradeType() != TradeType.RESERVED) {
             throw new DomainException(TradeErrorCode.INVALID_TRADE_TYPE);
         }
     }
 
-    private static void validateCancelTrade(Trade trade) {
+    private static void ensureTradeCancelable(Trade trade) {
         if (trade.getTradeType() == TradeType.CANCELLED) {
             throw new DomainException(TradeErrorCode.ALREADY_CANCELLED_TRADE);
         }
@@ -84,24 +84,15 @@ public class TradeService implements TradeCommandUseCase {
     }
 
     private TradeDto.TradeResponse processNormalTrade(TradeDto.TransactionRequest request) {
-        Trade trade = Trade.create(
-                request.getMarketType(),
-                request.getStockId(),
-                request.getAmount(),
-                request.getPrice(),
-                request.getPortfolioId(),
-                request.getUserId(),
-                request.getTransactionType(),
-                request.getTradeType()
-        );
+        Trade trade = createTradeFrom(request);
         Trade savedTrade = tradeRepository.save(trade);
 
-        tradeProducer.publishNormalTradeExecutedEvent(trade);
+        tradeEventProducer.publishNormalTradeExecutedEvent(trade);
 
         return TradeDto.TradeResponse.from(savedTrade);
     }
 
-    private TradeDto.TradeResponse processReservedTrade(TradeDto.TransactionRequest request) {
+    private static Trade createTradeFrom(TradeDto.TransactionRequest request) {
         Trade trade = Trade.create(
                 request.getMarketType(),
                 request.getStockId(),
@@ -112,6 +103,11 @@ public class TradeService implements TradeCommandUseCase {
                 request.getTransactionType(),
                 request.getTradeType()
         );
+        return trade;
+    }
+
+    private TradeDto.TradeResponse processReservedTrade(TradeDto.TransactionRequest request) {
+        Trade trade = createTradeFrom(request);
         Trade savedTrade = tradeRepository.save(trade);
 
         return TradeDto.TradeResponse.from(savedTrade);
