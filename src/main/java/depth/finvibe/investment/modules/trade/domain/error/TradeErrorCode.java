@@ -9,6 +9,7 @@ import lombok.Getter;
 public enum TradeErrorCode implements DomainErrorCode {
 
     ALREADY_CANCELLED_TRADE("ALREADY_CANCELLED_TRADE", "trade.error.alreadyCancelledTrade"),
+    CANNOT_CANCEL_NON_RESERVED_TRADE("CANNOT_CANCEL_NON_RESERVED_TRADE", "trade.error.cannotCancelNonReservedTrade")
     ;
 
 
