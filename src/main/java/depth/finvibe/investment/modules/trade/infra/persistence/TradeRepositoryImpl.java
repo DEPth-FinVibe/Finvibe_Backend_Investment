@@ -1,4 +1,4 @@
-package depth.finvibe.investment.modules.trade.infra.persistenc;
+package depth.finvibe.investment.modules.trade.infra.persistence;
 
 import depth.finvibe.investment.modules.trade.application.port.out.TradeRepository;
 import depth.finvibe.investment.modules.trade.domain.Trade;
