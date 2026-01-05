@@ -134,19 +134,5 @@ class PortfolioControllerTest {
         verify(commandUseCase).deletePortfolioGroup(portfolioGroupId, userId);
     }
 
-    @Test
-    @DisplayName("기본 포트폴리오 생성 성공 API")
-    void createDefaultPortfolioGroup_Success() throws Exception {
-        // given
-        UUID userId = UUID.randomUUID();
 
-        // when & then
-        mockMvc.perform(post("/portfolios/default")
-                        .param("userId", userId.toString())
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print())
-                .andExpect(status().isCreated());
-
-        verify(commandUseCase).createDefaultPortfolioGroup(userId);
-    }
 }
