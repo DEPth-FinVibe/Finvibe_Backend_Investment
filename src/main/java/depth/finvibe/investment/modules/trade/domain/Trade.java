@@ -67,6 +67,9 @@ public class Trade extends TimeStampedBaseEntity{
     }
 
     public void execute() {
+        if (this.tradeType != TradeType.RESERVED) {
+            throw new DomainException(TradeErrorCode.ALREADY_CANCELLED_TRADE);
+        }
         this.tradeType = TradeType.NORMAL;
     }
 }
