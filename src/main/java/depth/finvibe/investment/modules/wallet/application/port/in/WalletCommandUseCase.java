@@ -7,6 +7,6 @@ import java.util.UUID;
 
 public interface WalletCommandUseCase {
     WalletDto.WalletResponse createWallet(UUID userId);
-    WalletDto.WalletResponse deposit(UUID userId, Long amount);
-    WalletDto.WalletResponse withdraw(UUID userId, Long amount);
+    WalletDto.WalletResponse deposit(UUID userId, Long price);
+    WalletDto.WalletResponse withdraw(UUID userId, Long price);
 }

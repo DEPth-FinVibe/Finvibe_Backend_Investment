@@ -11,7 +11,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -67,5 +66,12 @@ public class Trade extends TimeStampedBaseEntity{
             throw new DomainException(TradeErrorCode.CANNOT_CANCEL_NON_RESERVED_TRADE);
         }
         this.tradeType = TradeType.CANCELLED;
+    }
+
+    public void execute() {
+        if (this.tradeType != TradeType.RESERVED) {
+            throw new DomainException(TradeErrorCode.ALREADY_CANCELLED_TRADE);
+        }
+        this.tradeType = TradeType.NORMAL;
     }
 }

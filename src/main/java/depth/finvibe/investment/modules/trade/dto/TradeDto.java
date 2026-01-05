@@ -1,5 +1,6 @@
 package depth.finvibe.investment.modules.trade.dto;
 
+import depth.finvibe.investment.modules.trade.domain.Trade;
 import depth.finvibe.investment.modules.trade.domain.enums.MarketType;
 import depth.finvibe.investment.modules.trade.domain.enums.TradeType;
 import depth.finvibe.investment.modules.trade.domain.enums.TransactionType;
@@ -14,13 +15,17 @@ public class TradeDto {
 
     @Getter
     @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
     public static class TransactionRequest {
         private MarketType marketType;
         private Long stockId;
         private Double amount;
+        private Long price;
         private Long portfolioId;
         private UUID userId;
         private TradeType tradeType;
+        private TransactionType transactionType;
     }
 
     @Getter
@@ -38,18 +43,17 @@ public class TradeDto {
         private TradeType tradeType;
         private TransactionType transactionType;
 
-        public static TradeResponse from(Long tradeId, MarketType marketType, Long stockId, Double amount,
-                                         Long price, Long portfolioId, UUID userId, TradeType tradeType, TransactionType transactionType) {
+        public static TradeResponse from(Trade trade) {
             return TradeResponse.builder()
-                    .tradeId(tradeId)
-                    .marketType(marketType)
-                    .stockId(stockId)
-                    .amount(amount)
-                    .price(price)
-                    .portfolioId(portfolioId)
-                    .userId(userId)
-                    .tradeType(tradeType)
-                    .transactionType(transactionType)
+                    .tradeId(trade.getId())
+                    .marketType(trade.getMarketType())
+                    .stockId(trade.getStockId())
+                    .amount(trade.getAmount())
+                    .price(trade.getPrice())
+                    .portfolioId(trade.getPortfolioId())
+                    .userId(trade.getUserId())
+                    .tradeType(trade.getTradeType())
+                    .transactionType(trade.getTransactionType())
                     .build();
         }
     }

@@ -1,8 +1,8 @@
 package depth.finvibe.investment.modules.wallet.application;
 
 import depth.finvibe.investment.modules.wallet.application.port.in.WalletCommandUseCase;
-import depth.finvibe.investment.modules.wallet.dto.FirstLoginedEvent;
-import depth.finvibe.investment.modules.wallet.dto.TradeExecutedEvent;
+import depth.finvibe.investment.shared.dto.FirstLoginedEvent;
+import depth.finvibe.investment.shared.dto.TradeExecutedEvent;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,9 +21,9 @@ public class WalletEventService {
         UUID userId = UUID.fromString(event.userId());
 
         if (event.type().equals("BUY")) {
-            commandUseCase.withdraw(userId, event.amount());
+            commandUseCase.withdraw(userId, event.price());
         } else if (event.type().equals("SELL")) {
-            commandUseCase.deposit(userId, event.amount());
+            commandUseCase.deposit(userId, event.price());
         } else {
             log.warn("Ignoring trade event of type: {}", event.type());
         }

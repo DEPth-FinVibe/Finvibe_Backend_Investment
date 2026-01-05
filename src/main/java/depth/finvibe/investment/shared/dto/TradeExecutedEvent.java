@@ -1,9 +1,9 @@
-package depth.finvibe.investment.modules.wallet.dto;
+package depth.finvibe.investment.shared.dto;
 
 public record TradeExecutedEvent (
         String tradeId,
         String userId,
         String type, // "BUY", "SELL"
-        Long amount,
+        Double amount,
         Long price
 ) {}

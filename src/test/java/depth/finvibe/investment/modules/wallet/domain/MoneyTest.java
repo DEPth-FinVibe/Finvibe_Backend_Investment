@@ -27,7 +27,7 @@ class MoneyTest {
       Money money = new Money(amount);
 
       // then
-      assertThat(money.getAmount()).isEqualTo(amount);
+      assertThat(money.getPrice()).isEqualTo(amount);
     }
 
     @ParameterizedTest
@@ -37,7 +37,7 @@ class MoneyTest {
       assertThatThrownBy(() -> new Money(amount))
           .isInstanceOf(DomainException.class)
           .extracting("errorCode")
-          .isEqualTo(WalletErrorCode.INVALID_MONEY_AMOUNT);
+          .isEqualTo(WalletErrorCode.INVALID_MONEY_PRICE);
     }
 
     @Test
@@ -46,7 +46,7 @@ class MoneyTest {
       assertThatThrownBy(() -> new Money(null))
           .isInstanceOf(DomainException.class)
           .extracting("errorCode")
-          .isEqualTo(WalletErrorCode.INVALID_MONEY_AMOUNT);
+          .isEqualTo(WalletErrorCode.INVALID_MONEY_PRICE);
     }
   }
 
@@ -64,7 +64,7 @@ class MoneyTest {
       Money result = money1.plus(money2);
 
       // then
-      assertThat(result.getAmount()).isEqualTo(1500L);
+      assertThat(result.getPrice()).isEqualTo(1500L);
     }
 
     @Test
@@ -78,7 +78,7 @@ class MoneyTest {
       Money result = money1.minus(money2);
 
       // then
-      assertThat(result.getAmount()).isEqualTo(600L);
+      assertThat(result.getPrice()).isEqualTo(600L);
     }
 
     @Test
