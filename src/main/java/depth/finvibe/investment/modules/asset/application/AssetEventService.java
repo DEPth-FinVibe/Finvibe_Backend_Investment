@@ -24,21 +24,10 @@ public class AssetEventService {
         UUID userId = UUID.fromString(event.userId());
 
         if (event.type().equals("BUY")) {
-            PortfolioGroupDto.RegisterAssetRequest request = PortfolioGroupDto.RegisterAssetRequest.builder()
-                    .stockId(event.stockId())
-                    .name(event.name())
-                    .stockPrice(event.stockPrice())
-                    .amount(event.amount())
-                    .currency(event.currency())
-                    .build();
+            PortfolioGroupDto.RegisterAssetRequest request = createRegisterRequestFrom(event);
             commandUseCase.registerAsset(portfolioId,request, userId);
         } else if (event.type().equals("SELL")) {
-            PortfolioGroupDto.UnregisterAssetRequest request = PortfolioGroupDto.UnregisterAssetRequest.builder()
-                    .stockId(event.stockId())
-                    .stockPrice(event.stockPrice())
-                    .amount(event.amount())
-                    .currency(event.currency())
-                    .build();
+            PortfolioGroupDto.UnregisterAssetRequest request = createUnregisterRequestFrom(event);
             commandUseCase.unregisterAsset(portfolioId, request, userId);
         } else {
             log.warn("Ignoring trade event of type: {}", event.type());
@@ -50,5 +39,24 @@ public class AssetEventService {
     public void handleFirstLoginedEvent(FirstLoginedEvent event) {
         UUID userId = UUID.fromString(event.userId());
         commandUseCase.createDefaultPortfolioGroup(userId);
+    }
+
+    private PortfolioGroupDto.RegisterAssetRequest createRegisterRequestFrom(TradeExecutedEvent event) {
+        return PortfolioGroupDto.RegisterAssetRequest.builder()
+                .stockId(event.stockId())
+                .name(event.name())
+                .stockPrice(event.stockPrice())
+                .amount(event.amount())
+                .currency(event.currency())
+                .build();
+    }
+
+    private PortfolioGroupDto.UnregisterAssetRequest createUnregisterRequestFrom(TradeExecutedEvent event) {
+        return PortfolioGroupDto.UnregisterAssetRequest.builder()
+                .stockId(event.stockId())
+                .stockPrice(event.stockPrice())
+                .amount(event.amount())
+                .currency(event.currency())
+                .build();
     }
 }
