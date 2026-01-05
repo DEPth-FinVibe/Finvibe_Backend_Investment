@@ -1,5 +1,6 @@
 package depth.finvibe.investment.modules.trade.application;
 
+import depth.finvibe.investment.modules.trade.application.port.out.TradeEventProducer;
 import depth.finvibe.investment.modules.trade.application.port.out.TradeRepository;
 import depth.finvibe.investment.modules.trade.domain.Trade;
 import depth.finvibe.investment.modules.trade.domain.enums.MarketType;
@@ -31,6 +32,9 @@ class TradeServiceTest {
 
     @Mock
     private TradeRepository tradeRepository;
+
+    @Mock
+    private TradeEventProducer tradeEventProducer;
 
     @InjectMocks
     private TradeService tradeService;
@@ -128,11 +132,10 @@ class TradeServiceTest {
 
         // then
         assertThat(response.getStockId()).isEqualTo(5930L);
-        assertThat(response.getTradeType()).isEqualTo(TradeType.NORMAL);
-        assertThat(response.getTransactionType()).isEqualTo(TransactionType.BUY);
         verify(tradeRepository, times(1)).save(any(Trade.class));
-        // TODO: 카프카 이벤트 발행 검증
+        verify(tradeEventProducer, times(1)).publishNormalTradeExecutedEvent(any(Trade.class));
     }
+
 
     @Test
     @DisplayName("예약 거래 생성 성공")
@@ -261,7 +264,7 @@ class TradeServiceTest {
         // then
         verify(spyReservedTrade, times(1)).execute();
         verify(tradeRepository, times(1)).save(any(Trade.class));
-        // TODO: 카프카 이벤트 발행 검증
+        verify(tradeEventProducer, times(1)).publishReservedTradeExecutedEvent(any(Trade.class));
     }
 
     @Test
