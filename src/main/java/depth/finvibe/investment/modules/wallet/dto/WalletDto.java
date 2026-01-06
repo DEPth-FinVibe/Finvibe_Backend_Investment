@@ -23,7 +23,7 @@ public class WalletDto {
             return WalletResponse.builder()
                     .walletId(wallet.getId())
                     .userId(wallet.getUserId())
-                    .balance(wallet.getBalance().getAmount())
+                    .balance(wallet.getBalance().getPrice())
                     .build();
         }
     }

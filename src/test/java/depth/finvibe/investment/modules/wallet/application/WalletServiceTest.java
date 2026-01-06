@@ -65,7 +65,7 @@ class WalletServiceTest {
     WalletDto.WalletResponse result = walletService.deposit(userId, depositAmount);
 
     // then
-    assertThat(wallet.getBalance().getAmount()).isEqualTo(1500L);
+    assertThat(wallet.getBalance().getPrice()).isEqualTo(1500L);
     assertThat(result.getBalance()).isEqualTo(1500L);
     verify(walletRepository, times(1)).findByUserId(userId);
     // JPA 더티 체킹으로 자동 저장되므로 save() verify 불필요
@@ -100,7 +100,7 @@ class WalletServiceTest {
     WalletDto.WalletResponse result = walletService.withdraw(userId, withdrawAmount);
 
     // then
-    assertThat(wallet.getBalance().getAmount()).isEqualTo(600L);
+    assertThat(wallet.getBalance().getPrice()).isEqualTo(600L);
     assertThat(result.getBalance()).isEqualTo(600L);
     verify(walletRepository, times(1)).findByUserId(userId);
     // JPA 더티 체킹으로 자동 저장되므로 save() verify 불필요
@@ -151,7 +151,7 @@ class WalletServiceTest {
     WalletDto.WalletResponse result = walletService.withdraw(userId, withdrawAmount);
 
     // then
-    assertThat(wallet.getBalance().getAmount()).isEqualTo(0L);
+    assertThat(wallet.getBalance().getPrice()).isEqualTo(0L);
     assertThat(result.getBalance()).isEqualTo(0L);
     verify(walletRepository, times(1)).findByUserId(userId);
     // JPA 더티 체킹으로 자동 저장되므로 save() verify 불필요
