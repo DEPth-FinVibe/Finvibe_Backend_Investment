@@ -36,7 +36,7 @@ jobs:
 
       # 5️⃣ Gradle Build
       - name: Build with Gradle
-        run: ./gradlew clean build --no-daemon
+        run: ./gradlew clean bootJar --no-daemon --stacktrace --info
 
       # 6️⃣ Docker Hub 로그인
       - name: Docker login
