@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class KafkaConsumer {
+public class WalletKafkaConsumer {
     private final WalletEventService walletEventService;
 
     @KafkaListener(topics = "trade.trade-executed.v1", groupId = "wallet-group")

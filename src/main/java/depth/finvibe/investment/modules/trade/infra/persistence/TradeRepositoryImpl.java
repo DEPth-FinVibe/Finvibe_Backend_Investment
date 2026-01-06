@@ -11,13 +11,15 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class TradeRepositoryImpl implements TradeRepository {
 
+    private final TradeJpaRepository jpaRepository;
+
     @Override
     public Trade save(Trade trade) {
-        return null;
+        return jpaRepository.save(trade);
     }
 
     @Override
     public Optional<Trade> findById(Long tradeId) {
-        return Optional.empty();
+        return jpaRepository.findById(tradeId);
     }
 }
