@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import depth.finvibe.investment.modules.asset.domain.Asset;
 import depth.finvibe.investment.modules.asset.domain.Currency;
 import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -35,7 +36,9 @@ public class PortfolioGroupDto {
     @Data
     @Builder
     public static class CreatePortfolioGroupRequest {
+        @NotNull
         private String name;
+        @NotNull
         private String iconCode;
     }
 
@@ -44,7 +47,9 @@ public class PortfolioGroupDto {
     @Data
     @Builder
     public static class UpdatePortfolioGroupRequest {
+        @NotNull
         private String name;
+        @NotNull
         private String iconCode;
     }
 
@@ -53,10 +58,15 @@ public class PortfolioGroupDto {
     @Data
     @Builder
     public static class RegisterAssetRequest {
+        @NotNull
         private Long stockId;
+        @NotNull
         private BigDecimal amount;
+        @NotNull
         private BigDecimal stockPrice;
+        @NotNull
         private String name;
+        @NotNull
         private Currency currency;
     }
 
@@ -65,9 +75,13 @@ public class PortfolioGroupDto {
     @Data
     @Builder
     public static class UnregisterAssetRequest {
+        @NotNull
         private Long stockId;
+        @NotNull
         private BigDecimal amount;
+        @NotNull
         private BigDecimal stockPrice;
+
         private Currency currency;
     }
 
