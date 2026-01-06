@@ -12,7 +12,7 @@ COPY build.gradle settings.gradle ./
 
 # 의존성 캐시 (빌드 속도 개선)
 RUN chmod +x gradlew
-RUN ./gradlew dependencies --no-daemon || true
+RUN ./gradlew clean bootJar --no-daemon --stacktrace --info
 
 # 소스 코드 복사
 COPY src src
