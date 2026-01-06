@@ -1,6 +1,7 @@
 package depth.finvibe.investment.modules.trade.application;
 
 import depth.finvibe.investment.modules.trade.application.port.in.TradeCommandUseCase;
+import depth.finvibe.investment.modules.trade.application.port.in.TradeQueryUseCase;
 import depth.finvibe.investment.modules.trade.application.port.out.TradeEventProducer;
 import depth.finvibe.investment.modules.trade.application.port.out.TradeRepository;
 import depth.finvibe.investment.modules.trade.domain.Trade;
@@ -14,7 +15,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class TradeService implements TradeCommandUseCase {
+public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
 
     private final TradeRepository tradeRepository;
     private final TradeEventProducer tradeEventProducer;
