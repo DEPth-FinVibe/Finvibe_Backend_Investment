@@ -20,6 +20,10 @@ configurations {
     }
 }
 
+springBoot {
+    mainClass = 'depth.finvibe.investment.Application'
+}
+
 repositories {
     mavenCentral()
 }
