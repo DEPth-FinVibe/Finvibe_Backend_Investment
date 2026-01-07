@@ -33,6 +33,7 @@ jobs:
         run: |
           mkdir -p src/main/resources
           echo "${{ secrets.APPLICATION_YAML }}" > src/main/resources/application.yaml
+          echo "${{ secrets.APPLICATION_KAFKA_YML }}" > src/main/resources/application-kafka.yaml
 
       # 5️⃣ Gradle Build
       - name: Build with Gradle
