@@ -23,11 +23,6 @@ public class Category {
 
     private String name;
 
-    // 카테고리 식별
-    public boolean isSameCategory(Long categoryId) {
-        return this.id.equals(categoryId);
-    }
-
     // 카테고리명 변경
     public void changeName(String name) {
         if (name == null || name.isBlank()) {

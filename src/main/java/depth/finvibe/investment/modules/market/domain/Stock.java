@@ -31,11 +31,6 @@ public class Stock {
                 .build();
     }
 
-    // 종목 식별
-    public boolean isSameStock(Long stockId) {
-        return this.id.equals(stockId);
-    }
-
     // 종목 정보 업데이트
     public void updateInfo(String name, String symbol, Long categoryId) {
         this.name = name;
