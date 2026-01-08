@@ -2,11 +2,12 @@ package depth.finvibe.investment.modules.market.domain;
 
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
-public record PriceCandle(Long stockId, Timeframe timeframe, LocalDateTime at, Long open, Long high, Long low,
-                          Long close, float prevDayChangePct, Long volume, Long value) {
+public record PriceCandle(Long stockId, Timeframe timeframe, LocalDateTime at, BigDecimal open, BigDecimal high, BigDecimal low,
+                          BigDecimal close, float prevDayChangePct, Long volume, Long value) {
 
     @Override
     public boolean equals(Object o) {
