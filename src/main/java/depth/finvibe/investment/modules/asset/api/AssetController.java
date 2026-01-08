@@ -1,5 +1,7 @@
 package depth.finvibe.investment.modules.asset.api;
 
+import depth.finvibe.investment.boot.security.model.AuthenticatedUser;
+import depth.finvibe.investment.boot.security.model.Requester;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUseCase;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetQueryUseCase;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
@@ -10,7 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/portfolios")
@@ -23,20 +24,18 @@ public class AssetController {
     @GetMapping("/{portfolioId}/assets")
     public ResponseEntity<List<PortfolioGroupDto.AssetResponse>> getAssetsByPortfolio(
             @PathVariable Long portfolioId,
-            @RequestParam("userId") UUID userId
-    )
-    {
-        return ResponseEntity.ok(queryUseCase.getAssetsByPortfolio(portfolioId,userId));
+            @AuthenticatedUser Requester requester
+    ) {
+        return ResponseEntity.ok(queryUseCase.getAssetsByPortfolio(portfolioId, requester.getUuid()));
     }
 
     @PostMapping("/{portfolioId}/assets")
     public ResponseEntity<Void> registerAsset(
             @PathVariable Long portfolioId,
             @RequestBody @Valid PortfolioGroupDto.RegisterAssetRequest request,
-            @RequestParam("userId") UUID userId
-    )
-    {
-        commandUseCase.registerAsset(portfolioId,request,userId);
+            @AuthenticatedUser Requester requester
+    ) {
+        commandUseCase.registerAsset(portfolioId, request, requester.getUuid());
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
@@ -44,10 +43,9 @@ public class AssetController {
     public ResponseEntity<Void> unregisterAsset(
             @PathVariable Long portfolioId,
             @RequestBody @Valid PortfolioGroupDto.UnregisterAssetRequest request,
-            @RequestParam("userId") UUID userId
-    )
-    {
-        commandUseCase.unregisterAsset(portfolioId,request,userId);
+            @AuthenticatedUser Requester requester
+    ) {
+        commandUseCase.unregisterAsset(portfolioId, request, requester.getUuid());
         return ResponseEntity.noContent().build();
     }
 }

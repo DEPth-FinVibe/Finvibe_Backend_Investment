@@ -1,5 +1,8 @@
 package depth.finvibe.investment.modules.asset.api;
 
+import depth.finvibe.investment.boot.config.WebMvcConfig;
+import depth.finvibe.investment.boot.security.model.UserRole;
+import depth.finvibe.investment.boot.security.resolver.JwtArgumentResolver;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUseCase;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetQueryUseCase;
 import depth.finvibe.investment.modules.asset.domain.Currency;
@@ -9,12 +12,16 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.hasSize;
@@ -28,6 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AssetController.class)
+@Import({WebMvcConfig.class, JwtArgumentResolver.class})
 public class AssetControllerTest {
     @Autowired
     private MockMvc mockMvc;
@@ -74,7 +82,7 @@ public class AssetControllerTest {
 
         // when
         mockMvc.perform(get("/portfolios/{portfolioId}/assets", portfolioId)
-                        .param("userId", userId.toString())
+                        .header("Authorization", bearerToken(userId))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
 
@@ -103,7 +111,7 @@ public class AssetControllerTest {
 
         // when
         mockMvc.perform(post("/portfolios/{portfolioId}/assets", portfolioId)
-                        .param("userId", userId.toString())
+                        .header("Authorization", bearerToken(userId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andDo(print())
@@ -134,7 +142,7 @@ public class AssetControllerTest {
 
         // when
         mockMvc.perform(delete("/portfolios/{portfolioId}/assets", portfolioId)
-                        .param("userId", userId.toString())
+                        .header("Authorization", bearerToken(userId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andDo(print())
@@ -146,5 +154,16 @@ public class AssetControllerTest {
                 any(PortfolioGroupDto.UnregisterAssetRequest.class),
                 eq(userId)
         );
+    }
+
+    private String bearerToken(UUID userId) throws Exception {
+        String header = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("{}".getBytes(StandardCharsets.UTF_8));
+        String payload = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(objectMapper.writeValueAsBytes(Map.of(
+                        "id", userId.toString(),
+                        "role", UserRole.USER.name()
+                )));
+        return "Bearer " + header + "." + payload + ".sig";
     }
 }

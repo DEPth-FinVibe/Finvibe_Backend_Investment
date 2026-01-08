@@ -1,4 +1,4 @@
-package depth.finvibe.investment.shared.infra.config;// 패키지 경로는 프로젝트 구조에 맞게 수정해주세요
+package depth.finvibe.investment.boot.config;// 패키지 경로는 프로젝트 구조에 맞게 수정해주세요
 
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;

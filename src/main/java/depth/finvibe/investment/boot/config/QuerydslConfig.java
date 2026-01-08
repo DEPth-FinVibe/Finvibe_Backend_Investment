@@ -1,4 +1,4 @@
-package depth.finvibe.investment.shared.infra.config;
+package depth.finvibe.investment.boot.config;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
