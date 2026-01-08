@@ -1,5 +1,7 @@
 package depth.finvibe.investment.modules.market.domain;
 
+import depth.finvibe.investment.modules.market.domain.error.MarketErrorCode;
+import depth.finvibe.investment.shared.error.DomainException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -44,8 +46,8 @@ class CategoryTest {
 
         // when & then
         assertThatThrownBy(() -> category.changeName(null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("카테고리명은 필수입니다.");
+                .isInstanceOf(DomainException.class)
+                .hasFieldOrPropertyWithValue("errorCode", MarketErrorCode.INVALID_CATEGORY_NAME);
     }
 
     @Test
@@ -58,8 +60,8 @@ class CategoryTest {
 
         // when & then
         assertThatThrownBy(() -> category.changeName("   "))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("카테고리명은 필수입니다.");
+                .isInstanceOf(DomainException.class)
+                .hasFieldOrPropertyWithValue("errorCode", MarketErrorCode.INVALID_CATEGORY_NAME);
     }
 
     @Test
@@ -74,5 +76,4 @@ class CategoryTest {
         assertThat(category.hasName("IT")).isTrue();
         assertThat(category.hasName("반도체")).isFalse();
     }
-
 }
