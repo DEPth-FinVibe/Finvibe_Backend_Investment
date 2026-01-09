@@ -35,6 +35,7 @@ public class GlobalExceptionHandler {
     HttpStatusCode status = resolveStatus(ex.getErrorCode());
 
     ErrorResponse body = ErrorResponse.of(
+        status.value(),
         ex.getErrorCode().getCode(),
         ex.getErrorCode().getMessageKey()
     );
@@ -52,6 +53,7 @@ public class GlobalExceptionHandler {
   })
   public ResponseEntity<ErrorResponse> handleBadRequest(Exception ex) {
     ErrorResponse body = ErrorResponse.of(
+        HttpStatus.BAD_REQUEST.value(),
         GlobalErrorCode.INVALID_REQUEST.getCode(),
         GlobalErrorCode.INVALID_REQUEST.getMessageKey()
     );
@@ -61,6 +63,7 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
   public ResponseEntity<ErrorResponse> handleMethodNotAllowed(HttpRequestMethodNotSupportedException ex) {
     ErrorResponse body = ErrorResponse.of(
+        HttpStatus.METHOD_NOT_ALLOWED.value(),
         GlobalErrorCode.METHOD_NOT_ALLOWED.getCode(),
         GlobalErrorCode.METHOD_NOT_ALLOWED.getMessageKey()
     );
@@ -70,6 +73,7 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
   public ResponseEntity<ErrorResponse> handleUnsupportedMediaType(HttpMediaTypeNotSupportedException ex) {
     ErrorResponse body = ErrorResponse.of(
+        HttpStatus.UNSUPPORTED_MEDIA_TYPE.value(),
         GlobalErrorCode.UNSUPPORTED_MEDIA_TYPE.getCode(),
         GlobalErrorCode.UNSUPPORTED_MEDIA_TYPE.getMessageKey()
     );
@@ -79,6 +83,7 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
   public ResponseEntity<ErrorResponse> handleNotAcceptable(HttpMediaTypeNotAcceptableException ex) {
     ErrorResponse body = ErrorResponse.of(
+        HttpStatus.NOT_ACCEPTABLE.value(),
         GlobalErrorCode.NOT_ACCEPTABLE.getCode(),
         GlobalErrorCode.NOT_ACCEPTABLE.getMessageKey()
     );
@@ -88,6 +93,7 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(NoHandlerFoundException.class)
   public ResponseEntity<ErrorResponse> handleNotFound(NoHandlerFoundException ex) {
     ErrorResponse body = ErrorResponse.of(
+        HttpStatus.NOT_FOUND.value(),
         GlobalErrorCode.NOT_FOUND.getCode(),
         GlobalErrorCode.NOT_FOUND.getMessageKey()
     );
@@ -99,6 +105,7 @@ public class GlobalExceptionHandler {
     HttpStatusCode status = ex.getStatusCode();
     GlobalErrorCode code = GlobalErrorCode.fromStatus(status);
     ErrorResponse body = ErrorResponse.of(
+        status.value(),
         code.getCode(),
         code.getMessageKey()
     );
@@ -108,6 +115,7 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
     ErrorResponse body = ErrorResponse.of(
+        HttpStatus.INTERNAL_SERVER_ERROR.value(),
         GlobalErrorCode.INTERNAL_SERVER_ERROR.getCode(),
         GlobalErrorCode.INTERNAL_SERVER_ERROR.getMessageKey()
     );
