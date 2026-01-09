@@ -3,7 +3,10 @@ package depth.finvibe.investment.modules.market.domain;
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,6 +24,8 @@ import java.util.Objects;
 )
 @AllArgsConstructor
 @NoArgsConstructor
+@SuperBuilder
+@Getter
 public class PriceCandle {
 
     @Id
@@ -58,13 +63,20 @@ public class PriceCandle {
     @Column(nullable = false)
     private Long value;
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof PriceCandle that)) return false;
-        return Objects.equals(stockId, that.stockId)
-                && timeframe == that.timeframe
-                && Objects.equals(at, that.at);
+    public PriceCandle(Long stockId, Timeframe timeframe, LocalDateTime at, BigDecimal open, BigDecimal high,
+                       BigDecimal low, BigDecimal close, BigDecimal prevDayChangePct, Long volume, Long value) {
+        PriceCandle.builder()
+                .stockId(stockId)
+                .timeframe(timeframe)
+                .at(at)
+                .open(open)
+                .high(high)
+                .low(low)
+                .close(close)
+                .prevDayChangePct(prevDayChangePct)
+                .volume(volume)
+                .value(value)
+                .build();
     }
 
     @Override
