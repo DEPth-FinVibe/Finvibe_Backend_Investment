@@ -56,6 +56,8 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: 51taek/finvibe:${{ env.IMAGE_TAG }}
+          build-args: |
+            PROFILE=prod
 
       # 9️⃣ manifest repo checkout
       - name: Checkout manifest repo
