@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: kafka
+    active: local
   web:
     resources:
       add-mappings: false

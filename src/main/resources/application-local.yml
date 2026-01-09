@@ -32,6 +32,9 @@ spring:
       properties:
         spring.json.trusted.packages: "depth.finvibe.investment.*"
 
+  mongodb:
+    uri: mongodb://localhost:27017/finvibe
+
 logging:
   level:
     root: info
