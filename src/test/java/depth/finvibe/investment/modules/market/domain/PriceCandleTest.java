@@ -18,8 +18,7 @@ class PriceCandleTest {
         LocalDateTime now = LocalDateTime.now();
 
         // when
-        PriceCandle candle = new PriceCandle(
-                null,  // id는 영속화 시점에 생성
+        PriceCandle candle = PriceCandle.create(
                 1L,
                 Timeframe.DAY,
                 now,
@@ -28,16 +27,12 @@ class PriceCandleTest {
                 BigDecimal.valueOf(68000),
                 BigDecimal.valueOf(70000),
                 BigDecimal.valueOf(1.5),
-                1000000L,
-                70000000000L
+                BigDecimal.valueOf(1000000),
+                BigDecimal.valueOf(70000000000L)
         );
 
         // then
         assertThat(candle).isNotNull();
-        // getter 메서드가 있다면 아래와 같이 검증
-        // assertThat(candle.getStockId()).isEqualTo(1L);
-        // assertThat(candle.getTimeframe()).isEqualTo(Timeframe.DAY);
-        // ...
     }
 
     @Test
@@ -45,17 +40,17 @@ class PriceCandleTest {
     void equalsWithSameIdentity() {
         // given
         LocalDateTime now = LocalDateTime.now();
-        PriceCandle candle1 = new PriceCandle(
-                null, 1L, Timeframe.MINUTE, now,
+        PriceCandle candle1 = PriceCandle.create(
+                1L, Timeframe.MINUTE, now,
                 BigDecimal.valueOf(69000), BigDecimal.valueOf(71000),
                 BigDecimal.valueOf(68000), BigDecimal.valueOf(70000),
-                BigDecimal.valueOf(1.5), 1000000L, 70000000000L
+                BigDecimal.valueOf(1.5), BigDecimal.valueOf(1000000), BigDecimal.valueOf(70000000000L)
         );
-        PriceCandle candle2 = new PriceCandle(
-                null, 1L, Timeframe.MINUTE, now,
+        PriceCandle candle2 = PriceCandle.create(
+                1L, Timeframe.MINUTE, now,
                 BigDecimal.valueOf(80000), BigDecimal.valueOf(85000),
                 BigDecimal.valueOf(78000), BigDecimal.valueOf(82000),
-                BigDecimal.valueOf(2.0), 2000000L, 160000000000L
+                BigDecimal.valueOf(2.0), BigDecimal.valueOf(2000000), BigDecimal.valueOf(160000000000L)
         );
 
         // when & then
@@ -68,17 +63,17 @@ class PriceCandleTest {
     void notEqualsWithDifferentStockId() {
         // given
         LocalDateTime now = LocalDateTime.now();
-        PriceCandle candle1 = new PriceCandle(
-                null, 1L, Timeframe.HOUR, now,
+        PriceCandle candle1 = PriceCandle.create(
+                1L, Timeframe.HOUR, now,
                 BigDecimal.valueOf(69000), BigDecimal.valueOf(71000),
                 BigDecimal.valueOf(68000), BigDecimal.valueOf(70000),
-                BigDecimal.valueOf(1.5), 1000000L, 70000000000L
+                BigDecimal.valueOf(1.5), BigDecimal.valueOf(1000000), BigDecimal.valueOf(70000000000L)
         );
-        PriceCandle candle2 = new PriceCandle(
-                null, 2L, Timeframe.HOUR, now,
+        PriceCandle candle2 = PriceCandle.create(
+                2L, Timeframe.HOUR, now,
                 BigDecimal.valueOf(69000), BigDecimal.valueOf(71000),
                 BigDecimal.valueOf(68000), BigDecimal.valueOf(70000),
-                BigDecimal.valueOf(1.5), 1000000L, 70000000000L
+                BigDecimal.valueOf(1.5), BigDecimal.valueOf(1000000), BigDecimal.valueOf(70000000000L)
         );
 
         // when & then
@@ -90,17 +85,17 @@ class PriceCandleTest {
     void notEqualsWithDifferentTimeframe() {
         // given
         LocalDateTime now = LocalDateTime.now();
-        PriceCandle candle1 = new PriceCandle(
-                null, 1L, Timeframe.HOUR, now,
+        PriceCandle candle1 = PriceCandle.create(
+                1L, Timeframe.HOUR, now,
                 BigDecimal.valueOf(69000), BigDecimal.valueOf(71000),
                 BigDecimal.valueOf(68000), BigDecimal.valueOf(70000),
-                BigDecimal.valueOf(1.5), 1000000L, 70000000000L
+                BigDecimal.valueOf(1.5), BigDecimal.valueOf(1000000), BigDecimal.valueOf(70000000000L)
         );
-        PriceCandle candle2 = new PriceCandle(
-                null, 1L, Timeframe.DAY, now,
+        PriceCandle candle2 = PriceCandle.create(
+                1L, Timeframe.DAY, now,
                 BigDecimal.valueOf(69000), BigDecimal.valueOf(71000),
                 BigDecimal.valueOf(68000), BigDecimal.valueOf(70000),
-                BigDecimal.valueOf(1.5), 1000000L, 70000000000L
+                BigDecimal.valueOf(1.5), BigDecimal.valueOf(1000000), BigDecimal.valueOf(70000000000L)
         );
 
         // when & then
@@ -113,17 +108,17 @@ class PriceCandleTest {
         // given
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime later = now.plusMinutes(1);
-        PriceCandle candle1 = new PriceCandle(
-                null, 1L, Timeframe.MINUTE, now,
+        PriceCandle candle1 = PriceCandle.create(
+                1L, Timeframe.MINUTE, now,
                 BigDecimal.valueOf(69000), BigDecimal.valueOf(71000),
                 BigDecimal.valueOf(68000), BigDecimal.valueOf(70000),
-                BigDecimal.valueOf(1.5), 1000000L, 70000000000L
+                BigDecimal.valueOf(1.5), BigDecimal.valueOf(1000000), BigDecimal.valueOf(70000000000L)
         );
-        PriceCandle candle2 = new PriceCandle(
-                null, 1L, Timeframe.MINUTE, later,
+        PriceCandle candle2 = PriceCandle.create(
+                1L, Timeframe.MINUTE, later,
                 BigDecimal.valueOf(69000), BigDecimal.valueOf(71000),
                 BigDecimal.valueOf(68000), BigDecimal.valueOf(70000),
-                BigDecimal.valueOf(1.5), 1000000L, 70000000000L
+                BigDecimal.valueOf(1.5), BigDecimal.valueOf(1000000), BigDecimal.valueOf(70000000000L)
         );
 
         // when & then
@@ -134,11 +129,11 @@ class PriceCandleTest {
     @DisplayName("null과 비교 시 다르다")
     void notEqualsWithNull() {
         // given
-        PriceCandle candle = new PriceCandle(
-                null, 1L, Timeframe.DAY, LocalDateTime.now(),
+        PriceCandle candle = PriceCandle.create(
+                1L, Timeframe.DAY, LocalDateTime.now(),
                 BigDecimal.valueOf(69000), BigDecimal.valueOf(71000),
                 BigDecimal.valueOf(68000), BigDecimal.valueOf(70000),
-                BigDecimal.valueOf(1.5), 1000000L, 70000000000L
+                BigDecimal.valueOf(1.5), BigDecimal.valueOf(1000000), BigDecimal.valueOf(70000000000L)
         );
 
         // when & then

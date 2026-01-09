@@ -58,14 +58,14 @@ public class PriceCandle {
     private BigDecimal prevDayChangePct;
 
     @Column(nullable = false)
-    private Long volume;
+    private BigDecimal volume;
 
     @Column(nullable = false)
-    private Long value;
+    private BigDecimal value;
 
-    public PriceCandle(Long stockId, Timeframe timeframe, LocalDateTime at, BigDecimal open, BigDecimal high,
-                       BigDecimal low, BigDecimal close, BigDecimal prevDayChangePct, Long volume, Long value) {
-        PriceCandle.builder()
+    public static PriceCandle create(Long stockId, Timeframe timeframe, LocalDateTime at, BigDecimal open, BigDecimal high,
+                       BigDecimal low, BigDecimal close, BigDecimal prevDayChangePct, BigDecimal volume, BigDecimal value) {
+        return PriceCandle.builder()
                 .stockId(stockId)
                 .timeframe(timeframe)
                 .at(at)
@@ -80,7 +80,19 @@ public class PriceCandle {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof PriceCandle that)) return false;
+
+        // 비즈니스 식별자만 비교 (stockId, timeframe, at)
+        return Objects.equals(stockId, that.stockId)
+                && timeframe == that.timeframe
+                && Objects.equals(at, that.at);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hash(stockId, timeframe, at);
     }
+
 }

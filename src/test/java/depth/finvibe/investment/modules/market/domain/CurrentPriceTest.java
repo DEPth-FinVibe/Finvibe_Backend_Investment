@@ -26,8 +26,8 @@ class CurrentPriceTest {
                 BigDecimal.valueOf(68000),
                 BigDecimal.valueOf(70500),
                 BigDecimal.valueOf(1.5),
-                1000000L,
-                70000000000L
+                BigDecimal.valueOf(1000000),
+                BigDecimal.valueOf(70000000000L)
         );
 
         // then
@@ -39,8 +39,8 @@ class CurrentPriceTest {
         assertThat(currentPrice.low()).isEqualByComparingTo(BigDecimal.valueOf(68000));
         assertThat(currentPrice.close()).isEqualByComparingTo(BigDecimal.valueOf(70500));
         assertThat(currentPrice.prevDayChangePct()).isEqualByComparingTo(BigDecimal.valueOf(1.5));
-        assertThat(currentPrice.volume()).isEqualTo(1000000L);
-        assertThat(currentPrice.value()).isEqualTo(70000000000L);
+        assertThat(currentPrice.volume()).isEqualByComparingTo(BigDecimal.valueOf(1000000));
+        assertThat(currentPrice.value()).isEqualByComparingTo(BigDecimal.valueOf(70000000000L));
     }
 
     @Test
@@ -51,12 +51,14 @@ class CurrentPriceTest {
         CurrentPrice price1 = new CurrentPrice(
                 1L, now, BigDecimal.valueOf(70000), BigDecimal.valueOf(69000),
                 BigDecimal.valueOf(71000), BigDecimal.valueOf(68000),
-                BigDecimal.valueOf(70500), BigDecimal.valueOf(1.5), 1000000L, 70000000000L
+                BigDecimal.valueOf(70500), BigDecimal.valueOf(1.5),
+                BigDecimal.valueOf(1000000), BigDecimal.valueOf(70000000000L)
         );
         CurrentPrice price2 = new CurrentPrice(
                 1L, now, BigDecimal.valueOf(70000), BigDecimal.valueOf(69000),
                 BigDecimal.valueOf(71000), BigDecimal.valueOf(68000),
-                BigDecimal.valueOf(70500), BigDecimal.valueOf(1.5), 1000000L, 70000000000L
+                BigDecimal.valueOf(70500), BigDecimal.valueOf(1.5),
+                BigDecimal.valueOf(1000000), BigDecimal.valueOf(70000000000L)
         );
 
         // when & then
@@ -72,12 +74,14 @@ class CurrentPriceTest {
         CurrentPrice price1 = new CurrentPrice(
                 1L, now, BigDecimal.valueOf(70000), BigDecimal.valueOf(69000),
                 BigDecimal.valueOf(71000), BigDecimal.valueOf(68000),
-                BigDecimal.valueOf(70500), BigDecimal.valueOf(1.5), 1000000L, 70000000000L
+                BigDecimal.valueOf(70500), BigDecimal.valueOf(1.5),
+                BigDecimal.valueOf(1000000), BigDecimal.valueOf(70000000000L)
         );
         CurrentPrice price2 = new CurrentPrice(
                 2L, now, BigDecimal.valueOf(70000), BigDecimal.valueOf(69000),
                 BigDecimal.valueOf(71000), BigDecimal.valueOf(68000),
-                BigDecimal.valueOf(70500), BigDecimal.valueOf(1.5), 1000000L, 70000000000L
+                BigDecimal.valueOf(70500), BigDecimal.valueOf(1.5),
+                BigDecimal.valueOf(1000000), BigDecimal.valueOf(70000000000L)
         );
 
         // when & then
@@ -92,12 +96,14 @@ class CurrentPriceTest {
         CurrentPrice price1 = new CurrentPrice(
                 1L, now, BigDecimal.valueOf(70000), BigDecimal.valueOf(69000),
                 BigDecimal.valueOf(71000), BigDecimal.valueOf(68000),
-                BigDecimal.valueOf(70500), BigDecimal.valueOf(1.5), 1000000L, 70000000000L
+                BigDecimal.valueOf(70500), BigDecimal.valueOf(1.5),
+                BigDecimal.valueOf(1000000), BigDecimal.valueOf(70000000000L)
         );
         CurrentPrice price2 = new CurrentPrice(
                 1L, now, BigDecimal.valueOf(71000), BigDecimal.valueOf(69000),
                 BigDecimal.valueOf(71000), BigDecimal.valueOf(68000),
-                BigDecimal.valueOf(70500), BigDecimal.valueOf(1.5), 1000000L, 70000000000L
+                BigDecimal.valueOf(70500), BigDecimal.valueOf(1.5),
+                BigDecimal.valueOf(1000000), BigDecimal.valueOf(70000000000L)
         );
 
         // when & then
@@ -112,7 +118,8 @@ class CurrentPriceTest {
                 1L, LocalDateTime.now(), BigDecimal.valueOf(70000),
                 BigDecimal.valueOf(69000), BigDecimal.valueOf(71000),
                 BigDecimal.valueOf(68000), BigDecimal.valueOf(70500),
-                BigDecimal.valueOf(1.5), 1000000L, 70000000000L
+                BigDecimal.valueOf(1.5), BigDecimal.valueOf(1000000),
+                BigDecimal.valueOf(70000000000L)
         );
 
         // when & then
