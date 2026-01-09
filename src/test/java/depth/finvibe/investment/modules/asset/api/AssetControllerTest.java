@@ -82,7 +82,7 @@ public class AssetControllerTest {
                 .willReturn(mockResponseList);
 
         // when
-        mockMvc.perform(get("/external/portfolios/{portfolioId}/assets", portfolioId)
+        mockMvc.perform(get("/portfolios/{portfolioId}/assets", portfolioId)
                         .header("Authorization", bearerToken(userId))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
@@ -111,7 +111,7 @@ public class AssetControllerTest {
                 .build();
 
         // when
-        mockMvc.perform(post("/external/portfolios/{portfolioId}/assets", portfolioId)
+        mockMvc.perform(post("/portfolios/{portfolioId}/assets", portfolioId)
                         .header("Authorization", bearerToken(userId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
@@ -142,7 +142,7 @@ public class AssetControllerTest {
                 .build();
 
         // when
-        mockMvc.perform(delete("/external/portfolios/{portfolioId}/assets", portfolioId)
+        mockMvc.perform(delete("/portfolios/{portfolioId}/assets", portfolioId)
                         .header("Authorization", bearerToken(userId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))

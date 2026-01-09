@@ -64,7 +64,7 @@ class TradeControllerTest {
         given(tradeQueryUseCase.findTrade(tradeId)).willReturn(mockResponse);
 
         // when & then
-        mockMvc.perform(get("/external/trades/{tradeId}", tradeId)
+        mockMvc.perform(get("/trades/{tradeId}", tradeId)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tradeId").value(tradeId))
@@ -103,7 +103,7 @@ class TradeControllerTest {
                 .willReturn(mockResponse);
 
         // when & then
-        mockMvc.perform(post("/external/trades")
+        mockMvc.perform(post("/trades")
                         .content(objectMapper.writeValueAsString(request))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -126,7 +126,7 @@ class TradeControllerTest {
         given(tradeCommandUseCase.cancelTrade(tradeId)).willReturn(mockResponse);
 
         // when & then
-        mockMvc.perform(delete("/external/trades/{tradeId}", tradeId)
+        mockMvc.perform(delete("/trades/{tradeId}", tradeId)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andDo(print());

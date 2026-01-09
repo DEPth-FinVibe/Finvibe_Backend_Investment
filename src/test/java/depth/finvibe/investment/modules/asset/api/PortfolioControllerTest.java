@@ -72,7 +72,7 @@ class PortfolioControllerTest {
         given(queryUseCase.getPortfoliosByUser(userId)).willReturn(mockResponseList);
 
         // when & then
-        mockMvc.perform(get("/external/portfolios")
+        mockMvc.perform(get("/portfolios")
                         .header("Authorization", bearerToken(userId))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
@@ -93,7 +93,7 @@ class PortfolioControllerTest {
                 .build();
 
         // when & then
-        mockMvc.perform(post("/external/portfolios")
+        mockMvc.perform(post("/portfolios")
                         .header("Authorization", bearerToken(userId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
@@ -115,7 +115,7 @@ class PortfolioControllerTest {
                 .build();
 
         // when & then
-        mockMvc.perform(patch("/external/portfolios/{portfolioGroupId}", portfolioGroupId)
+        mockMvc.perform(patch("/portfolios/{portfolioGroupId}", portfolioGroupId)
                         .header("Authorization", bearerToken(userId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
@@ -133,7 +133,7 @@ class PortfolioControllerTest {
         UUID userId = UUID.randomUUID();
 
         // when & then
-        mockMvc.perform(delete("/external/portfolios/{portfolioGroupId}", portfolioGroupId)
+        mockMvc.perform(delete("/portfolios/{portfolioGroupId}", portfolioGroupId)
                         .header("Authorization", bearerToken(userId))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
