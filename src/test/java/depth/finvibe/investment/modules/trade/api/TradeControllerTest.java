@@ -1,5 +1,6 @@
 package depth.finvibe.investment.modules.trade.api;
 
+import depth.finvibe.investment.modules.trade.api.external.TradeController;
 import depth.finvibe.investment.modules.trade.application.port.in.TradeCommandUseCase;
 import depth.finvibe.investment.modules.trade.application.port.in.TradeQueryUseCase;
 import depth.finvibe.investment.modules.trade.domain.enums.MarketType;
@@ -63,7 +64,7 @@ class TradeControllerTest {
         given(tradeQueryUseCase.findTrade(tradeId)).willReturn(mockResponse);
 
         // when & then
-        mockMvc.perform(get("/trades/{tradeId}", tradeId)
+        mockMvc.perform(get("/external/trades/{tradeId}", tradeId)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tradeId").value(tradeId))
@@ -102,7 +103,7 @@ class TradeControllerTest {
                 .willReturn(mockResponse);
 
         // when & then
-        mockMvc.perform(post("/trades")
+        mockMvc.perform(post("/external/trades")
                         .content(objectMapper.writeValueAsString(request))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -125,7 +126,7 @@ class TradeControllerTest {
         given(tradeCommandUseCase.cancelTrade(tradeId)).willReturn(mockResponse);
 
         // when & then
-        mockMvc.perform(delete("/trades/{tradeId}", tradeId)
+        mockMvc.perform(delete("/external/trades/{tradeId}", tradeId)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andDo(print());

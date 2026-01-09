@@ -3,6 +3,7 @@ package depth.finvibe.investment.modules.asset.api;
 import depth.finvibe.investment.boot.config.WebMvcConfig;
 import depth.finvibe.investment.boot.security.model.UserRole;
 import depth.finvibe.investment.boot.security.resolver.JwtArgumentResolver;
+import depth.finvibe.investment.modules.asset.api.external.PortfolioController;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUseCase;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetQueryUseCase;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
@@ -71,7 +72,7 @@ class PortfolioControllerTest {
         given(queryUseCase.getPortfoliosByUser(userId)).willReturn(mockResponseList);
 
         // when & then
-        mockMvc.perform(get("/portfolios")
+        mockMvc.perform(get("/external/portfolios")
                         .header("Authorization", bearerToken(userId))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
@@ -92,7 +93,7 @@ class PortfolioControllerTest {
                 .build();
 
         // when & then
-        mockMvc.perform(post("/portfolios")
+        mockMvc.perform(post("/external/portfolios")
                         .header("Authorization", bearerToken(userId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
@@ -114,7 +115,7 @@ class PortfolioControllerTest {
                 .build();
 
         // when & then
-        mockMvc.perform(patch("/portfolios/{portfolioGroupId}", portfolioGroupId)
+        mockMvc.perform(patch("/external/portfolios/{portfolioGroupId}", portfolioGroupId)
                         .header("Authorization", bearerToken(userId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
@@ -132,7 +133,7 @@ class PortfolioControllerTest {
         UUID userId = UUID.randomUUID();
 
         // when & then
-        mockMvc.perform(delete("/portfolios/{portfolioGroupId}", portfolioGroupId)
+        mockMvc.perform(delete("/external/portfolios/{portfolioGroupId}", portfolioGroupId)
                         .header("Authorization", bearerToken(userId))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())

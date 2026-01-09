@@ -3,6 +3,7 @@ package depth.finvibe.investment.modules.asset.api;
 import depth.finvibe.investment.boot.config.WebMvcConfig;
 import depth.finvibe.investment.boot.security.model.UserRole;
 import depth.finvibe.investment.boot.security.resolver.JwtArgumentResolver;
+import depth.finvibe.investment.modules.asset.api.external.AssetController;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUseCase;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetQueryUseCase;
 import depth.finvibe.investment.modules.asset.domain.Currency;
@@ -81,7 +82,7 @@ public class AssetControllerTest {
                 .willReturn(mockResponseList);
 
         // when
-        mockMvc.perform(get("/portfolios/{portfolioId}/assets", portfolioId)
+        mockMvc.perform(get("/external/portfolios/{portfolioId}/assets", portfolioId)
                         .header("Authorization", bearerToken(userId))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
@@ -110,7 +111,7 @@ public class AssetControllerTest {
                 .build();
 
         // when
-        mockMvc.perform(post("/portfolios/{portfolioId}/assets", portfolioId)
+        mockMvc.perform(post("/external/portfolios/{portfolioId}/assets", portfolioId)
                         .header("Authorization", bearerToken(userId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
@@ -141,7 +142,7 @@ public class AssetControllerTest {
                 .build();
 
         // when
-        mockMvc.perform(delete("/portfolios/{portfolioId}/assets", portfolioId)
+        mockMvc.perform(delete("/external/portfolios/{portfolioId}/assets", portfolioId)
                         .header("Authorization", bearerToken(userId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))

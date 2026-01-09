@@ -1,4 +1,4 @@
-package depth.finvibe.investment.modules.trade.api;
+package depth.finvibe.investment.modules.trade.api.external;
 
 import depth.finvibe.investment.modules.trade.application.port.in.TradeCommandUseCase;
 import depth.finvibe.investment.modules.trade.application.port.in.TradeQueryUseCase;
@@ -9,7 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/trades")
+@RequestMapping("/external/trades")
 @RequiredArgsConstructor
 public class TradeController {
     private final TradeCommandUseCase tradeCommandUseCase;

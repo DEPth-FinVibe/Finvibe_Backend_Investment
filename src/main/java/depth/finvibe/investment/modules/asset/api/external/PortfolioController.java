@@ -1,4 +1,4 @@
-package depth.finvibe.investment.modules.asset.api;
+package depth.finvibe.investment.modules.asset.api.external;
 
 import depth.finvibe.investment.boot.security.model.AuthenticatedUser;
 import depth.finvibe.investment.boot.security.model.Requester;
@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/portfolios")
+@RequestMapping("/external/portfolios")
 @RequiredArgsConstructor
 public class PortfolioController {
     private final AssetCommandUseCase commandUseCase;
