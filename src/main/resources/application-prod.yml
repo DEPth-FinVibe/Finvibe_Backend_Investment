@@ -7,7 +7,7 @@ spring:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver # 혹은 org.postgresql.Driver
+    driver-class-name: org.mariadb.jdbc.Driver
 
   jpa:
     hibernate:
