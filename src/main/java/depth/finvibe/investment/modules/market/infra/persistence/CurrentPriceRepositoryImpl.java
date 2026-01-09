@@ -2,10 +2,12 @@ package depth.finvibe.investment.modules.market.infra.persistence;
 
 import depth.finvibe.investment.modules.market.application.port.out.CurrentPriceRepository;
 import depth.finvibe.investment.modules.market.domain.CurrentPrice;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public class CurrentPriceRepositoryImpl implements CurrentPriceRepository {
     @Override
     public void save(CurrentPrice currentPrice) {
