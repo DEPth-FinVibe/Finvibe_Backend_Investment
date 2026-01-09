@@ -7,6 +7,9 @@ import depth.finvibe.investment.modules.market.domain.CurrentPrice;
 import depth.finvibe.investment.modules.market.domain.PriceCandle;
 import depth.finvibe.investment.modules.market.domain.Stock;
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
+import depth.finvibe.investment.modules.market.dto.CurrentPriceDto;
+import depth.finvibe.investment.modules.market.dto.PriceCandleDto;
+import depth.finvibe.investment.modules.market.dto.StockDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,11 +26,26 @@ public class MarketService {
     private final StockRepository stockRepository;
     private final CurrentPriceRepository currentPriceRepository;
 
-    public List<PriceCandle> getStockCandles(Long stockId, LocalDateTime startTime, LocalDateTime endTime, Timeframe timeframe) {
-        return priceCandleRepository.findByStockIdAndTimeframeOrderByAtDesc(stockId, startTime, endTime, timeframe);
+    public List<PriceCandleDto.Response> getStockCandles(Long stockId, LocalDateTime startTime, LocalDateTime endTime, Timeframe timeframe) {
+        return priceCandleRepository
+                .findByStockIdAndTimeframeOrderByAtDesc(stockId, startTime, endTime, timeframe)
+                .stream()
+                .map(candle -> PriceCandleDto.Response.from(
+                        candle.getStockId(),
+                        candle.getOpen(),
+                        candle.getClose(),
+                        candle.getHigh(),
+                        candle.getLow(),
+                        candle.getVolume(),
+                        candle.getValue(),
+                        candle.getTimeframe(),
+                        candle.getAt(),
+                        candle.getPrevDayChangePct()
+                ))
+                .toList();
     }
 
-    public List<CurrentPrice> getCurrentPrices(List<Long> stockIds) {
+    public List<CurrentPriceDto.Response> getCurrentPrices(List<Long> stockIds) {
         List<CurrentPrice> prices = currentPriceRepository.findByStockIds(stockIds);
 
         // 캐시 미스 처리
@@ -38,27 +56,65 @@ public class MarketService {
             prices.addAll(fallbackPrices);
         }
 
-        return prices;
+        return prices.stream()
+                .map(price -> CurrentPriceDto.Response.from(
+                        price.stockId(),
+                        Timeframe.DAY,
+                        price.at(),
+                        price.open(),
+                        price.high(),
+                        price.low(),
+                        price.close(),
+                        price.prevDayChangePct(),
+                        price.volume(),
+                        price.value()
+                ))
+                .toList();
     }
 
     // 거래대금 TOP100
-    public Page<Stock> getTopStocksByValue(Pageable pageable) {
-        return stockRepository.findTop100ByOrderByCurrentValueDesc(pageable);
+    public Page<StockDto.Response> getTopStocksByValue(Pageable pageable) {
+        return stockRepository.findTop100ByOrderByCurrentValueDesc(pageable)
+                .map(stock -> new StockDto.Response(
+                        stock.getId(),
+                        stock.getName(),
+                        stock.getName(),
+                        stock.getCategoryId()
+                ));
     }
 
     // 거래량 TOP100
-    public Page<Stock> getTopStocksByVolume(Pageable pageable) {
-        return stockRepository.findTop100ByOrderByCurrentVolumeDesc(pageable);
+    public Page<StockDto.Response> getTopStocksByVolume(Pageable pageable) {
+
+        return stockRepository.findTop100ByOrderByCurrentVolumeDesc(pageable)
+                .map(stock -> new StockDto.Response(
+                        stock.getId(),
+                        stock.getName(),
+                        stock.getName(),
+                        stock.getCategoryId()
+                ));
     }
 
     // 급상승 TOP100
-    public Page<Stock> getTopRisingStocks(Pageable pageable) {
-        return stockRepository.findTop100ByOrderByPrevDayChangePctDesc(pageable);
+    public Page<StockDto.Response> getTopRisingStocks(Pageable pageable) {
+        return stockRepository.findTop100ByOrderByPrevDayChangePctDesc(pageable)
+                .map(stock -> new StockDto.Response(
+                        stock.getId(),
+                        stock.getName(),
+                        stock.getName(),
+                        stock.getCategoryId()
+                ));
     }
 
     // 급하락 TOP100
-    public Page<Stock> getTopFallingStocks(Pageable pageable) {
-        return stockRepository.findTop100ByOrderByPrevDayChangePctAsc(pageable);
+    public Page<StockDto.Response> getTopFallingStocks(Pageable pageable) {
+        return stockRepository.findTop100ByOrderByPrevDayChangePctAsc(pageable)
+                .map(stock -> new StockDto.Response(
+                        stock.getId(),
+                        stock.getName(),
+                        stock.getName(),
+                        stock.getCategoryId()
+                ));
     }
 
     // 캐시 갱신 (스케줄러/이벤트에서 호출)
