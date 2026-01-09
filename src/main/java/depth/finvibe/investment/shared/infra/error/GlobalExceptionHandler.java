@@ -2,14 +2,27 @@ package depth.finvibe.investment.shared.infra.error;
 
 import depth.finvibe.investment.shared.error.DomainErrorCode;
 import depth.finvibe.investment.shared.error.DomainException;
+import depth.finvibe.investment.shared.error.GlobalErrorCode;
 
+import jakarta.validation.ConstraintViolationException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.MissingPathVariableException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.validation.BindException;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.NoHandlerFoundException;
 
 @RestControllerAdvice
 @RequiredArgsConstructor
@@ -26,6 +39,79 @@ public class GlobalExceptionHandler {
         ex.getErrorCode().getMessageKey()
     );
     return ResponseEntity.status(status).body(body);
+  }
+
+  @ExceptionHandler({
+      MethodArgumentNotValidException.class,
+      BindException.class,
+      ConstraintViolationException.class,
+      MethodArgumentTypeMismatchException.class,
+      HttpMessageNotReadableException.class,
+      MissingServletRequestParameterException.class,
+      MissingPathVariableException.class
+  })
+  public ResponseEntity<ErrorResponse> handleBadRequest(Exception ex) {
+    ErrorResponse body = ErrorResponse.of(
+        GlobalErrorCode.INVALID_REQUEST.getCode(),
+        GlobalErrorCode.INVALID_REQUEST.getMessageKey()
+    );
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+  }
+
+  @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+  public ResponseEntity<ErrorResponse> handleMethodNotAllowed(HttpRequestMethodNotSupportedException ex) {
+    ErrorResponse body = ErrorResponse.of(
+        GlobalErrorCode.METHOD_NOT_ALLOWED.getCode(),
+        GlobalErrorCode.METHOD_NOT_ALLOWED.getMessageKey()
+    );
+    return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(body);
+  }
+
+  @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+  public ResponseEntity<ErrorResponse> handleUnsupportedMediaType(HttpMediaTypeNotSupportedException ex) {
+    ErrorResponse body = ErrorResponse.of(
+        GlobalErrorCode.UNSUPPORTED_MEDIA_TYPE.getCode(),
+        GlobalErrorCode.UNSUPPORTED_MEDIA_TYPE.getMessageKey()
+    );
+    return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(body);
+  }
+
+  @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
+  public ResponseEntity<ErrorResponse> handleNotAcceptable(HttpMediaTypeNotAcceptableException ex) {
+    ErrorResponse body = ErrorResponse.of(
+        GlobalErrorCode.NOT_ACCEPTABLE.getCode(),
+        GlobalErrorCode.NOT_ACCEPTABLE.getMessageKey()
+    );
+    return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(body);
+  }
+
+  @ExceptionHandler(NoHandlerFoundException.class)
+  public ResponseEntity<ErrorResponse> handleNotFound(NoHandlerFoundException ex) {
+    ErrorResponse body = ErrorResponse.of(
+        GlobalErrorCode.NOT_FOUND.getCode(),
+        GlobalErrorCode.NOT_FOUND.getMessageKey()
+    );
+    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+  }
+
+  @ExceptionHandler(ResponseStatusException.class)
+  public ResponseEntity<ErrorResponse> handleResponseStatus(ResponseStatusException ex) {
+    HttpStatusCode status = ex.getStatusCode();
+    GlobalErrorCode code = GlobalErrorCode.fromStatus(status);
+    ErrorResponse body = ErrorResponse.of(
+        code.getCode(),
+        code.getMessageKey()
+    );
+    return ResponseEntity.status(status).body(body);
+  }
+
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
+    ErrorResponse body = ErrorResponse.of(
+        GlobalErrorCode.INTERNAL_SERVER_ERROR.getCode(),
+        GlobalErrorCode.INTERNAL_SERVER_ERROR.getMessageKey()
+    );
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
   }
 
   private HttpStatusCode resolveStatus(DomainErrorCode code) {
