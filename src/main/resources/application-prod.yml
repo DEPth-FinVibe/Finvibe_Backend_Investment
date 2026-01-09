@@ -11,7 +11,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: false
     properties:
       hibernate:
@@ -19,8 +19,6 @@ spring:
         dialect: org.hibernate.dialect.MySQLDialect # 사용하시는 DB에 맞춰 수정 필요
 
   data:
-    mongodb:
-      uri: ${MONGO_URI}
     redis:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT:6379}
