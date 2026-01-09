@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/external/portfolios")
+@RequestMapping("/portfolios")
 @RequiredArgsConstructor
 public class PortfolioController {
     private final AssetCommandUseCase commandUseCase;

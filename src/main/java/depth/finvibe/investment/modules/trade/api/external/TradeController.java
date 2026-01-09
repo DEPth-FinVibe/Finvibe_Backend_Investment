@@ -9,7 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/external/trades")
+@RequestMapping("/trades")
 @RequiredArgsConstructor
 public class TradeController {
     private final TradeCommandUseCase tradeCommandUseCase;
