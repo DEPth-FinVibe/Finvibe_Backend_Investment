@@ -21,7 +21,7 @@ configurations {
 }
 
 springBoot {
-    mainClass = 'depth.finvibe.investment.Application'
+    mainClass = 'depth.finvibe.investment.FinvibeInvestmentApplication'
 }
 
 repositories {
