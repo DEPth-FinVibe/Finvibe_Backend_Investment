@@ -14,7 +14,11 @@ spring:
     redis:
       host: localhost
       port: 6379
-    mongodb:
-      uri: mongodb://localhost:27017/testdb
+  mongodb:
+    uri: mongodb://localhost:27017/testdb
+
+finvibe:
+  redis:
+    startup-check: false
   kafka:
     bootstrap-servers: localhost:9092
