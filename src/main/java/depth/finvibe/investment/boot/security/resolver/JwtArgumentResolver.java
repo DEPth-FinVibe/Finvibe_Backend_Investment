@@ -1,5 +1,7 @@
 package depth.finvibe.investment.boot.security.resolver;
 
+
+
 import depth.finvibe.investment.boot.security.model.AuthenticatedUser;
 import depth.finvibe.investment.boot.security.model.Requester;
 import depth.finvibe.investment.boot.security.model.UserRole;
@@ -8,11 +10,13 @@ import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.springframework.core.MethodParameter;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
+import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.Base64;
@@ -40,21 +44,21 @@ public class JwtArgumentResolver implements HandlerMethodArgumentResolver {
     public @Nullable Object resolveArgument(@NonNull MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer, NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception {
         String authHeader = getAuthorizationHeader(webRequest);
         if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
-            return null;
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         }
 
         String token = authHeader.substring(BEARER_PREFIX.length());
         String payload = decodePayload(token);
         if (payload == null) {
-            return null;
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         }
 
         var claims = objectMapper.readValue(payload, Map.class);
 
-        return Requester.builder()
-                .uuid(parseUuid(claims.get(USER_UUID_CLAIM)))
-                .role(parseRole(claims.get(ROLE_CLAIM)))
-                .build();
+        return new Requester(
+                parseUuid(claims.get(USER_UUID_CLAIM)),
+                parseRole(claims.get(ROLE_CLAIM))
+        );
     }
 
     private @Nullable String getAuthorizationHeader(NativeWebRequest webRequest) {

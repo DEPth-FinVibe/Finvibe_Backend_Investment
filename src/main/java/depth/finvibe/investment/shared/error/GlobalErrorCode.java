@@ -8,11 +8,13 @@ import org.springframework.http.HttpStatusCode;
 @Getter
 @RequiredArgsConstructor
 public enum GlobalErrorCode implements DomainErrorCode {
-  INVALID_REQUEST("INVALID_REQUEST", "요청이 올바르지 않습니다."),
+  INVALID_REQUEST("INVALID_REQUEST", "잘못된 요청입니다."),
   METHOD_NOT_ALLOWED("METHOD_NOT_ALLOWED", "허용되지 않은 메서드입니다."),
   UNSUPPORTED_MEDIA_TYPE("UNSUPPORTED_MEDIA_TYPE", "지원하지 않는 미디어 타입입니다."),
-  NOT_ACCEPTABLE("NOT_ACCEPTABLE", "허용할 수 없는 요청입니다."),
+  NOT_ACCEPTABLE("NOT_ACCEPTABLE", "요청한 응답 형식을 제공할 수 없습니다."),
   NOT_FOUND("NOT_FOUND", "요청한 리소스를 찾을 수 없습니다."),
+  AUTHENTICATION_FAILED("UNAUTHORIZED", "인증에 실패했습니다."),
+  ACCESS_DENIED("FORBIDDEN", "접근 권한이 없습니다."),
   INTERNAL_SERVER_ERROR("INTERNAL_SERVER_ERROR", "서버 내부 오류가 발생했습니다.");
 
   private final String code;
@@ -35,6 +37,13 @@ public enum GlobalErrorCode implements DomainErrorCode {
     if (value == HttpStatus.NOT_ACCEPTABLE.value()) {
       return NOT_ACCEPTABLE;
     }
+    if (value == HttpStatus.UNAUTHORIZED.value()) {
+      return AUTHENTICATION_FAILED;
+    }
+    if (value == HttpStatus.FORBIDDEN.value()) {
+      return ACCESS_DENIED;
+    }
+
     return INTERNAL_SERVER_ERROR;
   }
 }
