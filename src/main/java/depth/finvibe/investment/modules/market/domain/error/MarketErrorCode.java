@@ -8,9 +8,9 @@ import lombok.Getter;
 @Getter
 public enum MarketErrorCode implements DomainErrorCode {
 
-    INVALID_CATEGORY_NAME("MARKET_INVALID_CATEGORY_NAME", "error.market.invalid_category_name"),
+    INVALID_CATEGORY_NAME("MARKET_INVALID_CATEGORY_NAME", "유효하지 않은 카테고리 이름입니다."),
     ;
 
     private final String code;
-    private final String messageKey;
+    private final String message;
 }
