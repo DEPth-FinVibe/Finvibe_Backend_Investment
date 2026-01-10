@@ -9,6 +9,7 @@ import org.springframework.core.MethodParameter;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.context.request.ServletWebRequest;
+import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
@@ -17,6 +18,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class JwtArgumentResolverTest {
 
@@ -59,33 +61,31 @@ class JwtArgumentResolverTest {
     }
 
     @Test
-    @DisplayName("resolveArgument: Authorization 헤더가 없으면 null을 반환한다")
+    @DisplayName("resolveArgument: Authorization 헤더가 없으면 UNAUTHORIZED 예외를 반환한다")
     void resolveArgumentWithoutAuthorizationHeader() throws Exception {
         NativeWebRequest webRequest = new ServletWebRequest(new MockHttpServletRequest());
 
-        Object resolved = resolver.resolveArgument(
+        assertThatThrownBy(() -> resolver.resolveArgument(
                 methodParam("handler", Requester.class),
                 null,
                 webRequest,
                 null
-        );
-
-        assertThat(resolved).isNull();
+        )).isInstanceOf(ResponseStatusException.class)
+          .hasMessageContaining("401 UNAUTHORIZED");
     }
 
     @Test
-    @DisplayName("resolveArgument: 형식이 잘못된 토큰이면 null을 반환한다")
+    @DisplayName("resolveArgument: 형식이 잘못된 토큰이면 UNAUTHORIZED 예외를 반환한다")
     void resolveArgumentWithInvalidToken() throws Exception {
         NativeWebRequest webRequest = webRequestWithToken("not-a-jwt");
 
-        Object resolved = resolver.resolveArgument(
+        assertThatThrownBy(() -> resolver.resolveArgument(
                 methodParam("handler", Requester.class),
                 null,
                 webRequest,
                 null
-        );
-
-        assertThat(resolved).isNull();
+        )).isInstanceOf(ResponseStatusException.class)
+          .hasMessageContaining("401 UNAUTHORIZED");
     }
 
     private static MethodParameter methodParam(String methodName, Class<?> parameterType) throws Exception {
