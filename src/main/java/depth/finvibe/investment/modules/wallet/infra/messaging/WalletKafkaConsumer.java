@@ -22,10 +22,14 @@ public class WalletKafkaConsumer {
         walletEventService.handleTradeExecutedEvent(event);
     }
 
+
+
+    //테스트용
     @KafkaListener(topics = "user.signup.v1", groupId = "wallet-group")
-    public void consumeSignUpEvent(ConsumerRecord<String, SignUpEvent> record) {
-        log.info("Received SignUpEvent from topic: {}", record.topic());
-        SignUpEvent event = record.value();
-        walletEventService.handleFirstLoginedEvent(event);
+    public void consumeSignUpEvent(ConsumerRecord<String, String> record) {
+        log.info("=================================");
+        log.info("메시지 도착함! 내용: {}", record.value());
+        log.info("=================================");
+
     }
 }
