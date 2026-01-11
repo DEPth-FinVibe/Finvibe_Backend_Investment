@@ -1,6 +1,6 @@
 package depth.finvibe.investment.shared.dto;
 
-public record FirstLoginedEvent(
+public record SignUpEvent(
         String userId
 ) {
 }

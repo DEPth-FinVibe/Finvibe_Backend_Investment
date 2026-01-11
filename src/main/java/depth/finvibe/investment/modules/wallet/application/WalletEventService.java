@@ -1,7 +1,7 @@
 package depth.finvibe.investment.modules.wallet.application;
 
 import depth.finvibe.investment.modules.wallet.application.port.in.WalletCommandUseCase;
-import depth.finvibe.investment.shared.dto.FirstLoginedEvent;
+import depth.finvibe.investment.shared.dto.SignUpEvent;
 import depth.finvibe.investment.shared.dto.TradeExecutedEvent;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +30,7 @@ public class WalletEventService {
     }
 
     @Transactional
-    public void handleFirstLoginedEvent(FirstLoginedEvent event) {
+    public void handleFirstLoginedEvent(SignUpEvent event) {
         UUID userId = UUID.fromString(event.userId());
         commandUseCase.createWallet(userId);
     }
