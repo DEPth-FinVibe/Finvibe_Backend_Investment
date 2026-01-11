@@ -22,7 +22,13 @@ public class WalletKafkaConsumer {
         walletEventService.handleTradeExecutedEvent(event);
     }
 
-    @KafkaListener(topics = "user.signup.v1", groupId = "wallet-group")
+    @KafkaListener(
+            topics = "user.signup.v1",
+            groupId = "wallet-group",
+            properties = {
+                    "spring.json.value.default.type=depth.finvibe.investment.shared.dto.SignUpEvent"
+            }
+    )
     public void consumeSignUpEvent(ConsumerRecord<String, SignUpEvent> record) {
         log.info("Received SignUpEvent from topic: {}", record.topic());
         SignUpEvent event = record.value();
