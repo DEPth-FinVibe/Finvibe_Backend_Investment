@@ -25,40 +25,4 @@ class FinvibeInvestmentApplicationTests {
     void contextLoads() {
     }
 
-    @TestConfiguration
-    static class KafkaListenerTestConfig {
-        @Bean(name = "kafkaListenerContainerFactory")
-        KafkaListenerContainerFactory<MessageListenerContainer> kafkaListenerContainerFactory() {
-            return new KafkaListenerContainerFactory<>() {
-                @Override
-                public MessageListenerContainer createListenerContainer(KafkaListenerEndpoint endpoint) {
-                    return mockContainer();
-                }
-
-                @Override
-                public MessageListenerContainer createContainer(TopicPartitionOffset... topicPartitions) {
-                    return mockContainer();
-                }
-
-                @Override
-                public MessageListenerContainer createContainer(String... topics) {
-                    return mockContainer();
-                }
-
-                @Override
-                public MessageListenerContainer createContainer(Pattern topicPattern) {
-                    return mockContainer();
-                }
-
-                private MessageListenerContainer mockContainer() {
-                    MessageListenerContainer container = Mockito.mock(MessageListenerContainer.class);
-                    Mockito.when(container.getPhase())
-                            .thenReturn(AbstractMessageListenerContainer.DEFAULT_PHASE);
-                    Mockito.when(container.isAutoStartup()).thenReturn(false);
-                    Mockito.when(container.isRunning()).thenReturn(false);
-                    return container;
-                }
-            };
-        }
-    }
 }
