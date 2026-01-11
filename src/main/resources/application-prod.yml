@@ -34,3 +34,4 @@ logging:
   level:
     root: info
     depth.finvibe.investment: info
+    org.apache.kafka.clients.consumer: INFO
