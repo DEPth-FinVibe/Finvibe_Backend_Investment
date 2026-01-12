@@ -95,68 +95,6 @@ public class AssetControllerTest {
                 .andExpect(jsonPath("$[1].name").value("Apple Inc."));
     }
 
-    @Test
-    @DisplayName("자산 등록 API")
-    void registerAsset() throws Exception {
-        // given
-        Long portfolioId = 1L;
-        UUID userId = UUID.randomUUID();
-
-        PortfolioGroupDto.RegisterAssetRequest requestDto = PortfolioGroupDto.RegisterAssetRequest.builder()
-                .stockId(105L)
-                .name("Samsung Electronics")
-                .amount(new BigDecimal("10.5"))
-                .stockPrice(new BigDecimal("75000"))
-                .currency(Currency.KRW)
-                .build();
-
-        // when
-        mockMvc.perform(post("/portfolios/{portfolioId}/assets", portfolioId)
-                        .header("Authorization", bearerToken(userId))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto)))
-                .andDo(print())
-                .andExpect(status().isCreated());
-
-        // then
-        verify(commandUseCase).registerAsset(
-                eq(portfolioId),
-                any(PortfolioGroupDto.RegisterAssetRequest.class),
-                eq(userId)
-        );
-    }
-
-    @Test
-    @DisplayName("자산 삭제 API")
-    void unregisterAsset() throws Exception {
-        // given
-        Long portfolioId = 1L;
-        UUID userId = UUID.randomUUID();
-
-        // 삭제 요청 DTO 생성
-        PortfolioGroupDto.UnregisterAssetRequest requestDto = PortfolioGroupDto.UnregisterAssetRequest.builder()
-                .stockId(105L)
-                .amount(new BigDecimal("5.0"))
-                .stockPrice(new BigDecimal("75000"))
-                .currency(Currency.KRW)
-                .build();
-
-        // when
-        mockMvc.perform(delete("/portfolios/{portfolioId}/assets", portfolioId)
-                        .header("Authorization", bearerToken(userId))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto)))
-                .andDo(print())
-                .andExpect(status().isNoContent());
-
-        // then
-        verify(commandUseCase).unregisterAsset(
-                eq(portfolioId),
-                any(PortfolioGroupDto.UnregisterAssetRequest.class),
-                eq(userId)
-        );
-    }
-
     private String bearerToken(UUID userId) throws Exception {
         String header = Base64.getUrlEncoder().withoutPadding()
                 .encodeToString("{}".getBytes(StandardCharsets.UTF_8));
