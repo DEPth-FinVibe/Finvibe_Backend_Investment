@@ -6,7 +6,6 @@ import org.springframework.data.domain.Pageable;
 
 public interface StockRepository {
 
-
     Page<Stock> findTop100ByOrderByCurrentValueDesc(Pageable pageable);
 
     Page<Stock> findTop100ByOrderByCurrentVolumeDesc(Pageable pageable);

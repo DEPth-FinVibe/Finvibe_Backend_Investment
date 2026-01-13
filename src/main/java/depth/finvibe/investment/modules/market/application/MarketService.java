@@ -2,15 +2,18 @@ package depth.finvibe.investment.modules.market.application;
 
 import depth.finvibe.investment.modules.market.application.port.out.CurrentPriceRepository;
 import depth.finvibe.investment.modules.market.application.port.out.PriceCandleRepository;
+import depth.finvibe.investment.modules.market.application.port.out.PriceUpdatePublisher;
 import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
 import depth.finvibe.investment.modules.market.domain.CurrentPrice;
 import depth.finvibe.investment.modules.market.domain.PriceCandle;
-import depth.finvibe.investment.modules.market.domain.Stock;
+
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
 import depth.finvibe.investment.modules.market.dto.CurrentPriceDto;
 import depth.finvibe.investment.modules.market.dto.PriceCandleDto;
 import depth.finvibe.investment.modules.market.dto.StockDto;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -18,6 +21,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MarketService {
@@ -25,6 +29,7 @@ public class MarketService {
     private final PriceCandleRepository priceCandleRepository;
     private final StockRepository stockRepository;
     private final CurrentPriceRepository currentPriceRepository;
+    private final PriceUpdatePublisher priceUpdatePublisher;
 
     public List<PriceCandleDto.Response> getStockCandles(Long stockId, LocalDateTime startTime, LocalDateTime endTime, Timeframe timeframe) {
         return priceCandleRepository
@@ -48,7 +53,11 @@ public class MarketService {
     public List<CurrentPriceDto.Response> getCurrentPrices(List<Long> stockIds) {
         List<CurrentPrice> prices = currentPriceRepository.findByStockIds(stockIds);
 
-        // 캐시 미스 처리
+        /**
+         * 캐시 미스 처리
+         * - 요청한 주식 ID 중에서 현재가가 없는 경우, 데이터베이스에서 최신 가격 정보를 로드하여 현재가 테이블에 저장
+         *  cache aside pattern
+         */
         if (prices.size() < stockIds.size()) {
             List<Long> missedIds = findMissedStockIds(stockIds, prices);
             List<CurrentPrice> fallbackPrices = loadFromDatabase(missedIds);
@@ -117,26 +126,39 @@ public class MarketService {
                 ));
     }
 
-    // 캐시 갱신 (스케줄러/이벤트에서 호출)
-    public void updateCurrentPrice(Long stockId) {
-        PriceCandle latest = priceCandleRepository
-                .findFirstByStockIdAndTimeframeOrderByAtDesc(stockId, Timeframe.DAY)
-                .orElseThrow();
+    @Transactional
+    public void updateCurrentPrices(List<Long> stockIds) {
+        List<PriceCandle> latestCandles = priceCandleRepository
+                .findLatestForEachStock(stockIds, Timeframe.DAY);
 
-        CurrentPrice currentPrice = new CurrentPrice(
-                latest.getStockId(),
-                latest.getAt(),
-                latest.getClose(),
-                latest.getOpen(),
-                latest.getHigh(),
-                latest.getLow(),
-                latest.getClose(),
-                latest.getPrevDayChangePct(),
-                latest.getVolume(),
-                latest.getValue()
-        );
+        List<CurrentPrice> currentPrices = latestCandles.stream()
+                .map(this::convertToCurrentPrice)
+                .toList();
 
-        currentPriceRepository.save(currentPrice);
+        currentPriceRepository.saveAll(currentPrices);
+
+        // WebSocket으로 일괄 발행
+        List<CurrentPriceDto.Response> priceUpdates = currentPrices.stream()
+                .map(price -> CurrentPriceDto.Response.from(
+                        price.stockId(),
+                        Timeframe.DAY,
+                        price.at(),
+                        price.open(),
+                        price.high(),
+                        price.low(),
+                        price.close(),
+                        price.prevDayChangePct(),
+                        price.volume(),
+                        price.value()
+                ))
+                .toList();
+
+        try {
+            priceUpdatePublisher.publishBulkPriceUpdate(priceUpdates);
+            log.debug("Published bulk price updates for {} stocks", stockIds.size());
+        } catch (Exception e) {
+            log.error("Failed to publish bulk price updates: {}", e.getMessage());
+        }
     }
 
     private List<Long> findMissedStockIds(List<Long> requested, List<CurrentPrice> found) {
