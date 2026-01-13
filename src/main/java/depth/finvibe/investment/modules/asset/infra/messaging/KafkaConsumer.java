@@ -2,7 +2,7 @@ package depth.finvibe.investment.modules.asset.infra.messaging;
 
 import depth.finvibe.investment.modules.asset.application.AssetEventService;
 import depth.finvibe.investment.modules.asset.dto.FirstLoginedEvent;
-import depth.finvibe.investment.modules.asset.dto.TradeExecutedEvent;
+import depth.finvibe.investment.shared.dto.TradeExecutedEvent;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;

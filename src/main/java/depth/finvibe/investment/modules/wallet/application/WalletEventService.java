@@ -18,14 +18,14 @@ public class WalletEventService {
 
     @Transactional
     public void handleTradeExecutedEvent(TradeExecutedEvent event) {
-        UUID userId = UUID.fromString(event.userId());
+        UUID userId = UUID.fromString(event.getUserId());
 
-        if (event.type().equals("BUY")) {
-            commandUseCase.withdraw(userId, event.price());
-        } else if (event.type().equals("SELL")) {
-            commandUseCase.deposit(userId, event.price());
+        if (event.getType().equals("BUY")) {
+            commandUseCase.withdraw(userId, event.getPrice().longValue());
+        } else if (event.getType().equals("SELL")) {
+            commandUseCase.deposit(userId, event.getPrice().longValue());
         } else {
-            log.warn("Ignoring trade event of type: {}", event.type());
+            log.warn("Ignoring trade event of type: {}", event.getType());
         }
     }
 

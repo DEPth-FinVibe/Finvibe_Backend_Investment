@@ -1,10 +1,10 @@
 package depth.finvibe.investment.modules.asset.application;
 
 import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUseCase;
-import depth.finvibe.investment.modules.asset.domain.Currency;
 import depth.finvibe.investment.modules.asset.dto.FirstLoginedEvent;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
-import depth.finvibe.investment.modules.asset.dto.TradeExecutedEvent;
+import depth.finvibe.investment.modules.asset.domain.Currency;
+import depth.finvibe.investment.shared.dto.TradeExecutedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,16 +37,17 @@ class AssetEventServiceTest {
         Long portfolioId = 10L;
         UUID userId = UUID.randomUUID();
 
-        TradeExecutedEvent event = new TradeExecutedEvent(
-                101L,                           // stockId
-                BigDecimal.valueOf(5),          // amount
-                BigDecimal.valueOf(70000),      // stockPrice
-                "삼성전자",                      // name
-                Currency.KRW,                   // currency
-                portfolioId,                    // portfolioId
-                userId.toString(),              // userId
-                "BUY"                           // type
-        );
+        TradeExecutedEvent event = TradeExecutedEvent.builder()
+                .tradeId("trade-uuid")
+                .userId(userId.toString())
+                .type("BUY")
+                .amount(BigDecimal.valueOf(5))
+                .price(BigDecimal.valueOf(70000))
+                .stockId(101L)
+                .name("삼성전자")
+                .currency("KRW")
+                .portfolioId(portfolioId)
+                .build();
 
         // when
         assetEventService.handleTradeExecutedEvent(event);
@@ -73,16 +74,17 @@ class AssetEventServiceTest {
         Long portfolioId = 20L;
         UUID userId = UUID.randomUUID();
 
-        TradeExecutedEvent event = new TradeExecutedEvent(
-                202L,                           // stockId
-                BigDecimal.valueOf(3),          // amount
-                BigDecimal.valueOf(150),        // stockPrice
-                "Apple",                        // name (매도 시 보통 무시되지만 이벤트엔 포함됨)
-                Currency.USD,                   // currency
-                portfolioId,                    // portfolioId
-                userId.toString(),              // userId
-                "SELL"                          // type
-        );
+        TradeExecutedEvent event = TradeExecutedEvent.builder()
+                .tradeId("trade-uuid")
+                .userId(userId.toString())
+                .type("SELL")
+                .amount(BigDecimal.valueOf(3))
+                .price(BigDecimal.valueOf(150))
+                .stockId(202L)
+                .name("Apple")
+                .currency("USD")
+                .portfolioId(portfolioId)
+                .build();
 
         // when
         assetEventService.handleTradeExecutedEvent(event);
@@ -105,11 +107,17 @@ class AssetEventServiceTest {
     @DisplayName("알 수 없는 Type(예: HOLD)일 경우 아무 작업도 하지 않아야 한다")
     void handleTradeExecutedEvent_UnknownType() {
         // given
-        TradeExecutedEvent event = new TradeExecutedEvent(
-                1L, BigDecimal.TEN, BigDecimal.TEN, "Test", Currency.KRW,
-                1L, UUID.randomUUID().toString(),
-                "HOLD" // 정의되지 않은 타입
-        );
+        TradeExecutedEvent event = TradeExecutedEvent.builder()
+                .tradeId("trade-uuid")
+                .userId(UUID.randomUUID().toString())
+                .type("HOLD")
+                .amount(BigDecimal.TEN)
+                .price(BigDecimal.TEN)
+                .stockId(1L)
+                .name("Test")
+                .currency("KRW")
+                .portfolioId(1L)
+                .build();
 
         // when
         assetEventService.handleTradeExecutedEvent(event);
