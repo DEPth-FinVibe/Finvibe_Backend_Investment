@@ -1,5 +1,7 @@
 package depth.finvibe.investment.modules.market.application;
 
+import depth.finvibe.investment.modules.market.application.port.in.MarketCommandUseCase;
+import depth.finvibe.investment.modules.market.application.port.in.MarketQueryUseCase;
 import depth.finvibe.investment.modules.market.application.port.out.CurrentPriceRepository;
 import depth.finvibe.investment.modules.market.application.port.out.PriceCandleRepository;
 import depth.finvibe.investment.modules.market.application.port.out.PriceUpdatePublisher;
@@ -24,13 +26,14 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class MarketService {
+public class MarketService implements MarketQueryUseCase, MarketCommandUseCase {
 
     private final PriceCandleRepository priceCandleRepository;
     private final StockRepository stockRepository;
     private final CurrentPriceRepository currentPriceRepository;
     private final PriceUpdatePublisher priceUpdatePublisher;
 
+    @Override
     public List<PriceCandleDto.Response> getStockCandles(Long stockId, LocalDateTime startTime, LocalDateTime endTime, Timeframe timeframe) {
         return priceCandleRepository
                 .findByStockIdAndTimeframeOrderByAtDesc(stockId, startTime, endTime, timeframe)
@@ -50,6 +53,7 @@ public class MarketService {
                 .toList();
     }
 
+    @Override
     public List<CurrentPriceDto.Response> getCurrentPrices(List<Long> stockIds) {
         List<CurrentPrice> prices = currentPriceRepository.findByStockIds(stockIds);
 
