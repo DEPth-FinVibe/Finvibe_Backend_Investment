@@ -1,5 +1,6 @@
 package depth.finvibe.investment.modules.market.application;
 
+import depth.finvibe.investment.modules.market.application.port.in.WebSocketUseCase;
 import depth.finvibe.investment.modules.market.domain.error.WebSocketErrorCode;
 import depth.finvibe.investment.modules.market.dto.SubscriptionDto;
 import depth.finvibe.investment.modules.market.dto.WebSocketSession;
@@ -13,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class MarketSubscriptionService {
+public class MarketSubscriptionService implements WebSocketUseCase {
 
     private static final int MAX_SUBSCRIPTIONS_PER_SESSION = 30;
 
