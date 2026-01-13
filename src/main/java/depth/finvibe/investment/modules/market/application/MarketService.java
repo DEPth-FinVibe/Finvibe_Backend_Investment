@@ -2,10 +2,7 @@ package depth.finvibe.investment.modules.market.application;
 
 import depth.finvibe.investment.modules.market.application.port.in.MarketCommandUseCase;
 import depth.finvibe.investment.modules.market.application.port.in.MarketQueryUseCase;
-import depth.finvibe.investment.modules.market.application.port.out.CurrentPriceRepository;
-import depth.finvibe.investment.modules.market.application.port.out.PriceCandleRepository;
-import depth.finvibe.investment.modules.market.application.port.out.PriceUpdatePublisher;
-import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
+import depth.finvibe.investment.modules.market.application.port.out.*;
 import depth.finvibe.investment.modules.market.domain.CurrentPrice;
 import depth.finvibe.investment.modules.market.domain.PriceCandle;
 
@@ -33,7 +30,7 @@ public class MarketService implements MarketQueryUseCase, MarketCommandUseCase {
     private final StockRepository stockRepository;
     private final CurrentPriceRepository currentPriceRepository;
     private final PriceUpdatePublisher priceUpdatePublisher;
-    private final RegionOfInterestService regionOfInterestService;
+    private final RegionOfInterestRepository regionOfInterestRepository;
 
     @Override
     public List<PriceCandleDto.Response> getStockCandles(Long stockId, LocalDateTime startTime, LocalDateTime endTime, Timeframe timeframe) {
@@ -169,25 +166,25 @@ public class MarketService implements MarketQueryUseCase, MarketCommandUseCase {
 
     @Override
     public void addRegionOfInterestLevel1(List<Long> interestStockIds) {
-        regionOfInterestService.addToLevel1(new HashSet<>(interestStockIds));
+        interestStockIds.forEach(regionOfInterestRepository::addToLevel1);
         log.debug("Added {} stocks to ROI Level 1", interestStockIds.size());
     }
 
     @Override
     public void addRegionOfInterestLevel2(List<Long> ownedStockIds) {
-        regionOfInterestService.addToLevel2(new HashSet<>(ownedStockIds));
+        ownedStockIds.forEach(regionOfInterestRepository::addToLevel2);
         log.debug("Added {} stocks to ROI Level 2", ownedStockIds.size());
     }
 
     @Override
     public void removeRegionOfInterestLevel1(List<Long> interestStockIds) {
-        regionOfInterestService.removeFromLevel1(new HashSet<>(interestStockIds));
+        interestStockIds.forEach(regionOfInterestRepository::removeFromLevel1);
         log.debug("Removed {} stocks from ROI Level 1", interestStockIds.size());
     }
 
     @Override
     public void removeRegionOfInterestLevel2(List<Long> ownedStockIds) {
-        regionOfInterestService.removeFromLevel2(new HashSet<>(ownedStockIds));
+        ownedStockIds.forEach(regionOfInterestRepository::removeFromLevel2);
         log.debug("Removed {} stocks from ROI Level 2", ownedStockIds.size());
     }
 
