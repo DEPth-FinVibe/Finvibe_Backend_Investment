@@ -13,15 +13,27 @@ import org.springframework.stereotype.Component;
 public class KafkaConsumer {
     private final AssetEventService assetEventService;
 
-    @KafkaListener(topics = "trade.trade-executed.v1", groupId = "asset-group")
+    @KafkaListener(
+        topics = "trade.trade-executed.v1", 
+        groupId = "asset-group",
+        properties = {
+            "spring.json.value.default.type=depth.finvibe.investment.shared.dto.TradeExecutedEvent"
+        }
+    )
     public void consumeTradeExecutedEvent(ConsumerRecord<String, TradeExecutedEvent> record) {
         TradeExecutedEvent event = record.value();
         assetEventService.handleTradeExecutedEvent(event);
     }
 
-    @KafkaListener(topics = "user.first-logined.v1", groupId = "asset-group")
-    public void consumeFirstLoginedEvent(ConsumerRecord<String, SignUpEvent> record) {
+    @KafkaListener(
+        topics = "user.signup.v1", 
+        groupId = "asset-group",
+        properties = {
+            "spring.json.value.default.type=depth.finvibe.investment.shared.dto.SignUpEvent"
+        }
+    )
+    public void consumeSignUpEvent(ConsumerRecord<String, SignUpEvent> record) {
         SignUpEvent event = record.value();
-        assetEventService.handleFirstLoginedEvent(event);
+        assetEventService.handleSignUpEvent(event);
     }
 }

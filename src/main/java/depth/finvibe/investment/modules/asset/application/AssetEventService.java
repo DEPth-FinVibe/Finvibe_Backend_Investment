@@ -37,8 +37,8 @@ public class AssetEventService {
     }
 
     @Transactional
-    public void handleFirstLoginedEvent(SignUpEvent event) {
-        UUID userId = UUID.fromString(event.userId());
+    public void handleSignUpEvent(SignUpEvent event) {
+        UUID userId = UUID.fromString(event.getUserId());
         commandUseCase.createDefaultPortfolioGroup(userId);
     }
 

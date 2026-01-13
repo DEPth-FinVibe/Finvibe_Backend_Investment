@@ -128,14 +128,14 @@ class AssetEventServiceTest {
 
     @Test
     @DisplayName("최초 로그인 이벤트 수신 시 기본 포트폴리오를 생성해야 한다")
-    void handleFirstLoginedEvent() {
+    void handleSignUpEvent() {
         // given
         UUID userId = UUID.randomUUID();
 
-        SignUpEvent event = new SignUpEvent(userId.toString());
+        SignUpEvent event = SignUpEvent.of(userId.toString());
 
         // when
-        assetEventService.handleFirstLoginedEvent(event);
+        assetEventService.handleSignUpEvent(event);
 
         // then
         verify(commandUseCase).createDefaultPortfolioGroup(userId);

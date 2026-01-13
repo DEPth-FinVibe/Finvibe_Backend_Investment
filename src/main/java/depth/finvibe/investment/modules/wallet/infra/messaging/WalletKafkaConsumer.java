@@ -15,7 +15,13 @@ import org.springframework.stereotype.Component;
 public class WalletKafkaConsumer {
     private final WalletEventService walletEventService;
 
-    @KafkaListener(topics = "trade.trade-executed.v1", groupId = "wallet-group")
+    @KafkaListener(
+        topics = "trade.trade-executed.v1", 
+        groupId = "wallet-group",
+        properties = {
+            "spring.json.value.default.type=depth.finvibe.investment.shared.dto.TradeExecutedEvent"
+        }
+    )
     public void consumeTradeExecutedEvent(ConsumerRecord<String, TradeExecutedEvent> record) {
         log.info("Received TradeExecutedEvent from topic: {}", record.topic());
         TradeExecutedEvent event = record.value();
@@ -32,6 +38,6 @@ public class WalletKafkaConsumer {
     public void consumeSignUpEvent(ConsumerRecord<String, SignUpEvent> record) {
         log.info("Received SignUpEvent from topic: {}", record.topic());
         SignUpEvent event = record.value();
-        walletEventService.handleFirstLoginedEvent(event);
+        walletEventService.handleSignUpEvent(event);
     }
 }
