@@ -21,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 
 @Slf4j
@@ -32,6 +33,7 @@ public class MarketService implements MarketQueryUseCase, MarketCommandUseCase {
     private final StockRepository stockRepository;
     private final CurrentPriceRepository currentPriceRepository;
     private final PriceUpdatePublisher priceUpdatePublisher;
+    private final RegionOfInterestService regionOfInterestService;
 
     @Override
     public List<PriceCandleDto.Response> getStockCandles(Long stockId, LocalDateTime startTime, LocalDateTime endTime, Timeframe timeframe) {
@@ -163,6 +165,30 @@ public class MarketService implements MarketQueryUseCase, MarketCommandUseCase {
         } catch (Exception e) {
             log.error("Failed to publish bulk price updates: {}", e.getMessage());
         }
+    }
+
+    @Override
+    public void addRegionOfInterestLevel1(List<Long> interestStockIds) {
+        regionOfInterestService.addToLevel1(new HashSet<>(interestStockIds));
+        log.debug("Added {} stocks to ROI Level 1", interestStockIds.size());
+    }
+
+    @Override
+    public void addRegionOfInterestLevel2(List<Long> ownedStockIds) {
+        regionOfInterestService.addToLevel2(new HashSet<>(ownedStockIds));
+        log.debug("Added {} stocks to ROI Level 2", ownedStockIds.size());
+    }
+
+    @Override
+    public void removeRegionOfInterestLevel1(List<Long> interestStockIds) {
+        regionOfInterestService.removeFromLevel1(new HashSet<>(interestStockIds));
+        log.debug("Removed {} stocks from ROI Level 1", interestStockIds.size());
+    }
+
+    @Override
+    public void removeRegionOfInterestLevel2(List<Long> ownedStockIds) {
+        regionOfInterestService.removeFromLevel2(new HashSet<>(ownedStockIds));
+        log.debug("Removed {} stocks from ROI Level 2", ownedStockIds.size());
     }
 
     private List<Long> findMissedStockIds(List<Long> requested, List<CurrentPrice> found) {

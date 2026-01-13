@@ -9,4 +9,13 @@ public interface MarketCommandUseCase {
 
     void updateCurrentPrices(List<Long> stockIds);
 
+    void addRegionOfInterestLevel1(List<Long> interestStockIds);
+
+    void addRegionOfInterestLevel2(List<Long> ownedStockIds);
+
+    void removeRegionOfInterestLevel1(List<Long> interestStockIds);
+
+    void removeRegionOfInterestLevel2(List<Long> ownedStockIds);
+
+
 }
