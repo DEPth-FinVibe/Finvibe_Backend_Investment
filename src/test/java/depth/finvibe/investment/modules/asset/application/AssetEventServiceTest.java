@@ -1,9 +1,9 @@
 package depth.finvibe.investment.modules.asset.application;
 
 import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUseCase;
-import depth.finvibe.investment.modules.asset.dto.FirstLoginedEvent;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
 import depth.finvibe.investment.modules.asset.domain.Currency;
+import depth.finvibe.investment.shared.dto.SignUpEvent;
 import depth.finvibe.investment.shared.dto.TradeExecutedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -132,7 +132,7 @@ class AssetEventServiceTest {
         // given
         UUID userId = UUID.randomUUID();
 
-        FirstLoginedEvent event = new FirstLoginedEvent(userId.toString());
+        SignUpEvent event = new SignUpEvent(userId.toString());
 
         // when
         assetEventService.handleFirstLoginedEvent(event);

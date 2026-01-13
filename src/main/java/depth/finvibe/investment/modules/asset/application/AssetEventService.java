@@ -2,8 +2,8 @@ package depth.finvibe.investment.modules.asset.application;
 
 import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUseCase;
 import depth.finvibe.investment.modules.asset.domain.Currency;
-import depth.finvibe.investment.modules.asset.dto.FirstLoginedEvent;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
+import depth.finvibe.investment.shared.dto.SignUpEvent;
 import depth.finvibe.investment.shared.dto.TradeExecutedEvent;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +37,7 @@ public class AssetEventService {
     }
 
     @Transactional
-    public void handleFirstLoginedEvent(FirstLoginedEvent event) {
+    public void handleFirstLoginedEvent(SignUpEvent event) {
         UUID userId = UUID.fromString(event.userId());
         commandUseCase.createDefaultPortfolioGroup(userId);
     }

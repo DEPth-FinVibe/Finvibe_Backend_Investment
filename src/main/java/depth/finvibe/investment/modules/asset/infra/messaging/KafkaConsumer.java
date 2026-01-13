@@ -1,7 +1,7 @@
 package depth.finvibe.investment.modules.asset.infra.messaging;
 
 import depth.finvibe.investment.modules.asset.application.AssetEventService;
-import depth.finvibe.investment.modules.asset.dto.FirstLoginedEvent;
+import depth.finvibe.investment.shared.dto.SignUpEvent;
 import depth.finvibe.investment.shared.dto.TradeExecutedEvent;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -20,8 +20,8 @@ public class KafkaConsumer {
     }
 
     @KafkaListener(topics = "user.first-logined.v1", groupId = "asset-group")
-    public void consumeFirstLoginedEvent(ConsumerRecord<String, FirstLoginedEvent> record) {
-        FirstLoginedEvent event = record.value();
+    public void consumeFirstLoginedEvent(ConsumerRecord<String, SignUpEvent> record) {
+        SignUpEvent event = record.value();
         assetEventService.handleFirstLoginedEvent(event);
     }
 }
