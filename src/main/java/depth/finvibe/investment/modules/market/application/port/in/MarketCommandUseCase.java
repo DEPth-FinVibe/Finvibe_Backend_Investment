@@ -1,13 +1,14 @@
 package depth.finvibe.investment.modules.market.application.port.in;
 
-import depth.finvibe.investment.modules.market.dto.CurrentPriceDto;
-import depth.finvibe.investment.modules.market.dto.PriceCandleDto;
+import depth.finvibe.investment.modules.market.dto.StockDto;
 
 import java.util.List;
 
 public interface MarketCommandUseCase {
 
     void updateCurrentPrices(List<Long> stockIds);
+
+    void registerNewStock(StockDto.NewStock request);
 
     void addRegionOfInterestLevel1(List<Long> interestStockIds);
 

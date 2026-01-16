@@ -26,4 +26,14 @@ public class StockDto {
                     .build();
         }
     }
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class NewStock {
+        private String name;
+        private String symbol;
+        private Long categoryId;
+    }
 }

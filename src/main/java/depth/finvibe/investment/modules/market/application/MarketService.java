@@ -6,6 +6,7 @@ import depth.finvibe.investment.modules.market.application.port.out.*;
 import depth.finvibe.investment.modules.market.domain.CurrentPrice;
 import depth.finvibe.investment.modules.market.domain.ManagingStockGroup;
 import depth.finvibe.investment.modules.market.domain.PriceCandle;
+import depth.finvibe.investment.modules.market.domain.Stock;
 import depth.finvibe.investment.modules.market.domain.StockObserver;
 
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
@@ -85,6 +86,24 @@ public class MarketService implements MarketQueryUseCase, MarketCommandUseCase, 
                 priceUpdate.getValue()
         );
         currentPriceRepository.save(currentPrice);
+    }
+
+    @Override
+    public void registerNewStock(StockDto.NewStock request) {
+        if (request == null || request.getSymbol() == null) {
+            log.warn("Skip registering stock: symbol is missing.");
+            return;
+        }
+
+        stockRepository.findBySymbol(request.getSymbol())
+                .ifPresentOrElse(existing -> {
+                    existing.updateInfo(request.getName(), request.getSymbol(), request.getCategoryId());
+                    stockRepository.save(existing);
+                }, () -> stockRepository.save(Stock.create(
+                        request.getName(),
+                        request.getSymbol(),
+                        request.getCategoryId()
+                )));
     }
 
     @Override
