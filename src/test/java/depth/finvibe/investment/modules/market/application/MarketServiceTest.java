@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -24,6 +25,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -354,6 +356,74 @@ class MarketServiceTest {
 
         // then
         verify(regionOfInterestRepository, never()).addToLevel1(anyLong());
+    }
+
+    @Test
+    @DisplayName("신규 종목 등록 - 심볼 없음")
+    void registerNewStock_MissingSymbol() {
+        // given
+        StockDto.NewStock request = StockDto.NewStock.builder()
+                .name("Alpha")
+                .categoryId(1L)
+                .build();
+
+        // when
+        marketService.registerNewStock(request);
+
+        // then
+        verifyNoInteractions(stockRepository);
+    }
+
+    @Test
+    @DisplayName("신규 종목 등록 - 기존 종목 업데이트")
+    void registerNewStock_ExistingStock() {
+        // given
+        Stock existing = Stock.create("OldName", "AAA", 1L);
+        given(stockRepository.findBySymbol("AAA"))
+                .willReturn(Optional.of(existing));
+
+        StockDto.NewStock request = StockDto.NewStock.builder()
+                .name("NewName")
+                .symbol("AAA")
+                .categoryId(2L)
+                .build();
+
+        // when
+        marketService.registerNewStock(request);
+
+        // then
+        ArgumentCaptor<Stock> captor = ArgumentCaptor.forClass(Stock.class);
+        verify(stockRepository, times(1)).save(captor.capture());
+        Stock saved = captor.getValue();
+        assertThat(saved).isSameAs(existing);
+        assertThat(saved.getName()).isEqualTo("NewName");
+        assertThat(saved.getSymbol()).isEqualTo("AAA");
+        assertThat(saved.getCategoryId()).isEqualTo(2L);
+    }
+
+    @Test
+    @DisplayName("신규 종목 등록 - 신규 생성")
+    void registerNewStock_NewStock() {
+        // given
+        given(stockRepository.findBySymbol("BBB"))
+                .willReturn(Optional.empty());
+
+        StockDto.NewStock request = StockDto.NewStock.builder()
+                .name("BrandNew")
+                .symbol("BBB")
+                .categoryId(3L)
+                .build();
+
+        // when
+        marketService.registerNewStock(request);
+
+        // then
+        ArgumentCaptor<Stock> captor = ArgumentCaptor.forClass(Stock.class);
+        verify(stockRepository, times(1)).save(captor.capture());
+        Stock saved = captor.getValue();
+        assertThat(saved.getName()).isEqualTo("BrandNew");
+        assertThat(saved.getSymbol()).isEqualTo("BBB");
+        assertThat(saved.getCategoryId()).isEqualTo(3L);
     }
 
     // 테스트 헬퍼 메서드
