@@ -4,7 +4,9 @@ import depth.finvibe.investment.modules.market.application.port.in.MarketCommand
 import depth.finvibe.investment.modules.market.application.port.in.MarketQueryUseCase;
 import depth.finvibe.investment.modules.market.application.port.out.*;
 import depth.finvibe.investment.modules.market.domain.CurrentPrice;
+import depth.finvibe.investment.modules.market.domain.ManagingStockGroup;
 import depth.finvibe.investment.modules.market.domain.PriceCandle;
+import depth.finvibe.investment.modules.market.domain.StockObserver;
 
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
 import depth.finvibe.investment.modules.market.dto.CurrentPriceDto;
@@ -16,21 +18,74 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Scheduled;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class MarketService implements MarketQueryUseCase, MarketCommandUseCase {
+public class MarketService implements MarketQueryUseCase, MarketCommandUseCase, StockObserver {
 
     private final PriceCandleRepository priceCandleRepository;
     private final StockRepository stockRepository;
     private final CurrentPriceRepository currentPriceRepository;
     private final PriceUpdatePublisher priceUpdatePublisher;
+    private final PriceUpdateSubscriber priceUpdateSubscriber;
+    private final LeadershipLock leadershipLock;
     private final RegionOfInterestRepository regionOfInterestRepository;
+
+    private static final String PRICE_UPDATE_LEADER_LOCK_KEY = "market:price-update:leader";
+    private static final Duration PRICE_UPDATE_LEADER_TTL = Duration.ofSeconds(15);
+    private static final long PRICE_UPDATE_LEADER_RENEW_DELAY_MS = 5_000L;
+
+    private volatile boolean isPriceUpdateLeader = false;
+
+    @Scheduled(fixedDelay = PRICE_UPDATE_LEADER_RENEW_DELAY_MS, initialDelay = 0)
+    void maintainPriceUpdateLeadership() {
+        if (!isPriceUpdateLeader) {
+            if (leadershipLock.tryAcquire(PRICE_UPDATE_LEADER_LOCK_KEY, PRICE_UPDATE_LEADER_TTL)) {
+                isPriceUpdateLeader = true;
+                priceUpdateSubscriber.subscribe(this);
+            }
+            return;
+        }
+
+        if (!leadershipLock.renew(PRICE_UPDATE_LEADER_LOCK_KEY, PRICE_UPDATE_LEADER_TTL)) {
+            isPriceUpdateLeader = false;
+            priceUpdateSubscriber.unsubscribeAll();
+        }
+    }
+
+    @Override
+    public ManagingStockGroup getManagingStockGroup() {
+        return () -> {
+            Set<Long> managed = new HashSet<>(regionOfInterestRepository.getLevel1StockIds());
+            managed.addAll(regionOfInterestRepository.getLevel2StockIds());
+            return managed;
+        };
+    }
+
+    @Override
+    public void onPriceUpdate(CurrentPriceDto.Response priceUpdate) {
+        CurrentPrice currentPrice = new CurrentPrice(
+                priceUpdate.getStockId(),
+                priceUpdate.getAt(),
+                priceUpdate.getClose(),
+                priceUpdate.getOpen(),
+                priceUpdate.getHigh(),
+                priceUpdate.getLow(),
+                priceUpdate.getClose(),
+                priceUpdate.getPrevDayChangePct(),
+                priceUpdate.getVolume(),
+                priceUpdate.getValue()
+        );
+        currentPriceRepository.save(currentPrice);
+    }
 
     @Override
     public List<PriceCandleDto.Response> getStockCandles(Long stockId, LocalDateTime startTime, LocalDateTime endTime, Timeframe timeframe) {

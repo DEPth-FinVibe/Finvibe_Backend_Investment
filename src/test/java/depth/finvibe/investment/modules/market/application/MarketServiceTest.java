@@ -46,6 +46,12 @@ class MarketServiceTest {
     private PriceUpdatePublisher priceUpdatePublisher;
 
     @Mock
+    private PriceUpdateSubscriber priceUpdateSubscriber;
+
+    @Mock
+    private LeadershipLock leadershipLock;
+
+    @Mock
     private RegionOfInterestRepository regionOfInterestRepository;
 
     @InjectMocks
@@ -389,4 +395,3 @@ class MarketServiceTest {
                 .build();
     }
 }
-
