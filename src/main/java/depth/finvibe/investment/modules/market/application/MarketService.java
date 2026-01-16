@@ -21,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Scheduled;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -104,6 +105,28 @@ public class MarketService implements MarketQueryUseCase, MarketCommandUseCase, 
                         request.getSymbol(),
                         request.getCategoryId()
                 )));
+    }
+
+    @Override
+    @Transactional
+    public void updateStockHoldingAmount(Long stockId, BigDecimal deltaAmount) {
+        if (stockId == null || deltaAmount == null) {
+            log.warn("Skip updating holding amount: stockId or deltaAmount is null.");
+            return;
+        }
+
+        stockRepository.findById(stockId).ifPresentOrElse(stock -> {
+            BigDecimal nextAmount = stock.getTotalHoldingAmount().add(deltaAmount);
+            if (nextAmount.compareTo(BigDecimal.ZERO) <= 0) {
+                stock.updateTotalHoldingAmount(BigDecimal.ZERO);
+                stockRepository.save(stock);
+                regionOfInterestRepository.removeFromLevel2(stockId);
+                return;
+            }
+            stock.updateTotalHoldingAmount(nextAmount);
+            stockRepository.save(stock);
+            regionOfInterestRepository.addToLevel2(stockId);
+        }, () -> log.warn("Skip updating holding amount: stockId {} not found.", stockId));
     }
 
     @Override

@@ -426,6 +426,58 @@ class MarketServiceTest {
         assertThat(saved.getCategoryId()).isEqualTo(3L);
     }
 
+    @Test
+    @DisplayName("보유량 합계 업데이트 - 증가 시 ROI2 추가")
+    void updateStockHoldingAmount_Increase() {
+        // given
+        Stock stock = Stock.builder()
+                .id(10L)
+                .name("Test")
+                .symbol("TST")
+                .categoryId(1L)
+                .totalHoldingAmount(BigDecimal.ZERO)
+                .build();
+
+        given(stockRepository.findById(10L))
+                .willReturn(Optional.of(stock));
+
+        // when
+        marketService.updateStockHoldingAmount(10L, BigDecimal.valueOf(5));
+
+        // then
+        ArgumentCaptor<Stock> captor = ArgumentCaptor.forClass(Stock.class);
+        verify(stockRepository, times(1)).save(captor.capture());
+        Stock saved = captor.getValue();
+        assertThat(saved.getTotalHoldingAmount()).isEqualByComparingTo("5");
+        verify(regionOfInterestRepository, times(1)).addToLevel2(10L);
+    }
+
+    @Test
+    @DisplayName("보유량 합계 업데이트 - 0 이하로 감소 시 ROI2 제거")
+    void updateStockHoldingAmount_DecreaseToZero() {
+        // given
+        Stock stock = Stock.builder()
+                .id(11L)
+                .name("Test")
+                .symbol("TST2")
+                .categoryId(1L)
+                .totalHoldingAmount(BigDecimal.valueOf(3))
+                .build();
+
+        given(stockRepository.findById(11L))
+                .willReturn(Optional.of(stock));
+
+        // when
+        marketService.updateStockHoldingAmount(11L, BigDecimal.valueOf(-5));
+
+        // then
+        ArgumentCaptor<Stock> captor = ArgumentCaptor.forClass(Stock.class);
+        verify(stockRepository, times(1)).save(captor.capture());
+        Stock saved = captor.getValue();
+        assertThat(saved.getTotalHoldingAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+        verify(regionOfInterestRepository, times(1)).removeFromLevel2(11L);
+    }
+
     // 테스트 헬퍼 메서드
     private PriceCandle createPriceCandle(Long stockId, Timeframe timeframe, LocalDateTime at) {
         return PriceCandle.builder()

@@ -33,6 +33,7 @@ public class TradeKafkaProducer implements TradeEventProducer {
     private TradeExecutedEvent createTradeExecutedEvent(Trade trade) {
         return new TradeExecutedEvent(
                 trade.getId().toString(),
+                trade.getStockId(),
                 trade.getUserId().toString(),
                 trade.getTransactionType().name(),
                 trade.getAmount(),

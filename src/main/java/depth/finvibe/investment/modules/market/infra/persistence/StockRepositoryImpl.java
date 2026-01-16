@@ -11,6 +11,11 @@ import java.util.Optional;
 @Repository
 public class StockRepositoryImpl implements StockRepository {
     @Override
+    public Optional<Stock> findById(Long stockId) {
+        return Optional.empty();
+    }
+
+    @Override
     public Optional<Stock> findBySymbol(String symbol) {
         return Optional.empty();
     }

@@ -3,12 +3,15 @@ package depth.finvibe.investment.modules.market.application.port.in;
 import depth.finvibe.investment.modules.market.dto.StockDto;
 
 import java.util.List;
+import java.math.BigDecimal;
 
 public interface MarketCommandUseCase {
 
     void updateCurrentPrices(List<Long> stockIds);
 
     void registerNewStock(StockDto.NewStock request);
+
+    void updateStockHoldingAmount(Long stockId, BigDecimal deltaAmount);
 
     void addRegionOfInterestLevel1(List<Long> interestStockIds);
 
