@@ -3,6 +3,7 @@ package depth.finvibe.investment.modules.asset.domain;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+import depth.finvibe.investment.modules.asset.domain.Currency;
 import depth.finvibe.investment.shared.domain.TimeStampedBaseEntity;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.AttributeOverrides;

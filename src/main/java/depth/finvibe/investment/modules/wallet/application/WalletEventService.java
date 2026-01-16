@@ -1,7 +1,7 @@
 package depth.finvibe.investment.modules.wallet.application;
 
 import depth.finvibe.investment.modules.wallet.application.port.in.WalletCommandUseCase;
-import depth.finvibe.investment.shared.dto.FirstLoginedEvent;
+import depth.finvibe.investment.shared.dto.SignUpEvent;
 import depth.finvibe.investment.shared.dto.TradeExecutedEvent;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -18,20 +18,20 @@ public class WalletEventService {
 
     @Transactional
     public void handleTradeExecutedEvent(TradeExecutedEvent event) {
-        UUID userId = UUID.fromString(event.userId());
+        UUID userId = UUID.fromString(event.getUserId());
 
-        if (event.type().equals("BUY")) {
-            commandUseCase.withdraw(userId, event.price());
-        } else if (event.type().equals("SELL")) {
-            commandUseCase.deposit(userId, event.price());
+        if (event.getType().equals("BUY")) {
+            commandUseCase.withdraw(userId, event.getPrice().longValue());
+        } else if (event.getType().equals("SELL")) {
+            commandUseCase.deposit(userId, event.getPrice().longValue());
         } else {
-            log.warn("Ignoring trade event of type: {}", event.type());
+            log.warn("Ignoring trade event of type: {}", event.getType());
         }
     }
 
     @Transactional
-    public void handleFirstLoginedEvent(FirstLoginedEvent event) {
-        UUID userId = UUID.fromString(event.userId());
+    public void handleSignUpEvent(SignUpEvent event) {
+        UUID userId = UUID.fromString(event.getUserId());
         commandUseCase.createWallet(userId);
     }
 }

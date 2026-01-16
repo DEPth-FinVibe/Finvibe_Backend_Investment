@@ -1,4 +1,4 @@
-package depth.finvibe.investment.modules.trade.api;
+package depth.finvibe.investment.modules.trade.api.external;
 
 import depth.finvibe.investment.modules.trade.application.port.in.TradeCommandUseCase;
 import depth.finvibe.investment.modules.trade.application.port.in.TradeQueryUseCase;

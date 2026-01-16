@@ -1,9 +1,10 @@
 package depth.finvibe.investment.modules.asset.application;
 
 import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUseCase;
-import depth.finvibe.investment.modules.asset.dto.FirstLoginedEvent;
+import depth.finvibe.investment.modules.asset.domain.Currency;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
-import depth.finvibe.investment.modules.asset.dto.TradeExecutedEvent;
+import depth.finvibe.investment.shared.dto.SignUpEvent;
+import depth.finvibe.investment.shared.dto.TradeExecutedEvent;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,43 +21,43 @@ public class AssetEventService {
     @Transactional
     public void handleTradeExecutedEvent(TradeExecutedEvent event) {
 
-        Long portfolioId =event.portfolioId();
-        UUID userId = UUID.fromString(event.userId());
+        Long portfolioId = event.getPortfolioId();
+        UUID userId = UUID.fromString(event.getUserId());
 
-        if (event.type().equals("BUY")) {
+        if (event.getType().equals("BUY")) {
             PortfolioGroupDto.RegisterAssetRequest request = createRegisterRequestFrom(event);
             commandUseCase.registerAsset(portfolioId,request, userId);
-        } else if (event.type().equals("SELL")) {
+        } else if (event.getType().equals("SELL")) {
             PortfolioGroupDto.UnregisterAssetRequest request = createUnregisterRequestFrom(event);
             commandUseCase.unregisterAsset(portfolioId, request, userId);
         } else {
-            log.warn("Ignoring trade event of type: {}", event.type());
+            log.warn("Ignoring trade event of type: {}", event.getType());
         }
 
     }
 
     @Transactional
-    public void handleFirstLoginedEvent(FirstLoginedEvent event) {
-        UUID userId = UUID.fromString(event.userId());
+    public void handleSignUpEvent(SignUpEvent event) {
+        UUID userId = UUID.fromString(event.getUserId());
         commandUseCase.createDefaultPortfolioGroup(userId);
     }
 
     private PortfolioGroupDto.RegisterAssetRequest createRegisterRequestFrom(TradeExecutedEvent event) {
         return PortfolioGroupDto.RegisterAssetRequest.builder()
-                .stockId(event.stockId())
-                .name(event.name())
-                .stockPrice(event.stockPrice())
-                .amount(event.amount())
-                .currency(event.currency())
+                .stockId(event.getStockId())
+                .name(event.getName())
+                .stockPrice(event.getPrice())
+                .amount(event.getAmount())
+                .currency(Currency.valueOf(event.getCurrency()))
                 .build();
     }
 
     private PortfolioGroupDto.UnregisterAssetRequest createUnregisterRequestFrom(TradeExecutedEvent event) {
         return PortfolioGroupDto.UnregisterAssetRequest.builder()
-                .stockId(event.stockId())
-                .stockPrice(event.stockPrice())
-                .amount(event.amount())
-                .currency(event.currency())
+                .stockId(event.getStockId())
+                .stockPrice(event.getPrice())
+                .amount(event.getAmount())
+                .currency(Currency.valueOf(event.getCurrency()))
                 .build();
     }
 }

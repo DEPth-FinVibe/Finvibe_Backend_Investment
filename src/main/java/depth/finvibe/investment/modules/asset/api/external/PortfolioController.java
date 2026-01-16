@@ -1,5 +1,7 @@
-package depth.finvibe.investment.modules.asset.api;
+package depth.finvibe.investment.modules.asset.api.external;
 
+import depth.finvibe.investment.boot.security.model.AuthenticatedUser;
+import depth.finvibe.investment.boot.security.model.Requester;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUseCase;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetQueryUseCase;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
@@ -10,7 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/portfolios")
@@ -21,19 +22,17 @@ public class PortfolioController {
 
     @GetMapping
     public ResponseEntity<List<PortfolioGroupDto.PortfolioGroupResponse>> getPortfoliosByUser(
-            @RequestParam UUID userId
-    )
-    {
-        return ResponseEntity.ok(queryUseCase.getPortfoliosByUser(userId));
+            @AuthenticatedUser Requester requester
+    ) {
+        return ResponseEntity.ok(queryUseCase.getPortfoliosByUser(requester.getUuid()));
     }
 
     @PostMapping
     public ResponseEntity<Void> createPortfolioGroup(
             @RequestBody @Valid PortfolioGroupDto.CreatePortfolioGroupRequest request,
-            @RequestParam UUID userId
-    )
-    {
-        commandUseCase.createPortfolioGroup(request,userId);
+            @AuthenticatedUser Requester requester
+    ) {
+        commandUseCase.createPortfolioGroup(request, requester.getUuid());
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
@@ -41,20 +40,18 @@ public class PortfolioController {
     public ResponseEntity<Void> updatePortfolioGroup(
             @PathVariable Long portfolioGroupId,
             @RequestBody @Valid PortfolioGroupDto.UpdatePortfolioGroupRequest request,
-            @RequestParam UUID userId
-    )
-    {
-        commandUseCase.updatePortfolioGroup(portfolioGroupId,request,userId);
+            @AuthenticatedUser Requester requester
+    ) {
+        commandUseCase.updatePortfolioGroup(portfolioGroupId, request, requester.getUuid());
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{portfolioGroupId}")
     public ResponseEntity<Void> deletePortfolioGroup(
             @PathVariable Long portfolioGroupId,
-            @RequestParam UUID userId
-    )
-    {
-        commandUseCase.deletePortfolioGroup(portfolioGroupId, userId);
+            @AuthenticatedUser Requester requester
+    ) {
+        commandUseCase.deletePortfolioGroup(portfolioGroupId, requester.getUuid());
         return ResponseEntity.noContent().build();
     }
 }

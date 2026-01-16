@@ -2,6 +2,7 @@ package depth.finvibe.investment.modules.asset.domain;
 
 import java.math.BigDecimal;
 
+import depth.finvibe.investment.modules.asset.domain.Currency;
 import depth.finvibe.investment.modules.asset.domain.error.AssetErrorCode;
 import depth.finvibe.investment.shared.error.DomainException;
 import jakarta.persistence.Embeddable;

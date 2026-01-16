@@ -1,40 +1,22 @@
 # =========================
-# 1. Build Stage
-# =========================
-FROM eclipse-temurin:21-jdk-alpine AS builder
-
-WORKDIR /app
-
-# Gradle Wrapper & 설정 복사
-COPY gradlew .
-COPY gradle gradle
-COPY build.gradle settings.gradle ./
-
-# 의존성 캐시 (빌드 속도 개선)
-RUN chmod +x gradlew
-RUN ./gradlew clean bootJar --no-daemon --stacktrace --info
-
-# 소스 코드 복사
-COPY src src
-
-# JAR 빌드
-RUN ./gradlew clean bootJar --no-daemon
-
-
-# =========================
-# 2. Runtime Stage
+# Runtime Stage
 # =========================
 FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
-# 빌드된 JAR만 복사
-COPY --from=builder /app/build/libs/*.jar app.jar
+# CI 환경(./build/libs/)에서 빌드된 JAR를 복사
+# build.gradle의 rootProject.name 또는 jar 이름에 따라 수정이 필요할 수 있으나, 일반적으로 *.jar로 매칭 가능
+COPY build/libs/*.jar app.jar
 
 # Spring 기본 포트
 EXPOSE 8080
 
+# Profile 설정 (기본값 local)
+ARG PROFILE=local
+ENV SPRING_PROFILES_ACTIVE=${PROFILE}
+
 # JVM 옵션 (필요하면 조정)
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
 
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -Dspring.profiles.active=$SPRING_PROFILES_ACTIVE -jar /app/app.jar"]

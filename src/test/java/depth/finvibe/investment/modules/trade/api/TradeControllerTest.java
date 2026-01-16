@@ -1,5 +1,6 @@
 package depth.finvibe.investment.modules.trade.api;
 
+import depth.finvibe.investment.modules.trade.api.external.TradeController;
 import depth.finvibe.investment.modules.trade.application.port.in.TradeCommandUseCase;
 import depth.finvibe.investment.modules.trade.application.port.in.TradeQueryUseCase;
 import depth.finvibe.investment.modules.trade.domain.enums.MarketType;
