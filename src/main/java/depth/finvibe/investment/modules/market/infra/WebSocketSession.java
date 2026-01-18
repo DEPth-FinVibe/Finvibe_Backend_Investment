@@ -1,4 +1,4 @@
-package depth.finvibe.investment.modules.market.dto;
+package depth.finvibe.investment.modules.market.infra;
 
 import lombok.Getter;
 import lombok.Setter;

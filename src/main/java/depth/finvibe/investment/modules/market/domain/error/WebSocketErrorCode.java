@@ -15,5 +15,5 @@ public enum WebSocketErrorCode implements DomainErrorCode {
     ;
 
     private final String code;
-    private final String messageKey;
+    private final String message;
 }

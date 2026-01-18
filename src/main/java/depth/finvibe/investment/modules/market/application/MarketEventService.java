@@ -1,6 +1,6 @@
 package depth.finvibe.investment.modules.market.application;
 
-import depth.finvibe.investment.modules.market.application.port.in.MarketCommandUseCase;
+import depth.finvibe.investment.modules.market.application.port.in.CurrentPriceCommandUseCase;
 import depth.finvibe.investment.shared.dto.TradeExecutedEvent;
 import depth.finvibe.investment.shared.dto.UserLoginedEvent;
 import depth.finvibe.investment.shared.dto.UserLogoutedEvent;
@@ -16,41 +16,30 @@ import java.math.BigDecimal;
 @RequiredArgsConstructor
 public class MarketEventService {
 
-    private final MarketCommandUseCase marketCommandUseCase;
+    private final CurrentPriceCommandUseCase currentPriceCommandUseCase;
 
-    @Transactional
-    public void handleUserLogin(UserLoginedEvent event) {
-        log.info("Processing user login: userId={}, interestedStockIds={}, ownedStockIds = {} ", event.userId(), event.interestedStockIds(), event.ownedStockIds());
-        marketCommandUseCase.addRegionOfInterestLevel1(event.interestedStockIds());
-    }
-
-    @Transactional
-    public void handleUserLogout(UserLogoutedEvent event) {
-        log.info("Processing user logout: userId={}, interestedStockIds={}, ownedStockIds = {} ", event.userId(), event.interestedStockIds(), event.ownedStockIds());
-        marketCommandUseCase.removeRegionOfInterestLevel1(event.interestedStockIds());
-    }
 
     @Transactional
     public void handleTradeExecutedEvent(TradeExecutedEvent event) {
-        if (event.stockId() == null || event.amount() == null) {
+        if (event.getStockId() == null || event.getAmount() == null) {
             log.warn("Skip trade executed event: stockId or amount is missing.");
             return;
         }
 
-        int direction = switch (event.type()) {
+        int direction = switch (event.getType()) {
             case "BUY" -> 1;
             case "SELL" -> -1;
             default -> 0;
         };
         if (direction == 0) {
-            log.warn("Ignoring trade event of type: {}", event.type());
+            log.warn("Ignoring trade event of type: {}", event.getType());
             return;
         }
 
-        log.info("Processing trade executed: stockId={}, type={}, amount={}", event.stockId(), event.type(), event.amount());
-        marketCommandUseCase.updateStockHoldingAmount(
-                event.stockId(),
-                BigDecimal.valueOf(event.amount()).multiply(BigDecimal.valueOf(direction))
+        log.info("Processing trade executed: stockId={}, type={}, amount={}", event.getStockId(), event.getType(), event.getAmount());
+        currentPriceCommandUseCase.updateStockHoldingAmount(
+                event.getStockId(),
+                event.getAmount().multiply(BigDecimal.valueOf(direction))
         );
     }
 }

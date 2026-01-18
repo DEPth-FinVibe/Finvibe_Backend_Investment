@@ -15,17 +15,17 @@ public interface MarketQueryUseCase {
     List<PriceCandleDto.Response> getStockCandles(
             Long stockId,
             LocalDateTime startTime,
-            LocalDateTime endTime,
-            Timeframe timeframe
+            Timeframe timeframe,
+            Integer count
     );
 
     List<CurrentPriceDto.Response> getCurrentPrices(List<Long> stockIds);
 
-    Page<StockDto.Response> getTopStocksByValue(Pageable pageable);
+    List<StockDto.Response> getTopStocksByValue(Pageable pageable);
 
-    Page<StockDto.Response> getTopStocksByVolume(Pageable pageable);
+    List<StockDto.Response> getTopStocksByVolume(Pageable pageable);
 
-    Page<StockDto.Response> getTopRisingStocks(Pageable pageable);
+    List<StockDto.Response> getTopRisingStocks(Pageable pageable);
 
-    Page<StockDto.Response> getTopFallingStocks(Pageable pageable);
+    List<StockDto.Response> getTopFallingStocks(Pageable pageable);
 }

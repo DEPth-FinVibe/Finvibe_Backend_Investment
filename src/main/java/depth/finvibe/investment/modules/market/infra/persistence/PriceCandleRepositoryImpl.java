@@ -12,17 +12,12 @@ import java.util.Optional;
 @Repository
 public class PriceCandleRepositoryImpl implements PriceCandleRepository {
     @Override
-    public List<PriceCandle> findByStockIdAndTimeframeOrderByAtDesc(Long stockId, LocalDateTime startTime, LocalDateTime endTime, Timeframe timeframe) {
+    public List<PriceCandle> findExisting(Long stockId, LocalDateTime startTime, Timeframe timeframe, Integer count) {
         return List.of();
     }
 
     @Override
-    public Optional<PriceCandle> findFirstByStockIdAndTimeframeOrderByAtDesc(Long stockId, Timeframe timeframe) {
-        return Optional.empty();
-    }
+    public void saveAll(List<PriceCandle> fetchedResult) {
 
-    @Override
-    public List<PriceCandle> findLatestForEachStock(List<Long> stockIds, Timeframe timeframe) {
-        return List.of();
     }
 }

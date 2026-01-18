@@ -1,28 +1,25 @@
 package depth.finvibe.investment.modules.market.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import depth.finvibe.investment.modules.market.domain.Stock;
+import lombok.*;
 
 public class StockDto {
-
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
     public static class Response {
         private Long stockId;
-        private String name;
         private String symbol;
+        private String name;
         private Long categoryId;
 
-        public static Response from(Long stockId, String name, String symbol, Long categoryId) {
+        public static Response from(Stock stock) {
             return Response.builder()
-                    .stockId(stockId)
-                    .name(name)
-                    .symbol(symbol)
-                    .categoryId(categoryId)
+                    .stockId(stock.getId())
+                    .name(stock.getName())
+                    .symbol(stock.getSymbol())
+                    .categoryId(stock.getCategoryId())
                     .build();
         }
     }
@@ -31,9 +28,23 @@ public class StockDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public static class NewStock {
+    public static class TopStockResponse{
+        private String symbol;
+
+        public static TopStockResponse from(Stock stock){
+            return TopStockResponse.builder()
+                    .symbol(stock.getSymbol())
+                    .build();
+        }
+    }
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Data
+    @Builder
+    public class CreateRequest {
         private String name;
         private String symbol;
-        private Long categoryId;
+        private String rawCategoryCode; // 표준산업분류코드 (중분류)
     }
 }
