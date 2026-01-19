@@ -2,16 +2,18 @@ package depth.finvibe.investment.modules.market.infra.persistence;
 
 import depth.finvibe.investment.modules.market.application.port.out.CategoryRepository;
 import depth.finvibe.investment.modules.market.domain.Category;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
 
 @Repository
 @RequiredArgsConstructor
 public class CategoryRepositoryImpl implements CategoryRepository {
+    private final CategoryJpaRepository jpaRepository;
+
     @Override
     public List<Category> findAll() {
-        return List.of();
+        return jpaRepository.findAll();
     }
 }
+
