@@ -6,6 +6,7 @@ import depth.finvibe.investment.modules.market.application.port.out.*;
 
 import depth.finvibe.investment.modules.market.domain.CurrentPrice;
 import depth.finvibe.investment.modules.market.domain.PriceCandle;
+import depth.finvibe.investment.modules.market.domain.RealtimeStockIndex;
 import depth.finvibe.investment.modules.market.domain.Stock;
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
 import depth.finvibe.investment.modules.market.domain.error.MarketErrorCode;
@@ -42,14 +43,14 @@ public class CurrentPriceService implements MarketQueryUseCase, CurrentPriceComm
     public void registerWatchingStock(Long stockId, UUID userId) {
         checkStockIsExist(stockId);
 
-        realtimeStockIndexRepository.addRealtimeStockIndex(stockId, userId);
+        realtimeStockIndexRepository.addRealtimeStockIndex(RealtimeStockIndex.create(stockId, userId));
     }
 
     @Override
     public void unregisterWatchingStock(Long stockId, UUID userId) {
         checkStockIsExist(stockId);
 
-        realtimeStockIndexRepository.removeRealtimeStockIndex(stockId, userId);
+        realtimeStockIndexRepository.removeRealtimeStockIndex(RealtimeStockIndex.create(stockId, userId));
     }
 
     @Override

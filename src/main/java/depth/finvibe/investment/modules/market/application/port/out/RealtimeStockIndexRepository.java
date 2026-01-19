@@ -1,11 +1,11 @@
 package depth.finvibe.investment.modules.market.application.port.out;
 
-import java.util.UUID;
+import depth.finvibe.investment.modules.market.domain.RealtimeStockIndex;
 
 public interface RealtimeStockIndexRepository {
-    void addRealtimeStockIndex(Long stockId, UUID watcherId);
-    void renewRealtimeStockIndex(Long stockId, UUID watcherId);
-    void removeRealtimeStockIndex(Long stockId, UUID watcherId);
+    void addRealtimeStockIndex(RealtimeStockIndex realtimeStockIndex);
+    void renewRealtimeStockIndex(RealtimeStockIndex realtimeStockIndex);
+    void removeRealtimeStockIndex(RealtimeStockIndex realtimeStockIndex);
 
     boolean existsByStockId(Long stockId);
     boolean allExistsByStockIds(Iterable<Long> stockIds);

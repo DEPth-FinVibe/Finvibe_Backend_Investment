@@ -15,6 +15,7 @@ import depth.finvibe.investment.modules.market.application.port.out.RealMarketCl
 import depth.finvibe.investment.modules.market.application.port.out.RealtimeStockIndexRepository;
 import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
 import depth.finvibe.investment.modules.market.domain.PriceCandle;
+import depth.finvibe.investment.modules.market.domain.RealtimeStockIndex;
 import depth.finvibe.investment.modules.market.domain.Stock;
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
 import depth.finvibe.investment.modules.market.domain.error.MarketErrorCode;
@@ -69,7 +70,11 @@ class CurrentPriceServiceTest {
 
         currentPriceService.registerWatchingStock(stockId, userId);
 
-        verify(realtimeStockIndexRepository).addRealtimeStockIndex(stockId, userId);
+        ArgumentCaptor<RealtimeStockIndex> indexCaptor = ArgumentCaptor.forClass(RealtimeStockIndex.class);
+        verify(realtimeStockIndexRepository).addRealtimeStockIndex(indexCaptor.capture());
+        RealtimeStockIndex savedIndex = indexCaptor.getValue();
+        assertThat(savedIndex.getStockId()).isEqualTo(stockId);
+        assertThat(savedIndex.getWatcherId()).isEqualTo(userId);
     }
 
     @Test
