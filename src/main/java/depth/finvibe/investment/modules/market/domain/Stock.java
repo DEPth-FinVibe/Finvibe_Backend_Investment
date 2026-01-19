@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
@@ -23,11 +25,16 @@ public class Stock {
 
     private Long categoryId;
 
+    @Builder.Default
+    @Column(nullable = false)
+    private BigDecimal totalHoldingAmount = BigDecimal.ZERO;
+
     public static Stock create(String name, String symbol, Long categoryId) {
         return Stock.builder()
                 .name(name)
                 .symbol(symbol)
                 .categoryId(categoryId)
+                .totalHoldingAmount(BigDecimal.ZERO)
                 .build();
     }
 
@@ -41,6 +48,10 @@ public class Stock {
     // 카테고리 변경
     public void changeCategory(Long categoryId) {
         this.categoryId = categoryId;
+    }
+
+    public void updateTotalHoldingAmount(BigDecimal totalHoldingAmount) {
+        this.totalHoldingAmount = totalHoldingAmount;
     }
 
 }

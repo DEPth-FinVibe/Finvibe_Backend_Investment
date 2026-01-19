@@ -2,26 +2,56 @@ package depth.finvibe.investment.modules.market.domain;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Objects;
 
-public record CurrentPrice(Long stockId, LocalDateTime at, BigDecimal price, BigDecimal open, BigDecimal high, BigDecimal low, BigDecimal close,
-                           float prevDayChangePct, Long volume, Long value) {
+import depth.finvibe.investment.modules.market.dto.CurrentPriceUpdatedEvent;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        CurrentPrice that = (CurrentPrice) o;
-        return Float.compare(that.prevDayChangePct, prevDayChangePct) == 0 &&
-                Objects.equals(stockId, that.stockId) &&
-                Objects.equals(at, that.at) &&
-                Objects.equals(price, that.price) &&
-                Objects.equals(open, that.open) &&
-                Objects.equals(high, that.high) &&
-                Objects.equals(low, that.low) &&
-                Objects.equals(close, that.close) &&
-                Objects.equals(volume, that.volume) &&
-                Objects.equals(value, that.value);
+@Getter
+@AllArgsConstructor
+@EqualsAndHashCode
+@ToString
+public class CurrentPrice {
+    private final Long stockId;
+    private final LocalDateTime at;
+    private final BigDecimal price;
+    private final BigDecimal open;
+    private final BigDecimal high;
+    private final BigDecimal low;
+    private final BigDecimal close;
+    private final BigDecimal prevDayChangePct;
+    private final BigDecimal volume;
+    private final BigDecimal value;
+
+    public static CurrentPrice from(PriceCandle priceCandle) {
+        return new CurrentPrice(
+                priceCandle.getStockId(),
+                priceCandle.getAt(),
+                priceCandle.getClose(),
+                priceCandle.getOpen(),
+                priceCandle.getHigh(),
+                priceCandle.getLow(),
+                priceCandle.getClose(),
+                priceCandle.getPrevDayChangePct(),
+                priceCandle.getVolume(),
+                priceCandle.getValue()
+        );
     }
 
+    public static CurrentPrice from(CurrentPriceUpdatedEvent priceUpdate) {
+        return new CurrentPrice(
+                priceUpdate.getStockId(),
+                priceUpdate.getAt(),
+                priceUpdate.getClose(),
+                priceUpdate.getOpen(),
+                priceUpdate.getHigh(),
+                priceUpdate.getLow(),
+                priceUpdate.getClose(),
+                priceUpdate.getPrevDayChangePct(),
+                priceUpdate.getVolume(),
+                priceUpdate.getValue()
+        );
+    }
 }
