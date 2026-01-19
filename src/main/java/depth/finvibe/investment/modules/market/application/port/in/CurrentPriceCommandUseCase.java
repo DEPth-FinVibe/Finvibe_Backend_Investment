@@ -20,9 +20,4 @@ public interface CurrentPriceCommandUseCase {
     // 실시간 주가 업데이트 처리
     // infra 계층은 redis에 저장된 인덱스를 보고 실시간으로 업데이트 하여 업데이트되면 이 메서드를 호출한다.
     void stockPriceUpdated(CurrentPriceUpdatedEvent priceUpdate);
-
-    // Observer -> 레이어간의 구독과 발행
-    // Redis에 "실시간 업데이트를 하는 종목에 대한 인덱스", "실시간 업데이트를 하는 종목에 대한 실제 현재가"
-    // infra에서 전자를 보고 외부 API에 연결해서 값을 갱신한다음에 application을 재호출해야하기때문에
-
 }

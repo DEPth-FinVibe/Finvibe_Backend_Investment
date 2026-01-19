@@ -1,4 +1,4 @@
-package depth.finvibe.investment.modules.market.infra;
+package depth.finvibe.investment.modules.market.infra.websocket;
 
 import lombok.Getter;
 import lombok.Setter;

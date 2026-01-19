@@ -29,7 +29,7 @@ public class StockService implements StockCommandUseCase {
 
         List<Stock> stocksToUpsert = stockCreateRequests.stream()
             .map(req -> {
-                Category category = seekMatchingCategories(req, allCategories);
+                Category category = seekMatchingCategoriesByCode(req, allCategories);
                 return createStockFrom(req, category);
             })
             .toList();
@@ -37,7 +37,7 @@ public class StockService implements StockCommandUseCase {
         stockRepository.bulkUpsertStocks(stocksToUpsert);
     }
 
-    private static @NonNull Category seekMatchingCategories(StockDto.CreateRequest request, List<Category> allCategories) {
+    private static @NonNull Category seekMatchingCategoriesByCode(StockDto.CreateRequest request, List<Category> allCategories) {
         Category fallbackCategory = allCategories.stream()
             .filter(cat -> cat.getCode().equals(FALLBACK_CATEGORY_CODE)).findAny().orElseThrow();
 

@@ -2,7 +2,6 @@ package depth.finvibe.investment.modules.market.dto;
 
 import depth.finvibe.investment.modules.market.domain.CurrentPrice;
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
-import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

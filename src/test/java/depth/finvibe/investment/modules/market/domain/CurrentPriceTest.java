@@ -31,16 +31,16 @@ class CurrentPriceTest {
         );
 
         // then
-        assertThat(currentPrice.stockId()).isEqualTo(1L);
-        assertThat(currentPrice.at()).isEqualTo(now);
-        assertThat(currentPrice.price()).isEqualByComparingTo(BigDecimal.valueOf(70000));
-        assertThat(currentPrice.open()).isEqualByComparingTo(BigDecimal.valueOf(69000));
-        assertThat(currentPrice.high()).isEqualByComparingTo(BigDecimal.valueOf(71000));
-        assertThat(currentPrice.low()).isEqualByComparingTo(BigDecimal.valueOf(68000));
-        assertThat(currentPrice.close()).isEqualByComparingTo(BigDecimal.valueOf(70500));
-        assertThat(currentPrice.prevDayChangePct()).isEqualByComparingTo(BigDecimal.valueOf(1.5));
-        assertThat(currentPrice.volume()).isEqualByComparingTo(BigDecimal.valueOf(1000000));
-        assertThat(currentPrice.value()).isEqualByComparingTo(BigDecimal.valueOf(70000000000L));
+        assertThat(currentPrice.getStockId()).isEqualTo(1L);
+        assertThat(currentPrice.getAt()).isEqualTo(now);
+        assertThat(currentPrice.getPrice()).isEqualByComparingTo(BigDecimal.valueOf(70000));
+        assertThat(currentPrice.getOpen()).isEqualByComparingTo(BigDecimal.valueOf(69000));
+        assertThat(currentPrice.getHigh()).isEqualByComparingTo(BigDecimal.valueOf(71000));
+        assertThat(currentPrice.getLow()).isEqualByComparingTo(BigDecimal.valueOf(68000));
+        assertThat(currentPrice.getClose()).isEqualByComparingTo(BigDecimal.valueOf(70500));
+        assertThat(currentPrice.getPrevDayChangePct()).isEqualByComparingTo(BigDecimal.valueOf(1.5));
+        assertThat(currentPrice.getVolume()).isEqualByComparingTo(BigDecimal.valueOf(1000000));
+        assertThat(currentPrice.getValue()).isEqualByComparingTo(BigDecimal.valueOf(70000000000L));
     }
 
     @Test

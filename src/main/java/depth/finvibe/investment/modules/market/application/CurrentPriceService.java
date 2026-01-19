@@ -38,20 +38,6 @@ public class CurrentPriceService implements MarketQueryUseCase, CurrentPriceComm
     private final RealtimeStockIndexRepository realtimeStockIndexRepository;
     private final CurrentPriceRepository currentPriceRepository;
 
-    // 실시간 캐시에 포함되는 종목들
-    // 사용자가 현재 보고있는 종목들 (watchers >= 1)
-
-    // 준실시간 캐시에 포함되는 종목들
-    // 사용자가 보유한 종목들 (heldByUsers >= 1)
-
-    // Stock엔티티는 언제 생성되나?
-    // - 사용자가 특정 종목을 처음 조회할 때 생성됨
-    // - 리스트 조회 시 리스트 결과물들에 대해 먼저 stock으로 등록 뒤 반환
-    // => 주식 종목 파일로부터 새로운 Stock이 응답되었을 때 생성(최종)
-
-    // 즉, 기존 방식에서 관심종목과 관련된 조건을 제거하여 간단화함.
-    // 그래도 괜찮은가? -> 괜찮음. 관심종목의 실시간 여부 처리도 보고있는 종목의 처리와 통합 가능함.
-
     @Override
     public void registerWatchingStock(Long stockId, UUID userId) {
         checkStockIsExist(stockId);

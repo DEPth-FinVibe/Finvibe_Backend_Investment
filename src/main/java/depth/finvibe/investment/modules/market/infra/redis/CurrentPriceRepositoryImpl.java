@@ -1,4 +1,4 @@
-package depth.finvibe.investment.modules.market.infra.persistence;
+package depth.finvibe.investment.modules.market.infra.redis;
 
 import depth.finvibe.investment.modules.market.application.port.out.CurrentPriceRepository;
 import depth.finvibe.investment.modules.market.domain.CurrentPrice;

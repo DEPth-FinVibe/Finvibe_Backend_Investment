@@ -3,14 +3,16 @@ package depth.finvibe.investment.modules.market.domain;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import depth.finvibe.investment.modules.market.dto.CurrentPriceDto;
 import depth.finvibe.investment.modules.market.dto.CurrentPriceUpdatedEvent;
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Getter
 @AllArgsConstructor
+@EqualsAndHashCode
+@ToString
 public class CurrentPrice {
     private final Long stockId;
     private final LocalDateTime at;

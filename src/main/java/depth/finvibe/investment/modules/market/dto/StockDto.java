@@ -42,7 +42,7 @@ public class StockDto {
     @NoArgsConstructor
     @Data
     @Builder
-    public class CreateRequest {
+    public static class CreateRequest {
         private String name;
         private String symbol;
         private String rawCategoryCode; // 표준산업분류코드 (중분류)

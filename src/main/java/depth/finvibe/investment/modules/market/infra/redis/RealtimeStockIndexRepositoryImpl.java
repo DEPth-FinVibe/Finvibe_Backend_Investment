@@ -1,14 +1,11 @@
-package depth.finvibe.investment.modules.market.infra.persistence;
+package depth.finvibe.investment.modules.market.infra.redis;
 
 import depth.finvibe.investment.modules.market.application.port.out.RealtimeStockIndexRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Repository
