@@ -44,5 +44,14 @@ public class StockRepositoryImpl implements StockRepository {
     public List<Stock> findAllBySymbolIn(List<String> symbols) {
         return jpaRepository.findAllBySymbolIn(symbols);
     }
-}
 
+    @Override
+    public List<Stock> findAll() {
+        return jpaRepository.findAll();
+    }
+
+    @Override
+    public List<Stock> findAllById(List<Long> stockIds) {
+        return jpaRepository.findAllById(stockIds);
+    }
+}

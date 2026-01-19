@@ -17,4 +17,8 @@ public interface StockRepository {
     void bulkUpsertStocks(List<Stock> stocksToUpsert);
 
     List<Stock> findAllBySymbolIn(List<String> symbols);
+
+    List<Stock> findAll();
+
+    List<Stock> findAllById(List<Long> stockIds);
 }

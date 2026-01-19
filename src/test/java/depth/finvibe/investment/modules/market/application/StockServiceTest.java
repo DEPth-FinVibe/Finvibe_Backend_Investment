@@ -7,12 +7,12 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import depth.finvibe.investment.modules.market.application.port.out.CategoryRepository;
+import depth.finvibe.investment.modules.market.application.port.out.RealMarketClient;
 import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
 import depth.finvibe.investment.modules.market.domain.Category;
 import depth.finvibe.investment.modules.market.domain.Stock;
 import depth.finvibe.investment.modules.market.dto.StockDto;
 import java.util.List;
-import java.util.NoSuchElementException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +29,9 @@ class StockServiceTest {
 
     @Mock
     private CategoryRepository categoryRepository;
+
+    @Mock
+    private RealMarketClient realMarketClient;
 
     @InjectMocks
     private StockService stockService;
@@ -48,13 +51,13 @@ class StockServiceTest {
                 .build();
         when(categoryRepository.findAll()).thenReturn(List.of(fallbackCategory, matchCategory));
 
-        StockDto.CreateRequest request = StockDto.CreateRequest.builder()
+        StockDto.RealMarketResponse request = StockDto.RealMarketResponse.builder()
                 .name("Acme")
-                .symbol("ACM")
-                .rawCategoryCode("1234")
+                .symbol("1234ACM")
                 .build();
+        when(realMarketClient.fetchStocksInKOSPI()).thenReturn(List.of(request));
 
-        stockService.bulkUpsertStocks(List.of(request));
+        stockService.bulkUpsertStocks();
 
         ArgumentCaptor<List<Stock>> captor = ArgumentCaptor.forClass(List.class);
         verify(stockRepository).bulkUpsertStocks(captor.capture());
@@ -63,7 +66,7 @@ class StockServiceTest {
         assertThat(stocks).hasSize(1);
         Stock stock = stocks.get(0);
         assertThat(stock.getName()).isEqualTo("Acme");
-        assertThat(stock.getSymbol()).isEqualTo("ACM");
+        assertThat(stock.getSymbol()).isEqualTo("1234ACM");
         assertThat(stock.getCategoryId()).isEqualTo(2L);
     }
 
@@ -82,13 +85,13 @@ class StockServiceTest {
                 .build();
         when(categoryRepository.findAll()).thenReturn(List.of(fallbackCategory, otherCategory));
 
-        StockDto.CreateRequest request = StockDto.CreateRequest.builder()
+        StockDto.RealMarketResponse request = StockDto.RealMarketResponse.builder()
                 .name("Beta")
-                .symbol("BET")
-                .rawCategoryCode("9999")
+                .symbol("9999BET")
                 .build();
+        when(realMarketClient.fetchStocksInKOSPI()).thenReturn(List.of(request));
 
-        stockService.bulkUpsertStocks(List.of(request));
+        stockService.bulkUpsertStocks();
 
         ArgumentCaptor<List<Stock>> captor = ArgumentCaptor.forClass(List.class);
         verify(stockRepository).bulkUpsertStocks(captor.capture());
@@ -109,14 +112,14 @@ class StockServiceTest {
                 .build();
         when(categoryRepository.findAll()).thenReturn(List.of(otherCategory));
 
-        StockDto.CreateRequest request = StockDto.CreateRequest.builder()
+        StockDto.RealMarketResponse request = StockDto.RealMarketResponse.builder()
                 .name("Gamma")
-                .symbol("GAM")
-                .rawCategoryCode("5678")
+                .symbol("9999GAM")
                 .build();
+        when(realMarketClient.fetchStocksInKOSPI()).thenReturn(List.of(request));
 
-        assertThatThrownBy(() -> stockService.bulkUpsertStocks(List.of(request)))
-                .isInstanceOf(NoSuchElementException.class);
+        assertThatThrownBy(() -> stockService.bulkUpsertStocks())
+                .isInstanceOf(IllegalStateException.class);
         verifyNoInteractions(stockRepository);
     }
 }

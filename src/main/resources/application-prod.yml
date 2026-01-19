@@ -34,3 +34,8 @@ logging:
   level:
     root: info
     depth.finvibe.investment: info
+
+market:
+  kis:
+    api-key: ${KIS_API_KEY}
+    api-secret: ${KIS_API_SECRET}
