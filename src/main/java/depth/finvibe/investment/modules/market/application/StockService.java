@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -32,7 +33,7 @@ public class StockService implements StockCommandUseCase {
     @Override
     @Transactional
     public void bulkUpsertStocks() {
-        List<StockDto.RealMarketResponse> stocksInKOSPI = realMarketClient.fetchStocksInKOSPI();
+        List<StockDto.RealMarketResponse> stocksInKOSPI = realMarketClient.fetchStocksInRealMarket();
 
         List<Stock> stocksToUpsert = convertToStocksFrom(stocksInKOSPI);
 
@@ -93,8 +94,8 @@ public class StockService implements StockCommandUseCase {
                 .stockId(stockId)
                 .rankType(rankingResponse.getRankType())
                 .rank(rankingResponse.getRank())
+                .updatedAt(LocalDateTime.now())
                 .build();
     }
 
 }
-

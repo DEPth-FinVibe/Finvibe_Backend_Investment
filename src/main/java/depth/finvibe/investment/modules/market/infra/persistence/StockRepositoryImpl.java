@@ -35,7 +35,11 @@ public class StockRepositoryImpl implements StockRepository {
     }
 
     @Override
-    @Transactional
+    public boolean existsAny() {
+        return jpaRepository.count() > 0;
+    }
+
+    @Override
     public void bulkUpsertStocks(List<Stock> stocksToUpsert) {
         jpaRepository.saveAll(stocksToUpsert);
     }

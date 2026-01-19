@@ -11,7 +11,7 @@ import java.util.List;
  * 한국투자증권, Alplaca 등 외부 API로부터 주식 정보를 조회하는 포트
  */
 public interface RealMarketClient {
-    List<StockDto.RealMarketResponse> fetchStocksInKOSPI();
+    List<StockDto.RealMarketResponse> fetchStocksInRealMarket();
 
     List<PriceCandleDto.Response> fetchPriceCandles(Long stockId, List<LocalDateTime> missingCandleTimes, Timeframe timeframe);
 

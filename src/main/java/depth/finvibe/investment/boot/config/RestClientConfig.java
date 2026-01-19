@@ -1,6 +1,6 @@
 package depth.finvibe.investment.boot.config;
 
-import depth.finvibe.investment.modules.market.infra.client.KisTokenManager;
+import depth.finvibe.investment.modules.market.infra.client.tokenmanage.KisTokenManager;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

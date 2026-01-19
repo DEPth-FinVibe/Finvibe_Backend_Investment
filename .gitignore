@@ -37,3 +37,5 @@ out/
 .vscode/
 /.github/git-commit-instructions.md
 /AGENTS.md
+
+.env

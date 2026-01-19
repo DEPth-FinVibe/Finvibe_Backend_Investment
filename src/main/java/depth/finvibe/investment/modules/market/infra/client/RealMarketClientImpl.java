@@ -13,12 +13,15 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
 public class RealMarketClientImpl implements RealMarketClient {
 
     private final KisApiClient kisApiClient;
+    private final List<KisFileClient> kisFileClient;
 
     @Override
     public List<PriceCandleDto.Response> fetchPriceCandles(Long stockId, List<LocalDateTime> missingCandleTimes, Timeframe timeframe) {
@@ -26,9 +29,15 @@ public class RealMarketClientImpl implements RealMarketClient {
     }
 
     @Override
-    public List<RealMarketResponse> fetchStocksInKOSPI() {
+    public List<RealMarketResponse> fetchStocksInRealMarket() {
+        List<CompletableFuture<List<RealMarketResponse>>> futures = kisFileClient.stream()
+                .map(client -> CompletableFuture.supplyAsync(client::fetchStocksInKisFile))
+                .toList();
 
-        return List.of();
+        return futures.stream()
+                .map(CompletableFuture::join)
+                .flatMap(List::stream)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -60,4 +69,3 @@ public class RealMarketClientImpl implements RealMarketClient {
         }
     }
 }
-

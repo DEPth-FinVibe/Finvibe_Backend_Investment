@@ -39,3 +39,4 @@ market:
   kis:
     api-key: ${KIS_API_KEY}
     api-secret: ${KIS_API_SECRET}
+    user-id: ${KIS_USER_ID}

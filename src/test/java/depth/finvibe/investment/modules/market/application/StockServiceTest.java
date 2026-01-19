@@ -55,7 +55,7 @@ class StockServiceTest {
                 .name("Acme")
                 .symbol("1234ACM")
                 .build();
-        when(realMarketClient.fetchStocksInKOSPI()).thenReturn(List.of(request));
+        when(realMarketClient.fetchStocksInRealMarket()).thenReturn(List.of(request));
 
         stockService.bulkUpsertStocks();
 
@@ -89,7 +89,7 @@ class StockServiceTest {
                 .name("Beta")
                 .symbol("9999BET")
                 .build();
-        when(realMarketClient.fetchStocksInKOSPI()).thenReturn(List.of(request));
+        when(realMarketClient.fetchStocksInRealMarket()).thenReturn(List.of(request));
 
         stockService.bulkUpsertStocks();
 
@@ -116,7 +116,7 @@ class StockServiceTest {
                 .name("Gamma")
                 .symbol("9999GAM")
                 .build();
-        when(realMarketClient.fetchStocksInKOSPI()).thenReturn(List.of(request));
+        when(realMarketClient.fetchStocksInRealMarket()).thenReturn(List.of(request));
 
         assertThatThrownBy(() -> stockService.bulkUpsertStocks())
                 .isInstanceOf(IllegalStateException.class);

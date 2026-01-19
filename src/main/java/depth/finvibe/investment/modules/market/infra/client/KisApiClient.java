@@ -12,6 +12,9 @@ import depth.finvibe.investment.modules.market.infra.client.dto.KisDto;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * 한국투자증권 Open API 클라이언트
+ */
 @Component
 public class KisApiClient {
 
@@ -28,6 +31,12 @@ public class KisApiClient {
         this.kisUserId = kisUserId;
     }
 
+
+    /**
+     * <a href="https://apiportal.koreainvestment.com/apiservice-apiservice?/uapi/domestic-stock/v1/quotations/psearch-result">종목조건검색조회 API</a>
+     * @param condition 조건 번호
+     * @return 조건에 해당하는 종목 리스트
+     */
     public List<KisDto.ConditionalStockSearchResponseItem> fetchConditionalStockSearch(ConditionSeq condition) {
         return Objects.requireNonNull(
                     restClient.get()

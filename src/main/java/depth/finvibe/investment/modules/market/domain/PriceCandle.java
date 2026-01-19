@@ -60,7 +60,7 @@ public class PriceCandle {
     @Column(nullable = false)
     private BigDecimal volume;
 
-    @Column(nullable = false)
+    @Column(name = "`value`", nullable = false)
     private BigDecimal value;
 
     public static PriceCandle create(Long stockId, Timeframe timeframe, LocalDateTime at, BigDecimal open, BigDecimal high,

@@ -15,5 +15,14 @@ public class CategoryRepositoryImpl implements CategoryRepository {
     public List<Category> findAll() {
         return jpaRepository.findAll();
     }
-}
 
+    @Override
+    public boolean existsAny() {
+        return jpaRepository.count() > 0;
+    }
+
+    @Override
+    public List<Category> saveAll(List<Category> categories) {
+        return jpaRepository.saveAll(categories);
+    }
+}

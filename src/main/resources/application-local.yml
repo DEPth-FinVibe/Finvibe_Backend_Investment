@@ -18,7 +18,6 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.MySQLDialect
 
   data:
     redis:
@@ -39,3 +38,9 @@ logging:
   level:
     root: info
     depth.finvibe.investment: debug
+
+market:
+  kis:
+    api-key: ${KIS_API_KEY}
+    api-secret: ${KIS_API_SECRET}
+    user-id: ${KIS_USER_ID}

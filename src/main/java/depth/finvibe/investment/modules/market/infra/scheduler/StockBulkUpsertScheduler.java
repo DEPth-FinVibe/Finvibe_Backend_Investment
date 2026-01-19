@@ -1,6 +1,7 @@
 package depth.finvibe.investment.modules.market.infra.scheduler;
 
 import depth.finvibe.investment.modules.market.application.port.in.StockCommandUseCase;
+import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
 import lombok.RequiredArgsConstructor;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -11,6 +12,8 @@ import org.springframework.stereotype.Component;
 public class StockBulkUpsertScheduler {
 
     private final StockCommandUseCase stockCommandUseCase;
+    private final StockRepository stockRepository;
+    private static final long WAIT_INTERVAL_MS = 5000L;
 
     @Scheduled(cron = "0 0 2 * * *")
     @SchedulerLock(
@@ -19,6 +22,21 @@ public class StockBulkUpsertScheduler {
             lockAtLeastFor = "PT30S"
     )
     public void executeStockBulkUpsert() {
+        if (!waitForStockData()) {
+            return;
+        }
         stockCommandUseCase.bulkUpsertStocks();
+    }
+
+    private boolean waitForStockData() {
+        while (!stockRepository.existsAny()) {
+            try {
+                Thread.sleep(WAIT_INTERVAL_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        return true;
     }
 }
