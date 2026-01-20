@@ -7,9 +7,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -197,7 +197,7 @@ public class MarketQuoteWebSocketHandler extends TextWebSocketHandler {
         cancelTask(connection.getHeartbeatTask());
         connection.setHeartbeatTask(taskScheduler.scheduleAtFixedRate(() -> {
             WebSocketSession session = connection.getSession();
-            depth.finvibe.investment.modules.market.infra.websocket.WebSocketSession state = connection.getState();
+            CustomWebSocketSession state = connection.getState();
             if (!session.isOpen()) {
                 return;
             }

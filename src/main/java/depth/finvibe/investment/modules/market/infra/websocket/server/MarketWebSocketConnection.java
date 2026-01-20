@@ -3,43 +3,32 @@ package depth.finvibe.investment.modules.market.infra.websocket.server;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.ScheduledFuture;
+
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.web.socket.WebSocketSession;
 
 public class MarketWebSocketConnection {
+    @Getter
     private final WebSocketSession session;
-    private final depth.finvibe.investment.modules.market.infra.websocket.WebSocketSession state;
+
+    @Getter
+    private final CustomWebSocketSession state;
+
+    @Setter
+    @Getter
     private ScheduledFuture<?> authTimeoutTask;
+
+    @Setter
+    @Getter
     private ScheduledFuture<?> heartbeatTask;
+
     private long rateWindowSecond = -1;
     private int rateCount = 0;
 
     public MarketWebSocketConnection(WebSocketSession session) {
         this.session = session;
-        this.state = new depth.finvibe.investment.modules.market.infra.websocket.WebSocketSession(session.getId());
-    }
-
-    public WebSocketSession getSession() {
-        return session;
-    }
-
-    public depth.finvibe.investment.modules.market.infra.websocket.WebSocketSession getState() {
-        return state;
-    }
-
-    public ScheduledFuture<?> getAuthTimeoutTask() {
-        return authTimeoutTask;
-    }
-
-    public void setAuthTimeoutTask(ScheduledFuture<?> authTimeoutTask) {
-        this.authTimeoutTask = authTimeoutTask;
-    }
-
-    public ScheduledFuture<?> getHeartbeatTask() {
-        return heartbeatTask;
-    }
-
-    public void setHeartbeatTask(ScheduledFuture<?> heartbeatTask) {
-        this.heartbeatTask = heartbeatTask;
+        this.state = new CustomWebSocketSession(session.getId());
     }
 
     public boolean tryConsume(int limitPerSecond) {

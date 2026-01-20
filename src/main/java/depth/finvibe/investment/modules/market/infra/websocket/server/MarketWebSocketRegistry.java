@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
 
@@ -30,7 +31,7 @@ public class MarketWebSocketRegistry {
         if (connection == null) {
             return;
         }
-        depth.finvibe.investment.modules.market.infra.websocket.WebSocketSession state = connection.getState();
+        CustomWebSocketSession state = connection.getState();
         UUID userId = connection.getUserId();
         if (userId != null) {
             Map<String, Integer> userTopics = userSubscriptions.get(userId);
@@ -60,7 +61,7 @@ public class MarketWebSocketRegistry {
     }
 
     public SubscribeResult subscribe(MarketWebSocketConnection connection, List<String> topics, int limit) {
-        depth.finvibe.investment.modules.market.infra.websocket.WebSocketSession state = connection.getState();
+        CustomWebSocketSession state = connection.getState();
         UUID userId = connection.getUserId();
         if (userId == null) {
             return SubscribeResult.unauthorized();
@@ -97,7 +98,7 @@ public class MarketWebSocketRegistry {
     }
 
     public UnsubscribeResult unsubscribe(MarketWebSocketConnection connection, List<String> topics) {
-        depth.finvibe.investment.modules.market.infra.websocket.WebSocketSession state = connection.getState();
+        CustomWebSocketSession state = connection.getState();
         UUID userId = connection.getUserId();
         List<String> unsubscribed = new ArrayList<>();
         List<String> notSubscribed = new ArrayList<>();
