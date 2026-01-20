@@ -23,39 +23,20 @@ public class DevController {
 
     /**
      * WebSocket 인증용 테스트 JWT 토큰을 발급합니다.
+     * userId는 랜덤 생성, role은 USER, 만료기한은 1일(86400초)로 고정됩니다.
      *
-     * @param request 토큰 생성 요청
      * @return 생성된 JWT 토큰
      */
     @PostMapping("/jwt/token")
-    public ResponseEntity<JwtTokenResponse> generateToken(@RequestBody(required = false) JwtTokenRequest request) {
-        UUID userId = (request != null && request.userId != null) 
-                ? request.userId 
-                : UUID.randomUUID();
+    public ResponseEntity<JwtTokenResponse> generateToken() {
+        UUID userId = UUID.randomUUID();
+        UserRole role = UserRole.USER;
+        Long expirationSeconds = 86400L; // 1일
         
-        UserRole role = (request != null && request.role != null) 
-                ? request.role 
-                : UserRole.USER;
-        
-        String token;
-        if (request != null && request.expirationSeconds != null && request.expirationSeconds > 0) {
-            token = jwtTokenGenerator.generate(userId, role, request.expirationSeconds);
-        } else {
-            // 기본값: 24시간
-            token = jwtTokenGenerator.generate(userId, role, 86400L);
-        }
+        String token = jwtTokenGenerator.generate(userId, role, expirationSeconds);
 
         return ResponseEntity.ok(new JwtTokenResponse(token, userId, role));
     }
-
-    /**
-     * JWT 토큰 생성 요청
-     */
-    public record JwtTokenRequest(
-            UUID userId,
-            UserRole role,
-            Long expirationSeconds
-    ) {}
 
     /**
      * JWT 토큰 생성 응답

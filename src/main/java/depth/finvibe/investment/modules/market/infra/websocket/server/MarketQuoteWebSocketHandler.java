@@ -261,13 +261,17 @@ public class MarketQuoteWebSocketHandler extends TextWebSocketHandler {
         sendMessage(session, payload);
     }
 
-    private void sendMessage(WebSocketSession session, Map<String, Object> payload) {
-        try {
-            session.sendMessage(new TextMessage(objectMapper.writeValueAsString(payload)));
-        } catch (Exception ex) {
-            log.warn("Failed to send websocket message.", ex);
+  private void sendMessage(WebSocketSession session, Map<String, Object> payload) {
+    try {
+      synchronized (session) {
+        if (session.isOpen()) {
+          session.sendMessage(new TextMessage(objectMapper.writeValueAsString(payload)));
         }
+      }
+    } catch (Exception ex) {
+      log.warn("Failed to send websocket message.", ex);
     }
+  }
 
     private JsonNode parseJson(WebSocketSession session, WebSocketMessage<String> message) {
         try {
