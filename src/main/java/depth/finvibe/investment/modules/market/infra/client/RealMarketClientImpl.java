@@ -39,19 +39,17 @@ public class RealMarketClientImpl implements RealMarketClient {
     private final StockRepository stockRepository;
 
     @Override
-    public List<PriceCandleDto.Response> fetchPriceCandles(Long stockId, List<LocalDateTime> missingCandleTimes, Timeframe timeframe) {
-        if (missingCandleTimes == null || missingCandleTimes.isEmpty()) {
+    public List<PriceCandleDto.Response> fetchPriceCandles(Long stockId, LocalDateTime startTime, LocalDateTime endTime, Timeframe timeframe) {
+        if (startTime == null || endTime == null) {
             return List.of();
         }
 
         Stock stock = stockRepository.findById(stockId)
                 .orElseThrow(() -> new DomainException(MarketErrorCode.STOCK_NOT_FOUND));
 
-        Set<LocalDateTime> missingTimes = new HashSet<>(missingCandleTimes);
-
         return switch (timeframe) {
-            case MINUTE, HOUR -> fetchIntradayCandles(stock.getSymbol(), stockId, timeframe, missingTimes);
-            case DAY, WEEK, MONTH, YEAR -> fetchDailyCandles(stock.getSymbol(), stockId, missingTimes, timeframe);
+            case MINUTE, HOUR -> fetchIntradayCandles(stock.getSymbol(), stockId, timeframe, startTime, endTime);
+            case DAY, WEEK, MONTH, YEAR -> fetchDailyCandles(stock.getSymbol(), stockId, startTime, endTime, timeframe);
         };
     }
 
@@ -100,21 +98,27 @@ public class RealMarketClientImpl implements RealMarketClient {
             String symbol,
             Long stockId,
             Timeframe timeframe,
-            Set<LocalDateTime> missingTimes
+            LocalDateTime startTime,
+            LocalDateTime endTime
     ) {
-        Map<LocalDate, Set<LocalDateTime>> timesByDate = missingTimes.stream()
-                .collect(Collectors.groupingBy(LocalDateTime::toLocalDate, Collectors.toSet()));
-
+        // 시작 시각과 종료 시각 사이의 모든 날짜 수집
+        Set<LocalDate> targetDates = new HashSet<>();
+        LocalDate currentDate = startTime.toLocalDate();
+        LocalDate lastDate = endTime.toLocalDate();
+        
+        while (!currentDate.isAfter(lastDate)) {
+            targetDates.add(currentDate);
+            currentDate = currentDate.plusDays(1);
+        }
+        
         Map<LocalDateTime, PriceCandleDto.Response> results = new HashMap<>();
 
-        for (Map.Entry<LocalDate, Set<LocalDateTime>> entry : timesByDate.entrySet()) {
-            LocalDate targetDate = entry.getKey();
-            Set<LocalDateTime> remainingTimes = new HashSet<>(entry.getValue());
+        for (LocalDate targetDate : targetDates) {
             String cursorDate = targetDate.format(DateTimeFormatter.BASIC_ISO_DATE);
             String cursorTime = "235959";
 
             int maxIterations = 20;
-            for (int i = 0; i < maxIterations && !remainingTimes.isEmpty(); i++) {
+            for (int i = 0; i < maxIterations; i++) {
                 KisDto.TimeDailyChartPriceResponse response = kisApiClient.fetchTimeDailyChartPrice(
                         "J",
                         symbol,
@@ -137,7 +141,13 @@ public class RealMarketClientImpl implements RealMarketClient {
                     LocalDateTime candleAt = parseDateTime(item.getStck_bsop_date(), item.getStck_cntg_hour());
                     LocalDateTime normalizedAt = normalizeIntradayAt(candleAt, timeframe);
 
-                    if (!remainingTimes.remove(normalizedAt) || results.containsKey(normalizedAt)) {
+                    // 시간 범위 체크
+                    if (normalizedAt.isBefore(startTime) || normalizedAt.isAfter(endTime)) {
+                        earliest = earlier(earliest, candleAt);
+                        continue;
+                    }
+
+                    if (results.containsKey(normalizedAt)) {
                         earliest = earlier(earliest, candleAt);
                         continue;
                     }
@@ -178,13 +188,10 @@ public class RealMarketClientImpl implements RealMarketClient {
     private List<PriceCandleDto.Response> fetchDailyCandles(
             String symbol,
             Long stockId,
-            Set<LocalDateTime> missingTimes,
+            LocalDateTime startTime,
+            LocalDateTime endTime,
             Timeframe timeframe
     ) {
-        List<LocalDateTime> sortedTimes = missingTimes.stream()
-                .sorted()
-                .toList();
-
         Map<LocalDateTime, PriceCandleDto.Response> results = new HashMap<>();
 
         String periodCode = switch (timeframe) {
@@ -195,46 +202,42 @@ public class RealMarketClientImpl implements RealMarketClient {
             default -> throw new IllegalArgumentException("Unsupported timeframe: " + timeframe);
         };
 
-        int chunkSize = 100;
-        for (int startIndex = 0; startIndex < sortedTimes.size(); startIndex += chunkSize) {
-            int endIndex = Math.min(startIndex + chunkSize, sortedTimes.size());
+        // API는 최대 100개씩만 가져올 수 있으므로, 시작~종료 범위를 한번에 요청
+        // (API가 내부적으로 100개 제한을 처리하는 것으로 가정)
+        KisDto.DailyItemChartPriceResponse response = kisApiClient.fetchDailyItemChartPrice(
+                "J",
+                symbol,
+                startTime.toLocalDate().format(DateTimeFormatter.BASIC_ISO_DATE),
+                endTime.toLocalDate().format(DateTimeFormatter.BASIC_ISO_DATE),
+                periodCode,
+                "0"
+        );
 
-            LocalDateTime startAt = sortedTimes.get(startIndex);
-            LocalDateTime endAt = sortedTimes.get(endIndex - 1);
+        if (response == null || response.getOutput2() == null) {
+            return List.of();
+        }
 
-            KisDto.DailyItemChartPriceResponse response = kisApiClient.fetchDailyItemChartPrice(
-                    "J",
-                    symbol,
-                    startAt.toLocalDate().format(DateTimeFormatter.BASIC_ISO_DATE),
-                    endAt.toLocalDate().format(DateTimeFormatter.BASIC_ISO_DATE),
-                    periodCode,
-                    "1"
-            );
-
-            if (response == null || response.getOutput2() == null) {
+        for (KisDto.DailyItemChartPriceOutput2 item : response.getOutput2()) {
+            LocalDateTime candleAt = parseDateTime(item.getStck_bsop_date(), null);
+            LocalDateTime normalizedAt = normalizeDateAt(candleAt, timeframe);
+            
+            // 시간 범위 체크
+            if (normalizedAt.isBefore(startTime) || normalizedAt.isAfter(endTime)) {
                 continue;
             }
 
-            for (KisDto.DailyItemChartPriceOutput2 item : response.getOutput2()) {
-                LocalDateTime candleAt = parseDateTime(item.getStck_bsop_date(), null);
-                LocalDateTime normalizedAt = normalizeDateAt(candleAt, timeframe);
-                if (!missingTimes.contains(normalizedAt)) {
-                    continue;
-                }
-
-                results.put(normalizedAt, PriceCandleDto.Response.builder()
-                        .open(toBigDecimal(item.getStck_oprc()))
-                        .close(toBigDecimal(item.getStck_clpr()))
-                        .high(toBigDecimal(item.getStck_hgpr()))
-                        .low(toBigDecimal(item.getStck_lwpr()))
-                        .volume(toBigDecimal(item.getAcml_vol()))
-                        .value(toBigDecimal(item.getAcml_tr_pbmn()))
-                        .stockId(stockId)
-                        .timeframe(timeframe)
-                        .at(normalizedAt)
-                        .prevDayChangePct(BigDecimal.ZERO)
-                        .build());
-            }
+            results.put(normalizedAt, PriceCandleDto.Response.builder()
+                    .open(toBigDecimal(item.getStck_oprc()))
+                    .close(toBigDecimal(item.getStck_clpr()))
+                    .high(toBigDecimal(item.getStck_hgpr()))
+                    .low(toBigDecimal(item.getStck_lwpr()))
+                    .volume(toBigDecimal(item.getAcml_vol()))
+                    .value(toBigDecimal(item.getAcml_tr_pbmn()))
+                    .stockId(stockId)
+                    .timeframe(timeframe)
+                    .at(normalizedAt)
+                    .prevDayChangePct(BigDecimal.ZERO)
+                    .build());
         }
 
         return new ArrayList<>(results.values());

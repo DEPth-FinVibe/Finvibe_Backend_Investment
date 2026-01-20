@@ -54,6 +54,7 @@ public class KisApiClient {
 
     /**
      * <a href="https://apiportal.koreainvestment.com/apiservice-apiservice?/uapi/domestic-stock/v1/quotations/inquire-time-dailychartprice">주식일별분봉조회 API</a>
+     *
      */
     public KisDto.TimeDailyChartPriceResponse fetchTimeDailyChartPrice(
             String marketCode,

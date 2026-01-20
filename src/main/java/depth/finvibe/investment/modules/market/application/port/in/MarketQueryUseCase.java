@@ -13,8 +13,8 @@ public interface MarketQueryUseCase {
     List<PriceCandleDto.Response> getStockCandles(
             Long stockId,
             LocalDateTime startTime,
-            Timeframe timeframe,
-            Integer count
+            LocalDateTime endTime,
+            Timeframe timeframe
     );
 
     List<CurrentPriceDto.Response> getCurrentPrices(List<Long> stockIds);

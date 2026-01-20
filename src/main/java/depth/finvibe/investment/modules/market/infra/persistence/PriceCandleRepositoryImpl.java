@@ -18,31 +18,21 @@ public class PriceCandleRepositoryImpl implements PriceCandleRepository {
     private final PriceCandleJpaRepository jpaRepository;
 
     @Override
-    public List<PriceCandle> findExisting(Long stockId, LocalDateTime startTime, Timeframe timeframe, Integer count) {
+    public List<PriceCandle> findExisting(Long stockId, LocalDateTime startTime, LocalDateTime endTime, Timeframe timeframe) {
         LocalDateTime alignedStartTime = alignStartTime(startTime, timeframe);
-        LocalDateTime endTime = calculateEndTime(alignedStartTime, timeframe, count);
-        return jpaRepository.findByStockIdAndTimeframeAndAtBetweenOrderByAtAsc(stockId, timeframe, alignedStartTime, endTime);
+        LocalDateTime alignedEndTime = alignStartTime(endTime, timeframe);
+        return jpaRepository.findByStockIdAndTimeframeAndAtBetweenOrderByAtAsc(stockId, timeframe, alignedStartTime, alignedEndTime);
+    }
+
+    @Override
+    public List<PriceCandle> findByStockIdAndTimeframeAndAtIn(Long stockId, Timeframe timeframe, List<LocalDateTime> times) {
+        return jpaRepository.findByStockIdAndTimeframeAndAtIn(stockId, timeframe, times);
     }
 
     @Override
     @Transactional
     public void saveAll(List<PriceCandle> fetchedResult) {
         jpaRepository.saveAll(fetchedResult);
-    }
-
-    private LocalDateTime calculateEndTime(LocalDateTime startTime, Timeframe timeframe, Integer count) {
-        int lastIndex = Math.max(count - 1, 0);
-        return switch (timeframe) {
-            case DAY -> startTime.plusDays(lastIndex).withHour(0).withMinute(0).withSecond(0).withNano(0);
-            case WEEK -> startTime.plusWeeks(lastIndex).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                    .withHour(0).withMinute(0).withSecond(0).withNano(0);
-            case MONTH -> startTime.plusMonths(lastIndex).with(TemporalAdjusters.firstDayOfMonth())
-                    .withHour(0).withMinute(0).withSecond(0).withNano(0);
-            case YEAR -> startTime.plusYears(lastIndex).with(TemporalAdjusters.firstDayOfYear())
-                    .withHour(0).withMinute(0).withSecond(0).withNano(0);
-            case HOUR -> startTime.plusHours(lastIndex).withMinute(0).withSecond(0).withNano(0);
-            case MINUTE -> startTime.plusMinutes(lastIndex).withSecond(0).withNano(0);
-        };
     }
 
     private LocalDateTime alignStartTime(LocalDateTime startTime, Timeframe timeframe) {

@@ -13,4 +13,10 @@ public interface PriceCandleJpaRepository extends JpaRepository<PriceCandle, Lon
             LocalDateTime startAt,
             LocalDateTime endAt
     );
+
+    List<PriceCandle> findByStockIdAndTimeframeAndAtIn(
+            Long stockId,
+            Timeframe timeframe,
+            List<LocalDateTime> times
+    );
 }

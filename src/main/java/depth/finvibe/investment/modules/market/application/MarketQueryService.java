@@ -42,34 +42,101 @@ public class MarketQueryService implements MarketQueryUseCase {
 
     @Override
     @Transactional
-    public List<PriceCandleDto.Response> getStockCandles(Long stockId, LocalDateTime startTime, Timeframe timeframe, Integer count) {
+    public List<PriceCandleDto.Response> getStockCandles(Long stockId, LocalDateTime startTime, LocalDateTime endTime, Timeframe timeframe) {
 
-        List<PriceCandle> existingCandles = priceCandleRepository.findExisting(stockId, startTime, timeframe, count);
+        List<PriceCandle> existingCandles = priceCandleRepository.findExisting(stockId, startTime, endTime, timeframe);
 
-        List<LocalDateTime> missingCandleTimes = calculateMissingCandleTimes(startTime, timeframe, count, existingCandles);
-        List<PriceCandleDto.Response> fetchedCandles = realMarketClient.fetchPriceCandles(stockId, missingCandleTimes, timeframe);
-
-        saveNewlyFetchedCandles(fetchedCandles, stockId, timeframe);
+        List<LocalDateTime> missingCandleTimes = calculateMissingCandleTimes(startTime, endTime, timeframe, existingCandles);
+        
+        List<PriceCandleDto.Response> fetchedCandles = new ArrayList<>();
+        if (!missingCandleTimes.isEmpty()) {
+            // 가져와야 하는 캔들의 시간 범위 계산
+            LocalDateTime earliestTime = missingCandleTimes.stream().min(LocalDateTime::compareTo).orElse(startTime);
+            LocalDateTime latestTime = missingCandleTimes.stream().max(LocalDateTime::compareTo).orElse(endTime);
+            
+            // 해당 범위의 모든 캔들 시각 생성
+            List<LocalDateTime> allCandleTimesInRange = generateCandleTimesInRange(earliestTime, latestTime, timeframe);
+            
+            // 100개씩 청킹하여 API 호출
+            int maxChunkSize = 100;
+            for (int i = 0; i < allCandleTimesInRange.size(); i += maxChunkSize) {
+                int endIndex = Math.min(i + maxChunkSize, allCandleTimesInRange.size());
+                LocalDateTime chunkStart = allCandleTimesInRange.get(i);
+                LocalDateTime chunkEnd = allCandleTimesInRange.get(endIndex - 1);
+                
+                List<PriceCandleDto.Response> chunkCandles = realMarketClient.fetchPriceCandles(stockId, chunkStart, chunkEnd, timeframe);
+                fetchedCandles.addAll(chunkCandles);
+            }
+            
+            // API에서 받은 캔들 저장 + 못 받은 캔들은 isMissing=true로 저장
+            saveFetchedAndMissingCandles(fetchedCandles, allCandleTimesInRange, stockId, timeframe);
+        }
 
         return mergeAndSortCandles(existingCandles, fetchedCandles);
     }
 
     private List<PriceCandleDto.Response> mergeAndSortCandles(List<PriceCandle> existingCandles, List<PriceCandleDto.Response> fetchedCandles) {
+        // isMissing=true인 캔들은 제외하고 실제 데이터만 변환
         List<PriceCandleDto.Response> existingCandleDtos = existingCandles.stream()
+                .filter(candle -> !candle.getIsMissing())
                 .map(PriceCandleDto.Response::from)
                 .toList();
 
-        return Stream.concat(existingCandleDtos.stream(), fetchedCandles.stream())
+        // DB에서 가져온 캔들의 시각을 Set으로 변환 (중복 체크용)
+        Set<LocalDateTime> existingTimes = existingCandleDtos.stream()
+                .map(PriceCandleDto.Response::getAt)
+                .collect(Collectors.toSet());
+
+        // API에서 가져온 캔들 중 DB에 없는 것만 필터링
+        List<PriceCandleDto.Response> uniqueFetchedCandles = fetchedCandles.stream()
+                .filter(candle -> !existingTimes.contains(candle.getAt()))
+                .toList();
+
+        // 중복 제거된 결과를 병합하고 정렬
+        return Stream.concat(existingCandleDtos.stream(), uniqueFetchedCandles.stream())
                 .sorted(Comparator.comparing(PriceCandleDto.Response::getAt))
                 .toList();
     }
 
-    private void saveNewlyFetchedCandles(List<PriceCandleDto.Response> fetchedCandles, Long stockId, Timeframe timeframe) {
-        List<PriceCandle> fetchedResult = fetchedCandles.stream()
-                .map(this::createPriceCandleFrom)
+    private void saveFetchedAndMissingCandles(
+            List<PriceCandleDto.Response> fetchedCandles, 
+            List<LocalDateTime> allCandleTimesInRange,
+            Long stockId, 
+            Timeframe timeframe) {
+        
+        // fetch된 캔들들의 시각 추출
+        List<LocalDateTime> fetchedTimes = fetchedCandles.stream()
+                .map(PriceCandleDto.Response::getAt)
                 .toList();
 
-        priceCandleRepository.saveAll(fetchedResult);
+        // DB에 이미 존재하는 캔들 조회
+        List<PriceCandle> existingCandles = priceCandleRepository.findByStockIdAndTimeframeAndAtIn(
+                stockId, timeframe, allCandleTimesInRange);
+
+        // 이미 존재하는 캔들의 시각을 Set으로 변환
+        Set<LocalDateTime> existingTimes = existingCandles.stream()
+                .map(PriceCandle::getAt)
+                .collect(Collectors.toSet());
+
+        // 1. API에서 받은 캔들 중 DB에 없는 것만 필터링
+        List<PriceCandle> newCandles = fetchedCandles.stream()
+                .filter(dto -> !existingTimes.contains(dto.getAt()))
+                .map(this::createPriceCandleFrom)
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        // 2. API에서 못 받은 시각들 찾기
+        Set<LocalDateTime> fetchedTimeSet = new HashSet<>(fetchedTimes);
+        List<PriceCandle> missingCandles = allCandleTimesInRange.stream()
+                .filter(time -> !fetchedTimeSet.contains(time) && !existingTimes.contains(time))
+                .map(time -> PriceCandle.createMissing(stockId, timeframe, time))
+                .toList();
+
+        // 3. 실제 캔들 + 빈 캔들 모두 저장
+        newCandles.addAll(missingCandles);
+
+        if (!newCandles.isEmpty()) {
+            priceCandleRepository.saveAll(newCandles);
+        }
     }
 
     private PriceCandle createPriceCandleFrom(PriceCandleDto.Response dto) {
@@ -77,6 +144,7 @@ public class MarketQueryService implements MarketQueryUseCase {
                 .stockId(dto.getStockId())
                 .timeframe(dto.getTimeframe())
                 .at(dto.getAt())
+                .isMissing(false)
                 .open(dto.getOpen())
                 .close(dto.getClose())
                 .high(dto.getHigh())
@@ -87,61 +155,39 @@ public class MarketQueryService implements MarketQueryUseCase {
                 .build();
     }
 
-    private List<LocalDateTime> calculateMissingCandleTimes(LocalDateTime startTime, Timeframe timeframe, Integer count, List<PriceCandle> existingCandles) {
-        Set<LocalDateTime> shouldHaveCandleTimes = generateCandleTimes(startTime, timeframe, count);
+    private List<LocalDateTime> calculateMissingCandleTimes(LocalDateTime startTime, LocalDateTime endTime, Timeframe timeframe, List<PriceCandle> existingCandles) {
+        List<LocalDateTime> shouldHaveCandleTimes = generateCandleTimesInRange(startTime, endTime, timeframe);
 
         Set<LocalDateTime> existingCandleTimes = existingCandles.stream()
                 .map(PriceCandle::getAt)
                 .collect(Collectors.toSet());
 
-        Set<LocalDateTime> missingCandleTimes = new HashSet<>(shouldHaveCandleTimes);
-        missingCandleTimes.removeAll(existingCandleTimes);
-
-        return missingCandleTimes.stream().toList();
+        // DB에 존재하는 캔들(실제 데이터 + isMissing=true 모두) 제외
+        return shouldHaveCandleTimes.stream()
+                .filter(time -> !existingCandleTimes.contains(time))
+                .toList();
     }
 
-    private Set<LocalDateTime> generateCandleTimes(LocalDateTime startTime, Timeframe timeframe, Integer count) {
-        Set<LocalDateTime> candleTimes = new HashSet<>();
+    private List<LocalDateTime> generateCandleTimesInRange(LocalDateTime startTime, LocalDateTime endTime, Timeframe timeframe) {
+        List<LocalDateTime> candleTimes = new ArrayList<>();
+        LocalDateTime current = startTime;
 
-        switch (timeframe) {
-            case Timeframe.DAY:
-                for (int i = 0; i < count; i++) {
-                    candleTimes.add(startTime.plusDays(i).withHour(0).withMinute(0).withSecond(0).withNano(0));
-                }
-                break;
-            case Timeframe.WEEK:
-                for (int i = 0; i < count; i++) {
-                    candleTimes.add(startTime.plusWeeks(i)
-                            .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                            .withHour(0).withMinute(0).withSecond(0).withNano(0));
-                }
-                break;
-            case Timeframe.MONTH:
-                for (int i = 0; i < count; i++) {
-                    candleTimes.add(startTime.plusMonths(i)
-                            .with(TemporalAdjusters.firstDayOfMonth())
-                            .withHour(0).withMinute(0).withSecond(0).withNano(0));
-                }
-                break;
-            case Timeframe.YEAR:
-                for (int i = 0; i < count; i++) {
-                    candleTimes.add(startTime.plusYears(i)
-                            .with(TemporalAdjusters.firstDayOfYear())
-                            .withHour(0).withMinute(0).withSecond(0).withNano(0));
-                }
-                break;
-            case Timeframe.HOUR:
-                for (int i = 0; i < count; i++) {
-                    candleTimes.add(startTime.plusHours(i).withMinute(0).withSecond(0).withNano(0));
-                }
-                break;
-            case Timeframe.MINUTE:
-                for (int i = 0; i < count; i++) {
-                    candleTimes.add(startTime.plusMinutes(i).withSecond(0).withNano(0));
-                }
-                break;
-            default:
-                throw new IllegalArgumentException("Unsupported timeframe: " + timeframe);
+        while (!current.isAfter(endTime)) {
+            candleTimes.add(current);
+            current = switch (timeframe) {
+                case MINUTE -> current.plusMinutes(1).withSecond(0).withNano(0);
+                case HOUR -> current.plusHours(1).withMinute(0).withSecond(0).withNano(0);
+                case DAY -> current.plusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+                case WEEK -> current.plusWeeks(1)
+                        .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                        .withHour(0).withMinute(0).withSecond(0).withNano(0);
+                case MONTH -> current.plusMonths(1)
+                        .with(TemporalAdjusters.firstDayOfMonth())
+                        .withHour(0).withMinute(0).withSecond(0).withNano(0);
+                case YEAR -> current.plusYears(1)
+                        .with(TemporalAdjusters.firstDayOfYear())
+                        .withHour(0).withMinute(0).withSecond(0).withNano(0);
+            };
         }
 
         return candleTimes;
