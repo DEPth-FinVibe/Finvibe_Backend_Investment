@@ -130,6 +130,12 @@ public class RealMarketClientImpl implements RealMarketClient {
         
         LocalDateTime apiCallStart = normalizedStart.withMinute(0).withSecond(0).withNano(0);
         
+        // TODO: API 호출 최적화 필요
+        // 현재: 2시간씩 분할 호출 (12시간 요청 시 6번 API 호출)
+        // 개선 방안:
+        //   1. 장중 시간 고려 (09:00~15:30) - 불필요한 시간대 호출 방지
+        //   2. Rate Limit 고려 - 긴 범위 요청 시 지수 백오프 적용
+        //   3. 배치 API 지원 시 대체
         // 4. 정각 단위로 역순 API 호출 (2시간씩)
         LocalDateTime currentEnd = apiCallEnd;
         while (currentEnd.isAfter(apiCallStart)) {
