@@ -9,6 +9,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.core.DefaultLockingTaskExecutor;
 import net.javacrumbs.shedlock.core.LockConfiguration;
 import net.javacrumbs.shedlock.core.LockProvider;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Component;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "market.init", name = "enabled", havingValue = "true", matchIfMissing = true)
@@ -58,6 +60,8 @@ public class InitialMarketDataRunner implements CommandLineRunner {
         if (stockRepository.existsAny()) {
             return;
         }
+
+        log.info("어플리케이션 초기화 작업을 위해 주식 데이터를 최초로 적재합니다.");
         stockCommandUseCase.bulkUpsertStocks();
         stockCommandUseCase.renewStockCharts();
     }

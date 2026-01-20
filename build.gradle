@@ -62,6 +62,9 @@ dependencies {
     // RedLock(ShedLock)
     implementation 'net.javacrumbs.shedlock:shedlock-spring:5.9.0'
     implementation 'net.javacrumbs.shedlock:shedlock-provider-redis-spring:5.9.0'
+
+    // Redisson for distributed lock
+    implementation 'org.redisson:redisson-spring-boot-starter:3.27.0'
 }
 
 tasks.named('test') {

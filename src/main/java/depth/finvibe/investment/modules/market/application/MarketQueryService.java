@@ -18,11 +18,13 @@ import depth.finvibe.investment.modules.market.dto.CurrentPriceDto;
 import depth.finvibe.investment.modules.market.dto.PriceCandleDto;
 import depth.finvibe.investment.modules.market.dto.StockDto;
 import depth.finvibe.investment.shared.error.DomainException;
+import depth.finvibe.investment.shared.lock.DistributedLockManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
@@ -39,25 +41,47 @@ public class MarketQueryService implements MarketQueryUseCase {
     private final RealtimeStockIndexRepository realtimeStockIndexRepository;
     private final StockRankingRepository stockRankingRepository;
     private final StockRepository stockRepository;
+    private final DistributedLockManager distributedLockManager;
 
     @Override
     @Transactional
     public List<PriceCandleDto.Response> getStockCandles(Long stockId, LocalDateTime startTime, LocalDateTime endTime, Timeframe timeframe) {
+        
+        // 분산 락 키: 종목ID + 시간프레임 (단일 락)
+        String lockKey = String.format("stock:candle:%d:%s", stockId, timeframe);
+        
+        // 분산 락 적용: 대기 10초, 보유 60초 (API 호출 및 배치 저장 고려)
+        return distributedLockManager.executeWithLock(
+                lockKey,
+                Duration.ofSeconds(10),
+                Duration.ofSeconds(60),
+                () -> fetchStockCandlesWithLock(stockId, startTime, endTime, timeframe)
+        );
+    }
 
+    /**
+     * 분산 락 내에서 실행되는 실제 캔들 조회 로직
+     * 락 내에서 DB를 다시 조회하여 다른 노드가 이미 저장했는지 확인
+     */
+    private List<PriceCandleDto.Response> fetchStockCandlesWithLock(
+            Long stockId, LocalDateTime startTime, LocalDateTime endTime, Timeframe timeframe) {
+
+        // 1. DB에서 기존 캔들 조회 (락 내에서 다시 조회!)
         List<PriceCandle> existingCandles = priceCandleRepository.findExisting(stockId, startTime, endTime, timeframe);
 
+        // 2. 없는 캔들만 계산
         List<LocalDateTime> missingCandleTimes = calculateMissingCandleTimes(startTime, endTime, timeframe, existingCandles);
         
         List<PriceCandleDto.Response> fetchedCandles = new ArrayList<>();
         if (!missingCandleTimes.isEmpty()) {
-            // 가져와야 하는 캔들의 시간 범위 계산
+            // 3. 가져와야 하는 캔들의 시간 범위 계산
             LocalDateTime earliestTime = missingCandleTimes.stream().min(LocalDateTime::compareTo).orElse(startTime);
             LocalDateTime latestTime = missingCandleTimes.stream().max(LocalDateTime::compareTo).orElse(endTime);
             
-            // 해당 범위의 모든 캔들 시각 생성
+            // 4. 해당 범위의 모든 캔들 시각 생성
             List<LocalDateTime> allCandleTimesInRange = generateCandleTimesInRange(earliestTime, latestTime, timeframe);
             
-            // 100개씩 청킹하여 API 호출
+            // 5. 100개씩 청킹하여 API 호출
             int maxChunkSize = 100;
             for (int i = 0; i < allCandleTimesInRange.size(); i += maxChunkSize) {
                 int endIndex = Math.min(i + maxChunkSize, allCandleTimesInRange.size());
@@ -68,10 +92,11 @@ public class MarketQueryService implements MarketQueryUseCase {
                 fetchedCandles.addAll(chunkCandles);
             }
             
-            // API에서 받은 캔들 저장 + 못 받은 캔들은 isMissing=true로 저장
+            // 6. API에서 받은 캔들 배치 저장 + 못 받은 캔들은 isMissing=true로 저장
             saveFetchedAndMissingCandles(fetchedCandles, allCandleTimesInRange, stockId, timeframe);
         }
 
+        // 7. 결과 병합 및 반환
         return mergeAndSortCandles(existingCandles, fetchedCandles);
     }
 
@@ -109,7 +134,7 @@ public class MarketQueryService implements MarketQueryUseCase {
                 .map(PriceCandleDto.Response::getAt)
                 .toList();
 
-        // DB에 이미 존재하는 캔들 조회
+        // DB에 이미 존재하는 캔들 조회 (락 내에서 다시 확인)
         List<PriceCandle> existingCandles = priceCandleRepository.findByStockIdAndTimeframeAndAtIn(
                 stockId, timeframe, allCandleTimesInRange);
 
@@ -131,7 +156,7 @@ public class MarketQueryService implements MarketQueryUseCase {
                 .map(time -> PriceCandle.createMissing(stockId, timeframe, time))
                 .toList();
 
-        // 3. 실제 캔들 + 빈 캔들 모두 저장
+        // 3. 실제 캔들 + 빈 캔들 모두 배치 저장
         newCandles.addAll(missingCandles);
 
         if (!newCandles.isEmpty()) {
