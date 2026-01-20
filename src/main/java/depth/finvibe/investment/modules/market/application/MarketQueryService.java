@@ -66,37 +66,91 @@ public class MarketQueryService implements MarketQueryUseCase {
     private List<PriceCandleDto.Response> fetchStockCandlesWithLock(
             Long stockId, LocalDateTime startTime, LocalDateTime endTime, Timeframe timeframe) {
 
-        // 1. DB에서 기존 캔들 조회 (락 내에서 다시 조회!)
-        List<PriceCandle> existingCandles = priceCandleRepository.findExisting(stockId, startTime, endTime, timeframe);
+        // 1. Timeframe에 따라 시간 범위 정규화
+        LocalDateTime normalizedStart, normalizedEnd;
+        
+        switch (timeframe) {
+            case MINUTE:
+                normalizedStart = startTime.withSecond(0).withNano(0);
+                normalizedEnd = endTime.withSecond(0).withNano(0);
+                break;
+                
+            case HOUR:
+                normalizedStart = startTime.withMinute(0).withSecond(0).withNano(0);
+                normalizedEnd = endTime.withMinute(0).withSecond(0).withNano(0);
+                if (normalizedEnd.isBefore(endTime)) {
+                    normalizedEnd = normalizedEnd.plusHours(1);
+                }
+                break;
+                
+            case DAY:
+                normalizedStart = startTime.withHour(0).withMinute(0).withSecond(0).withNano(0);
+                normalizedEnd = endTime.withHour(0).withMinute(0).withSecond(0).withNano(0);
+                if (normalizedEnd.isBefore(endTime)) {
+                    normalizedEnd = normalizedEnd.plusDays(1);
+                }
+                break;
+                
+            case WEEK:
+                normalizedStart = startTime.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                    .withHour(0).withMinute(0).withSecond(0).withNano(0);
+                normalizedEnd = endTime.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                    .withHour(0).withMinute(0).withSecond(0).withNano(0);
+                if (normalizedEnd.isBefore(endTime)) {
+                    normalizedEnd = normalizedEnd.plusWeeks(1);
+                }
+                break;
+                
+            case MONTH:
+                normalizedStart = startTime.with(TemporalAdjusters.firstDayOfMonth())
+                    .withHour(0).withMinute(0).withSecond(0).withNano(0);
+                normalizedEnd = endTime.with(TemporalAdjusters.firstDayOfMonth())
+                    .withHour(0).withMinute(0).withSecond(0).withNano(0);
+                if (normalizedEnd.isBefore(endTime)) {
+                    normalizedEnd = normalizedEnd.plusMonths(1);
+                }
+                break;
+                
+            case YEAR:
+                normalizedStart = startTime.with(TemporalAdjusters.firstDayOfYear())
+                    .withHour(0).withMinute(0).withSecond(0).withNano(0);
+                normalizedEnd = endTime.with(TemporalAdjusters.firstDayOfYear())
+                    .withHour(0).withMinute(0).withSecond(0).withNano(0);
+                if (normalizedEnd.isBefore(endTime)) {
+                    normalizedEnd = normalizedEnd.plusYears(1);
+                }
+                break;
+            default:
+                normalizedStart = startTime;
+                normalizedEnd = endTime;
+        }
 
-        // 2. 없는 캔들만 계산
-        List<LocalDateTime> missingCandleTimes = calculateMissingCandleTimes(startTime, endTime, timeframe, existingCandles);
+        // 2. DB에서 기존 캔들 조회 (락 내에서 다시 조회!)
+        List<PriceCandle> existingCandles = priceCandleRepository.findExisting(stockId, normalizedStart, normalizedEnd, timeframe);
+
+        // 3. 없는 캔들만 계산
+        List<LocalDateTime> missingCandleTimes = calculateMissingCandleTimes(normalizedStart, normalizedEnd, timeframe, existingCandles);
         
         List<PriceCandleDto.Response> fetchedCandles = new ArrayList<>();
         if (!missingCandleTimes.isEmpty()) {
-            // 3. 가져와야 하는 캔들의 시간 범위 계산
-            LocalDateTime earliestTime = missingCandleTimes.stream().min(LocalDateTime::compareTo).orElse(startTime);
-            LocalDateTime latestTime = missingCandleTimes.stream().max(LocalDateTime::compareTo).orElse(endTime);
+            // 4. 가져와야 하는 캔들의 시간 범위 계산
+            LocalDateTime earliestTime = missingCandleTimes.stream().min(LocalDateTime::compareTo).orElse(normalizedStart);
+            LocalDateTime latestTime = missingCandleTimes.stream().max(LocalDateTime::compareTo).orElse(normalizedEnd);
             
-            // 4. 해당 범위의 모든 캔들 시각 생성
+            // 5. 해당 범위의 모든 캔들 시각 생성
             List<LocalDateTime> allCandleTimesInRange = generateCandleTimesInRange(earliestTime, latestTime, timeframe);
             
-            // 5. 100개씩 청킹하여 API 호출
-            int maxChunkSize = 100;
-            for (int i = 0; i < allCandleTimesInRange.size(); i += maxChunkSize) {
-                int endIndex = Math.min(i + maxChunkSize, allCandleTimesInRange.size());
-                LocalDateTime chunkStart = allCandleTimesInRange.get(i);
-                LocalDateTime chunkEnd = allCandleTimesInRange.get(endIndex - 1);
-                
-                List<PriceCandleDto.Response> chunkCandles = realMarketClient.fetchPriceCandles(stockId, chunkStart, chunkEnd, timeframe);
-                fetchedCandles.addAll(chunkCandles);
-            }
+            // 6. RealMarketClient가 내부적으로 청킹 처리
+            fetchedCandles = realMarketClient.fetchPriceCandles(stockId, earliestTime, latestTime, timeframe);
             
-            // 6. API에서 받은 캔들 배치 저장 + 못 받은 캔들은 isMissing=true로 저장
-            saveFetchedAndMissingCandles(fetchedCandles, allCandleTimesInRange, stockId, timeframe);
+            // 7. API에서 받은 캔들 배치 저장 + 못 받은 캔들은 isMissing=true로 저장
+            Set<LocalDateTime> existingCandleTimes = existingCandles.stream()
+                    .map(PriceCandle::getAt)
+                    .collect(Collectors.toSet());
+            saveFetchedAndMissingCandles(fetchedCandles, allCandleTimesInRange, stockId, timeframe, existingCandleTimes);
         }
 
-        // 7. 결과 병합 및 반환
+        // 8. 결과 병합 및 반환
         return mergeAndSortCandles(existingCandles, fetchedCandles);
     }
 
@@ -127,21 +181,13 @@ public class MarketQueryService implements MarketQueryUseCase {
             List<PriceCandleDto.Response> fetchedCandles, 
             List<LocalDateTime> allCandleTimesInRange,
             Long stockId, 
-            Timeframe timeframe) {
+            Timeframe timeframe,
+            Set<LocalDateTime> existingTimes) {
         
         // fetch된 캔들들의 시각 추출
         List<LocalDateTime> fetchedTimes = fetchedCandles.stream()
                 .map(PriceCandleDto.Response::getAt)
                 .toList();
-
-        // DB에 이미 존재하는 캔들 조회 (락 내에서 다시 확인)
-        List<PriceCandle> existingCandles = priceCandleRepository.findByStockIdAndTimeframeAndAtIn(
-                stockId, timeframe, allCandleTimesInRange);
-
-        // 이미 존재하는 캔들의 시각을 Set으로 변환
-        Set<LocalDateTime> existingTimes = existingCandles.stream()
-                .map(PriceCandle::getAt)
-                .collect(Collectors.toSet());
 
         // 1. API에서 받은 캔들 중 DB에 없는 것만 필터링
         List<PriceCandle> newCandles = fetchedCandles.stream()
@@ -195,23 +241,29 @@ public class MarketQueryService implements MarketQueryUseCase {
 
     private List<LocalDateTime> generateCandleTimesInRange(LocalDateTime startTime, LocalDateTime endTime, Timeframe timeframe) {
         List<LocalDateTime> candleTimes = new ArrayList<>();
-        LocalDateTime current = startTime;
+        
+        // startTime을 Timeframe에 맞춰 정규화 (방어적 처리)
+        LocalDateTime current = switch (timeframe) {
+            case MINUTE -> startTime.withSecond(0).withNano(0);
+            case HOUR -> startTime.withMinute(0).withSecond(0).withNano(0);
+            case DAY -> startTime.withHour(0).withMinute(0).withSecond(0).withNano(0);
+            case WEEK -> startTime.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                .withHour(0).withMinute(0).withSecond(0).withNano(0);
+            case MONTH -> startTime.with(TemporalAdjusters.firstDayOfMonth())
+                .withHour(0).withMinute(0).withSecond(0).withNano(0);
+            case YEAR -> startTime.with(TemporalAdjusters.firstDayOfYear())
+                .withHour(0).withMinute(0).withSecond(0).withNano(0);
+        };
 
         while (!current.isAfter(endTime)) {
             candleTimes.add(current);
             current = switch (timeframe) {
-                case MINUTE -> current.plusMinutes(1).withSecond(0).withNano(0);
-                case HOUR -> current.plusHours(1).withMinute(0).withSecond(0).withNano(0);
-                case DAY -> current.plusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
-                case WEEK -> current.plusWeeks(1)
-                        .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                        .withHour(0).withMinute(0).withSecond(0).withNano(0);
-                case MONTH -> current.plusMonths(1)
-                        .with(TemporalAdjusters.firstDayOfMonth())
-                        .withHour(0).withMinute(0).withSecond(0).withNano(0);
-                case YEAR -> current.plusYears(1)
-                        .with(TemporalAdjusters.firstDayOfYear())
-                        .withHour(0).withMinute(0).withSecond(0).withNano(0);
+                case MINUTE -> current.plusMinutes(1);
+                case HOUR -> current.plusHours(1);
+                case DAY -> current.plusDays(1);
+                case WEEK -> current.plusWeeks(1);
+                case MONTH -> current.plusMonths(1);
+                case YEAR -> current.plusYears(1);
             };
         }
 

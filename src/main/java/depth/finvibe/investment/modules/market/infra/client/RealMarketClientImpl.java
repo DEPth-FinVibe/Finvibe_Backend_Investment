@@ -12,6 +12,7 @@ import depth.finvibe.investment.modules.market.dto.StockDto.RealMarketResponse;
 import depth.finvibe.investment.modules.market.infra.client.dto.KisDto;
 import depth.finvibe.investment.shared.error.DomainException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -22,6 +23,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -30,6 +32,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class RealMarketClientImpl implements RealMarketClient {
@@ -101,88 +104,81 @@ public class RealMarketClientImpl implements RealMarketClient {
             LocalDateTime startTime,
             LocalDateTime endTime
     ) {
-        // 시작 시각과 종료 시각 사이의 모든 날짜 수집
-        Set<LocalDate> targetDates = new HashSet<>();
-        LocalDate currentDate = startTime.toLocalDate();
-        LocalDate lastDate = endTime.toLocalDate();
+        // 1. 시간 정규화 (Application 계층에서 이미 했지만, 방어적으로 한 번 더)
+        LocalDateTime normalizedStart, normalizedEnd;
         
-        while (!currentDate.isAfter(lastDate)) {
-            targetDates.add(currentDate);
-            currentDate = currentDate.plusDays(1);
-        }
-        
-        Map<LocalDateTime, PriceCandleDto.Response> results = new HashMap<>();
-
-        for (LocalDate targetDate : targetDates) {
-            String cursorDate = targetDate.format(DateTimeFormatter.BASIC_ISO_DATE);
-            String cursorTime = "235959";
-
-            int maxIterations = 20;
-            for (int i = 0; i < maxIterations; i++) {
-                KisDto.TimeDailyChartPriceResponse response = kisApiClient.fetchTimeDailyChartPrice(
-                        "J",
-                        symbol,
-                        cursorTime,
-                        cursorDate,
-                        "Y",
-                        ""
-                );
-
-                if (response == null || response.getOutput2() == null || response.getOutput2().isEmpty()) {
-                    break;
-                }
-
-                LocalDateTime earliest = null;
-                BigDecimal prevDayChangePct = response.getOutput1() == null
-                        ? BigDecimal.ZERO
-                        : toBigDecimal(response.getOutput1().getPrdy_ctrt());
-
-                for (KisDto.TimeDailyChartPriceOutput2 item : response.getOutput2()) {
-                    LocalDateTime candleAt = parseDateTime(item.getStck_bsop_date(), item.getStck_cntg_hour());
-                    LocalDateTime normalizedAt = normalizeIntradayAt(candleAt, timeframe);
-
-                    // 시간 범위 체크
-                    if (normalizedAt.isBefore(startTime) || normalizedAt.isAfter(endTime)) {
-                        earliest = earlier(earliest, candleAt);
-                        continue;
-                    }
-
-                    if (results.containsKey(normalizedAt)) {
-                        earliest = earlier(earliest, candleAt);
-                        continue;
-                    }
-
-                    results.put(normalizedAt, PriceCandleDto.Response.builder()
-                            .open(toBigDecimal(item.getStck_oprc()))
-                            .close(toBigDecimal(item.getStck_prpr()))
-                            .high(toBigDecimal(item.getStck_hgpr()))
-                            .low(toBigDecimal(item.getStck_lwpr()))
-                            .volume(toBigDecimal(item.getCntg_vol()))
-                            .value(toBigDecimal(item.getAcml_tr_pbmn()))
-                            .stockId(stockId)
-                            .timeframe(timeframe)
-                            .at(normalizedAt)
-                            .prevDayChangePct(prevDayChangePct)
-                            .build());
-
-                    earliest = earlier(earliest, candleAt);
-                }
-
-                if (earliest == null) {
-                    break;
-                }
-
-                LocalDateTime nextCursor = earliest.minusSeconds(1);
-                if (nextCursor.toLocalDate().isBefore(targetDate)) {
-                    break;
-                }
-
-                cursorDate = nextCursor.toLocalDate().format(DateTimeFormatter.BASIC_ISO_DATE);
-                cursorTime = nextCursor.toLocalTime().format(DateTimeFormatter.ofPattern("HHmmss"));
+        if (timeframe == Timeframe.HOUR) {
+            normalizedStart = startTime.withMinute(0).withSecond(0).withNano(0);
+            normalizedEnd = endTime.withMinute(0).withSecond(0).withNano(0);
+            if (normalizedEnd.isBefore(endTime)) {
+                normalizedEnd = normalizedEnd.plusHours(1);
             }
+        } else {
+            // MINUTE
+            normalizedStart = startTime.withSecond(0).withNano(0);
+            normalizedEnd = endTime.withSecond(0).withNano(0);
         }
-
-        return new ArrayList<>(results.values());
+        
+        // 2. 1분봉 데이터 수집용 Map
+        Map<LocalDateTime, PriceCandleDto.Response> minuteCandles = new HashMap<>();
+        
+        // 3. 정각 단위로 API 호출 준비
+        LocalDateTime apiCallEnd = normalizedEnd.withMinute(0).withSecond(0).withNano(0);
+        if (apiCallEnd.isBefore(normalizedEnd)) {
+            apiCallEnd = apiCallEnd.plusHours(1);
+        }
+        
+        LocalDateTime apiCallStart = normalizedStart.withMinute(0).withSecond(0).withNano(0);
+        
+        // 4. 정각 단위로 역순 API 호출 (2시간씩)
+        LocalDateTime currentEnd = apiCallEnd;
+        while (currentEnd.isAfter(apiCallStart)) {
+            KisDto.TimeDailyChartPriceResponse response = kisApiClient.fetchTimeDailyChartPrice(
+                "J",
+                symbol,
+                currentEnd.format(DateTimeFormatter.ofPattern("HHmmss")),
+                currentEnd.format(DateTimeFormatter.BASIC_ISO_DATE),
+                "Y",  // 날짜 경계 넘을 때 대비
+                null
+            );
+            
+            if (response != null && response.getOutput2() != null) {
+                for (KisDto.TimeDailyChartPriceOutput2 item : response.getOutput2()) {
+                    LocalDateTime candleAt = parseDateTime(
+                        item.getStck_bsop_date(),
+                        item.getStck_cntg_hour()
+                    );
+                    LocalDateTime normalized = normalizeIntradayAt(candleAt, Timeframe.MINUTE);
+                    
+                    // 정규화된 범위로 필터링
+                    if (normalized.isBefore(normalizedStart) || normalized.isAfter(normalizedEnd)) {
+                        continue;
+                    }
+                    
+                    minuteCandles.putIfAbsent(normalized, PriceCandleDto.Response.builder()
+                        .open(toBigDecimal(item.getStck_oprc()))
+                        .close(toBigDecimal(item.getStck_prpr()))
+                        .high(toBigDecimal(item.getStck_hgpr()))
+                        .low(toBigDecimal(item.getStck_lwpr()))
+                        .volume(toBigDecimal(item.getCntg_vol()))
+                        .value(toBigDecimal(item.getAcml_tr_pbmn()))
+                        .stockId(stockId)
+                        .timeframe(Timeframe.MINUTE)
+                        .at(normalized)
+                        .prevDayChangePct(BigDecimal.ZERO)
+                        .build());
+                }
+            }
+            
+            currentEnd = currentEnd.minusHours(2);
+        }
+        
+        // 5. HOUR 타임프레임이면 시간봉으로 집계
+        if (timeframe == Timeframe.HOUR) {
+            return aggregateToHourly(minuteCandles, stockId);
+        }
+        
+        return new ArrayList<>(minuteCandles.values());
     }
 
     private List<PriceCandleDto.Response> fetchDailyCandles(
@@ -210,7 +206,7 @@ public class RealMarketClientImpl implements RealMarketClient {
                 startTime.toLocalDate().format(DateTimeFormatter.BASIC_ISO_DATE),
                 endTime.toLocalDate().format(DateTimeFormatter.BASIC_ISO_DATE),
                 periodCode,
-                "0"
+                "1"
         );
 
         if (response == null || response.getOutput2() == null) {
@@ -285,5 +281,61 @@ public class RealMarketClientImpl implements RealMarketClient {
             return second;
         }
         return second.isBefore(first) ? second : first;
+    }
+
+    private List<PriceCandleDto.Response> aggregateToHourly(
+            Map<LocalDateTime, PriceCandleDto.Response> minuteCandles,
+            Long stockId
+    ) {
+        // 1. 시간(정각) 단위로 그룹화
+        Map<LocalDateTime, List<PriceCandleDto.Response>> hourlyGroups = minuteCandles.values()
+            .stream()
+            .collect(Collectors.groupingBy(
+                candle -> candle.getAt().withMinute(0).withSecond(0).withNano(0)
+            ));
+        
+        List<PriceCandleDto.Response> result = new ArrayList<>();
+        
+        // 2. 각 시간별로 OHLCV 집계
+        for (Map.Entry<LocalDateTime, List<PriceCandleDto.Response>> entry : hourlyGroups.entrySet()) {
+            List<PriceCandleDto.Response> candles = entry.getValue();
+            
+            // 시간순 정렬
+            candles.sort(Comparator.comparing(PriceCandleDto.Response::getAt));
+            
+            // OHLCV 집계
+            BigDecimal open = candles.get(0).getOpen();
+            BigDecimal close = candles.get(candles.size() - 1).getClose();
+            BigDecimal high = candles.stream()
+                .map(PriceCandleDto.Response::getHigh)
+                .max(BigDecimal::compareTo)
+                .orElse(BigDecimal.ZERO);
+            BigDecimal low = candles.stream()
+                .map(PriceCandleDto.Response::getLow)
+                .filter(val -> val.compareTo(BigDecimal.ZERO) > 0)
+                .min(BigDecimal::compareTo)
+                .orElse(BigDecimal.ZERO);
+            BigDecimal volume = candles.stream()
+                .map(PriceCandleDto.Response::getVolume)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal value = candles.stream()
+                .map(PriceCandleDto.Response::getValue)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            
+            result.add(PriceCandleDto.Response.builder()
+                .open(open)
+                .close(close)
+                .high(high)
+                .low(low)
+                .volume(volume)
+                .value(value)
+                .stockId(stockId)
+                .timeframe(Timeframe.HOUR)
+                .at(entry.getKey())
+                .prevDayChangePct(BigDecimal.ZERO)
+                .build());
+        }
+        
+        return result;
     }
 }

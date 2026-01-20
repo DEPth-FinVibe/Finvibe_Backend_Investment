@@ -3,8 +3,9 @@ package depth.finvibe.investment.modules.market.infra.redis;
 import depth.finvibe.investment.modules.market.application.port.out.RealtimeStockIndexRepository;
 import depth.finvibe.investment.modules.market.domain.RealtimeStockIndex;
 import java.time.Duration;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -62,6 +63,27 @@ public class RealtimeStockIndexRepositoryImpl implements RealtimeStockIndexRepos
             }
         }
         return true;
+    }
+
+    @Override
+    public List<Long> findActiveStockIds() {
+        Set<String> keys = redisTemplate.keys(KEY_PREFIX + "*");
+        if (keys == null || keys.isEmpty()) {
+            return List.of();
+        }
+        List<Long> stockIds = new ArrayList<>();
+        for (String key : keys) {
+            if (key == null || !key.startsWith(KEY_PREFIX)) {
+                continue;
+            }
+            String rawId = key.substring(KEY_PREFIX.length());
+            try {
+                stockIds.add(Long.parseLong(rawId));
+            } catch (NumberFormatException ex) {
+                log.warn("Invalid realtime index key: {}", key);
+            }
+        }
+        return stockIds;
     }
 
     private String keyForStock(Long stockId) {

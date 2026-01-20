@@ -40,3 +40,7 @@ market:
     api-key: ${KIS_API_KEY}
     api-secret: ${KIS_API_SECRET}
     user-id: ${KIS_USER_ID}
+
+security:
+  jwt:
+    hmac-secret: ${JWT_HMAC_SECRET}

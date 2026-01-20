@@ -54,13 +54,14 @@ public class KisApiClient {
 
     /**
      * <a href="https://apiportal.koreainvestment.com/apiservice-apiservice?/uapi/domestic-stock/v1/quotations/inquire-time-dailychartprice">주식일별분봉조회 API</a>
-     *
+     * 최대 120개의 분봉만 한번에 조회할 수 있음.
+     * 조회할 시간부터 2시간 전의 시간까지 조회됨 (예: 130000 조회 시 130000~110000 1분 단위로 120개 조회됨, 순서는 최신 데이터가 먼저)
      */
     public KisDto.TimeDailyChartPriceResponse fetchTimeDailyChartPrice(
             String marketCode,
             String stockCode,
-            String time,
-            String date,
+            String time, //조회할 시간 : HHMMSS
+            String date, //조회할 일자 : YYYYMMDD
             String includePastData,
             String includeFakeTick
     ) {
