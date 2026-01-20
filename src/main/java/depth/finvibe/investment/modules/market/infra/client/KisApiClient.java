@@ -52,6 +52,61 @@ public class KisApiClient {
                 .getOutput2();
     }
 
+    /**
+     * <a href="https://apiportal.koreainvestment.com/apiservice-apiservice?/uapi/domestic-stock/v1/quotations/inquire-time-dailychartprice">주식일별분봉조회 API</a>
+     */
+    public KisDto.TimeDailyChartPriceResponse fetchTimeDailyChartPrice(
+            String marketCode,
+            String stockCode,
+            String time,
+            String date,
+            String includePastData,
+            String includeFakeTick
+    ) {
+        String pastDataIncu = includePastData == null ? "N" : includePastData;
+        String fakeTickIncu = includeFakeTick == null ? "" : includeFakeTick;
+
+        return Objects.requireNonNull(
+                restClient.get()
+                        .uri("/uapi/domestic-stock/v1/quotations/inquire-time-dailychartprice" +
+                                "?FID_COND_MRKT_DIV_CODE=" + marketCode +
+                                "&FID_INPUT_ISCD=" + stockCode +
+                                "&FID_INPUT_HOUR_1=" + time +
+                                "&FID_INPUT_DATE_1=" + date +
+                                "&FID_PW_DATA_INCU_YN=" + pastDataIncu +
+                                "&FID_FAKE_TICK_INCU_YN=" + fakeTickIncu)
+                        .headers(h -> h.set("tr_id", "FHKST03010230"))
+                        .retrieve()
+                        .body(KisDto.TimeDailyChartPriceResponse.class)
+        );
+    }
+
+    /**
+     * <a href="https://apiportal.koreainvestment.com/apiservice-apiservice?/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice">국내주식기간별시세(일/주/월/년) API</a>
+     */
+    public KisDto.DailyItemChartPriceResponse fetchDailyItemChartPrice(
+            String marketCode,
+            String stockCode,
+            String startDate,
+            String endDate,
+            String periodCode,
+            String originalAdjustedPriceFlag
+    ) {
+        return Objects.requireNonNull(
+                restClient.get()
+                        .uri("/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice" +
+                                "?FID_COND_MRKT_DIV_CODE=" + marketCode +
+                                "&FID_INPUT_ISCD=" + stockCode +
+                                "&FID_INPUT_DATE_1=" + startDate +
+                                "&FID_INPUT_DATE_2=" + endDate +
+                                "&FID_PERIOD_DIV_CODE=" + periodCode +
+                                "&FID_ORG_ADJ_PRC=" + originalAdjustedPriceFlag)
+                        .headers(h -> h.set("tr_id", "FHKST03010100"))
+                        .retrieve()
+                        .body(KisDto.DailyItemChartPriceResponse.class)
+        );
+    }
+
     @RequiredArgsConstructor
     @Getter
     public enum ConditionSeq {

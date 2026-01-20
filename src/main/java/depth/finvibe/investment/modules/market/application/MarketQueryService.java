@@ -19,11 +19,12 @@ import depth.finvibe.investment.modules.market.dto.PriceCandleDto;
 import depth.finvibe.investment.modules.market.dto.StockDto;
 import depth.finvibe.investment.shared.error.DomainException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.time.LocalDateTime;
+import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -108,6 +109,27 @@ public class MarketQueryService implements MarketQueryUseCase {
                     candleTimes.add(startTime.plusDays(i).withHour(0).withMinute(0).withSecond(0).withNano(0));
                 }
                 break;
+            case Timeframe.WEEK:
+                for (int i = 0; i < count; i++) {
+                    candleTimes.add(startTime.plusWeeks(i)
+                            .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                            .withHour(0).withMinute(0).withSecond(0).withNano(0));
+                }
+                break;
+            case Timeframe.MONTH:
+                for (int i = 0; i < count; i++) {
+                    candleTimes.add(startTime.plusMonths(i)
+                            .with(TemporalAdjusters.firstDayOfMonth())
+                            .withHour(0).withMinute(0).withSecond(0).withNano(0));
+                }
+                break;
+            case Timeframe.YEAR:
+                for (int i = 0; i < count; i++) {
+                    candleTimes.add(startTime.plusYears(i)
+                            .with(TemporalAdjusters.firstDayOfYear())
+                            .withHour(0).withMinute(0).withSecond(0).withNano(0));
+                }
+                break;
             case Timeframe.HOUR:
                 for (int i = 0; i < count; i++) {
                     candleTimes.add(startTime.plusHours(i).withMinute(0).withSecond(0).withNano(0));
@@ -147,27 +169,27 @@ public class MarketQueryService implements MarketQueryUseCase {
     }
 
     @Override
-    public List<StockDto.Response> getTopStocksByValue(Pageable pageable) {
-        return getTopStocksByRankType(RankType.TOP_VALUE, pageable);
+    public List<StockDto.Response> getTopStocksByValue() {
+        return getTopStocksByRankType(RankType.TOP_VALUE);
     }
 
     @Override
-    public List<StockDto.Response> getTopStocksByVolume(Pageable pageable) {
-        return getTopStocksByRankType(RankType.TOP_VOLUME, pageable);
+    public List<StockDto.Response> getTopStocksByVolume() {
+        return getTopStocksByRankType(RankType.TOP_VOLUME);
     }
 
     @Override
-    public List<StockDto.Response> getTopRisingStocks(Pageable pageable) {
-        return getTopStocksByRankType(RankType.TOP_RISING, pageable);
+    public List<StockDto.Response> getTopRisingStocks() {
+        return getTopStocksByRankType(RankType.TOP_RISING);
     }
 
     @Override
-    public List<StockDto.Response> getTopFallingStocks(Pageable pageable) {
-        return getTopStocksByRankType(RankType.TOP_FALLING, pageable);
+    public List<StockDto.Response> getTopFallingStocks() {
+        return getTopStocksByRankType(RankType.TOP_FALLING);
     }
 
-    private List<StockDto.Response> getTopStocksByRankType(RankType rankType, Pageable pageable) {
-        List<StockRanking> rankings = stockRankingRepository.findByRankType(rankType, pageable);
+    private List<StockDto.Response> getTopStocksByRankType(RankType rankType) {
+        List<StockRanking> rankings = stockRankingRepository.findByRankType(rankType);
         
         List<Long> stockIds = rankings.stream()
                 .map(StockRanking::getStockId)

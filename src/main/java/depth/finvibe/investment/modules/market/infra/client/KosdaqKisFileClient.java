@@ -25,17 +25,6 @@ public class KosdaqKisFileClient implements KisFileClient {
     private static final String KOSDAQ_MST_NAME = "kosdaq_code.mst";
     private static final Charset KIS_CHARSET = Charset.forName("MS949"); // cp949
     private static final int PART2_TOTAL_WIDTH = 222;
-    private static final int[] PART2_WIDTHS = {
-            2, 1, 4, 4, 4, 1, 1,
-            1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 9, 5, 5,
-            1, 1, 1, 2, 1, 1, 1,
-            2, 2, 2, 3, 1, 3, 12,
-            12, 8, 15, 21, 2, 7, 1,
-            1, 1, 1, 9, 9, 9, 5,
-            9, 8, 9, 3, 1, 1, 1
-    };
 
     @Override
     public List<StockDto.RealMarketResponse> fetchStocksInKisFile() {
@@ -106,28 +95,20 @@ public class KosdaqKisFileClient implements KisFileClient {
 
     private KosdaqMasterRow parseMasterRow(String part1, String part2) {
         String symbol = rstrip(part1.substring(0, Math.min(9, part1.length())));
-        int standardStart = Math.min(9, part1.length());
-        int standardEnd = Math.min(21, part1.length());
-        String standard = rstrip(part1.substring(standardStart, standardEnd));
         String name = rstrip(part1.substring(Math.min(21, part1.length())));
-        String[] fields = splitFixedWidth(part2, PART2_WIDTHS);
-        return new KosdaqMasterRow(symbol, standard, name, fields);
+        
+        // Parse only necessary fields from part2
+        int offset = 2 + 1; // skip scrtGrpClsCode(2) + avlsScalClsCode(1)
+        String bstpLargDivCode = part2.substring(offset, Math.min(part2.length(), offset + 4)).trim();
+        offset += 4;
+        String bstpMedmDivCode = part2.substring(offset, Math.min(part2.length(), offset + 4)).trim();
+        offset += 4;
+        String bstpSmalDivCode = part2.substring(offset, Math.min(part2.length(), offset + 4)).trim();
+        
+        return new KosdaqMasterRow(symbol, name, bstpLargDivCode, bstpMedmDivCode, bstpSmalDivCode);
     }
 
-    private String[] splitFixedWidth(String value, int[] widths) {
-        String[] fields = new String[widths.length];
-        int offset = 0;
-        for (int i = 0; i < widths.length; i++) {
-            int end = Math.min(value.length(), offset + widths[i]);
-            if (offset >= value.length()) {
-                fields[i] = "";
-            } else {
-                fields[i] = value.substring(offset, end).trim();
-            }
-            offset += widths[i];
-        }
-        return fields;
-    }
+
 
     private String selectNonZeroCode(String... codes) {
         for (String code : codes) {
@@ -149,142 +130,18 @@ public class KosdaqKisFileClient implements KisFileClient {
 
     private static class KosdaqMasterRow {
         private final String mkscShrnIscd;
-        private final String stndIscd;
         private final String htsKorIsnm;
-        private final String scrtGrpClsCode;
-        private final String avlsScalClsCode;
         private final String bstpLargDivCode;
         private final String bstpMedmDivCode;
         private final String bstpSmalDivCode;
-        private final String vntrIssuYn;
-        private final String lowCurrentYn;
-        private final String krxIssuYn;
-        private final String etpProdClsCode;
-        private final String krx100IssuYn;
-        private final String krxCarYn;
-        private final String krxSmcnYn;
-        private final String krxBioYn;
-        private final String krxBankYn;
-        private final String etprUndtObjtCoYn;
-        private final String krxEnrgChmsYn;
-        private final String krxStelYn;
-        private final String shortOverClsCode;
-        private final String krxMediCmncYn;
-        private final String krxCnstYn;
-        private final String invtAlrmYn;
-        private final String krxScrtYn;
-        private final String krxShipYn;
-        private final String krxInsuYn;
-        private final String krxTrnpYn;
-        private final String ksq150NmixYn;
-        private final String stckSdpr;
-        private final String frmlMrktDealQtyUnit;
-        private final String ovtmMrktDealQtyUnit;
-        private final String trhtYn;
-        private final String sltrYn;
-        private final String mangIssuYn;
-        private final String mrktAlrmClsCode;
-        private final String mrktAlrmRiskAdntYn;
-        private final String insnPbntYn;
-        private final String bypsLstnYn;
-        private final String flngClsCode;
-        private final String fcamModClsCode;
-        private final String icicClsCode;
-        private final String margRate;
-        private final String crdtAble;
-        private final String crdtDays;
-        private final String prdyVol;
-        private final String stckFcam;
-        private final String stckLstnDate;
-        private final String lstnStcn;
-        private final String cpfn;
-        private final String stacMonth;
-        private final String poPrc;
-        private final String prstClsCode;
-        private final String sstsHotYn;
-        private final String stangeRunupYn;
-        private final String krx300IssuYn;
-        private final String saleAccount;
-        private final String bsopPrfi;
-        private final String opPrfi;
-        private final String thtrNtin;
-        private final String roe;
-        private final String baseDate;
-        private final String prdyAvlsScal;
-        private final String grpCode;
-        private final String coCrdtLimtOverYn;
-        private final String secuLendAbleYn;
-        private final String stlnAbleYn;
 
-        private KosdaqMasterRow(String mkscShrnIscd, String stndIscd, String htsKorIsnm, String[] part2) {
+        private KosdaqMasterRow(String mkscShrnIscd, String htsKorIsnm, 
+                               String bstpLargDivCode, String bstpMedmDivCode, String bstpSmalDivCode) {
             this.mkscShrnIscd = mkscShrnIscd;
-            this.stndIscd = stndIscd;
             this.htsKorIsnm = htsKorIsnm;
-            int idx = 0;
-            this.scrtGrpClsCode = part2[idx++];
-            this.avlsScalClsCode = part2[idx++];
-            this.bstpLargDivCode = part2[idx++];
-            this.bstpMedmDivCode = part2[idx++];
-            this.bstpSmalDivCode = part2[idx++];
-            this.vntrIssuYn = part2[idx++];
-            this.lowCurrentYn = part2[idx++];
-            this.krxIssuYn = part2[idx++];
-            this.etpProdClsCode = part2[idx++];
-            this.krx100IssuYn = part2[idx++];
-            this.krxCarYn = part2[idx++];
-            this.krxSmcnYn = part2[idx++];
-            this.krxBioYn = part2[idx++];
-            this.krxBankYn = part2[idx++];
-            this.etprUndtObjtCoYn = part2[idx++];
-            this.krxEnrgChmsYn = part2[idx++];
-            this.krxStelYn = part2[idx++];
-            this.shortOverClsCode = part2[idx++];
-            this.krxMediCmncYn = part2[idx++];
-            this.krxCnstYn = part2[idx++];
-            this.invtAlrmYn = part2[idx++];
-            this.krxScrtYn = part2[idx++];
-            this.krxShipYn = part2[idx++];
-            this.krxInsuYn = part2[idx++];
-            this.krxTrnpYn = part2[idx++];
-            this.ksq150NmixYn = part2[idx++];
-            this.stckSdpr = part2[idx++];
-            this.frmlMrktDealQtyUnit = part2[idx++];
-            this.ovtmMrktDealQtyUnit = part2[idx++];
-            this.trhtYn = part2[idx++];
-            this.sltrYn = part2[idx++];
-            this.mangIssuYn = part2[idx++];
-            this.mrktAlrmClsCode = part2[idx++];
-            this.mrktAlrmRiskAdntYn = part2[idx++];
-            this.insnPbntYn = part2[idx++];
-            this.bypsLstnYn = part2[idx++];
-            this.flngClsCode = part2[idx++];
-            this.fcamModClsCode = part2[idx++];
-            this.icicClsCode = part2[idx++];
-            this.margRate = part2[idx++];
-            this.crdtAble = part2[idx++];
-            this.crdtDays = part2[idx++];
-            this.prdyVol = part2[idx++];
-            this.stckFcam = part2[idx++];
-            this.stckLstnDate = part2[idx++];
-            this.lstnStcn = part2[idx++];
-            this.cpfn = part2[idx++];
-            this.stacMonth = part2[idx++];
-            this.poPrc = part2[idx++];
-            this.prstClsCode = part2[idx++];
-            this.sstsHotYn = part2[idx++];
-            this.stangeRunupYn = part2[idx++];
-            this.krx300IssuYn = part2[idx++];
-            this.saleAccount = part2[idx++];
-            this.bsopPrfi = part2[idx++];
-            this.opPrfi = part2[idx++];
-            this.thtrNtin = part2[idx++];
-            this.roe = part2[idx++];
-            this.baseDate = part2[idx++];
-            this.prdyAvlsScal = part2[idx++];
-            this.grpCode = part2[idx++];
-            this.coCrdtLimtOverYn = part2[idx++];
-            this.secuLendAbleYn = part2[idx++];
-            this.stlnAbleYn = part2[idx];
+            this.bstpLargDivCode = bstpLargDivCode;
+            this.bstpMedmDivCode = bstpMedmDivCode;
+            this.bstpSmalDivCode = bstpSmalDivCode;
         }
     }
 

@@ -37,6 +37,10 @@ public class PriceCandleDto {
                     .low(priceCandle.getLow())
                     .volume(priceCandle.getVolume())
                     .value(priceCandle.getValue())
+                    .stockId(priceCandle.getStockId())
+                    .timeframe(priceCandle.getTimeframe())
+                    .at(priceCandle.getAt())
+                    .prevDayChangePct(priceCandle.getPrevDayChangePct())
                     .build();
         }
     }

@@ -23,7 +23,7 @@ public class StockRankingRepositoryImpl implements StockRankingRepository {
     }
 
     @Override
-    public List<StockRanking> findByRankType(RankType rankType, Pageable pageable) {
-        return jpaRepository.findByRankTypeOrderByRankAsc(rankType, pageable);
+    public List<StockRanking> findByRankType(RankType rankType) {
+        return jpaRepository.findByRankTypeOrderByRankAsc(rankType);
     }
 }

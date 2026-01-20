@@ -9,4 +9,6 @@ import java.util.List;
 
 public interface StockRankingJpaRepository extends JpaRepository<StockRanking, Long> {
     List<StockRanking> findByRankTypeOrderByRankAsc(RankType rankType, Pageable pageable);
+    
+    List<StockRanking> findByRankTypeOrderByRankAsc(RankType rankType);
 }
