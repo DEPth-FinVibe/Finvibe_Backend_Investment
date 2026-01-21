@@ -30,3 +30,7 @@ market:
     user-id: test-user
   init:
     enabled: false
+
+security:
+  jwt:
+    hmac-secret: test-secret-for-junit-tests-minimum-32-chars-required

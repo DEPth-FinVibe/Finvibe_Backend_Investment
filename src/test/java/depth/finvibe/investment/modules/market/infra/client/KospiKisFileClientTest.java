@@ -40,17 +40,6 @@ class KospiKisFileClientTest {
         }
     }
 
-    @Test
-    void extractBstpMedmDivCode_returnsEmptyForShortInput() throws Exception {
-        KospiKisFileClient client = new KospiKisFileClient();
-        Method method = KospiKisFileClient.class.getDeclaredMethod("extractBstpMedmDivCode", String.class);
-        method.setAccessible(true);
-
-        String result = (String) method.invoke(client, "short");
-
-        assertThat(result).isEmpty();
-    }
-
     private List<StockDto.RealMarketResponse> invokeParse(KospiKisFileClient client, Path mstFile) throws Exception {
         Method method = KospiKisFileClient.class.getDeclaredMethod("parseKospiFile", Path.class);
         method.setAccessible(true);

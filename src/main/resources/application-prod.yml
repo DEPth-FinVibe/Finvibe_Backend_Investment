@@ -43,4 +43,4 @@ market:
 
 security:
   jwt:
-    hmac-secret: ${JWT_HMAC_SECRET}
+    hmac-secret: ${JWT_SECRET}
