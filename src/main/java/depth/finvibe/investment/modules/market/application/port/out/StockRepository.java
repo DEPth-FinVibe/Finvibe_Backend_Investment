@@ -14,7 +14,13 @@ public interface StockRepository {
 
     boolean existsById(Long stockId);
 
+    boolean existsAny();
+
     void bulkUpsertStocks(List<Stock> stocksToUpsert);
 
     List<Stock> findAllBySymbolIn(List<String> symbols);
+
+    List<Stock> findAll();
+
+    List<Stock> findAllById(List<Long> stockIds);
 }

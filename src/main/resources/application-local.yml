@@ -18,7 +18,6 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.MySQLDialect
 
   data:
     redis:
@@ -39,3 +38,18 @@ logging:
   level:
     root: info
     depth.finvibe.investment: debug
+
+market:
+  kis:
+    base-url: ${KIS_BASE_URL:https://openapi.koreainvestment.com:9443}
+    api-key: ${KIS_API_KEY}
+    api-secret: ${KIS_API_SECRET}
+    user-id: ${KIS_USER_ID}
+    websocket:
+      url: ${KIS_WEBSOCKET_URL:ws://ops.koreainvestment.com:21000}
+      # 실전투자: ws://ops.koreainvestment.com:21000
+      # 모의투자: ws://ops.koreainvestment.com:31000
+
+security:
+  jwt:
+    hmac-secret: ${JWT_HMAC_SECRET:testsecret12312312313123123123}

@@ -1,4 +1,4 @@
-package depth.finvibe.investment.modules.market.infra.websocket;
+package depth.finvibe.investment.modules.market.infra.websocket.server;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Getter
 @Setter
-public class WebSocketSession {
+public class CustomWebSocketSession {
     private final String sessionId;
     private boolean authenticated;
     private String userId;
@@ -18,7 +18,7 @@ public class WebSocketSession {
     private int missedPongCount;
     private final Set<String> subscribedTopics;
 
-    public WebSocketSession(String sessionId) {
+    public CustomWebSocketSession(String sessionId) {
         this.sessionId = sessionId;
         this.authenticated = false;
         this.missedPongCount = 0;

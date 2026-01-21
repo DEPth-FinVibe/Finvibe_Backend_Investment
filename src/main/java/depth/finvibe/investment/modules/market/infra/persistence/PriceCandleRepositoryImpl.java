@@ -3,21 +3,50 @@ package depth.finvibe.investment.modules.market.infra.persistence;
 import depth.finvibe.investment.modules.market.application.port.out.PriceCandleRepository;
 import depth.finvibe.investment.modules.market.domain.PriceCandle;
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
-import org.springframework.stereotype.Repository;
-
+import java.time.DayOfWeek;
 import java.time.LocalDateTime;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
-import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
+@RequiredArgsConstructor
 public class PriceCandleRepositoryImpl implements PriceCandleRepository {
+
+    private final PriceCandleJpaRepository jpaRepository;
+
     @Override
-    public List<PriceCandle> findExisting(Long stockId, LocalDateTime startTime, Timeframe timeframe, Integer count) {
-        return List.of();
+    public List<PriceCandle> findExisting(Long stockId, LocalDateTime startTime, LocalDateTime endTime, Timeframe timeframe) {
+        LocalDateTime alignedStartTime = alignStartTime(startTime, timeframe);
+        LocalDateTime alignedEndTime = alignStartTime(endTime, timeframe);
+        return jpaRepository.findByStockIdAndTimeframeAndAtBetweenOrderByAtAsc(stockId, timeframe, alignedStartTime, alignedEndTime);
     }
 
     @Override
-    public void saveAll(List<PriceCandle> fetchedResult) {
+    public List<PriceCandle> findByStockIdAndTimeframeAndAtIn(Long stockId, Timeframe timeframe, List<LocalDateTime> times) {
+        return jpaRepository.findByStockIdAndTimeframeAndAtIn(stockId, timeframe, times);
+    }
 
+    @Override
+    @Transactional
+    public void saveAll(List<PriceCandle> fetchedResult) {
+        jpaRepository.saveAll(fetchedResult);
+    }
+
+    private LocalDateTime alignStartTime(LocalDateTime startTime, Timeframe timeframe) {
+        return switch (timeframe) {
+            case DAY -> startTime.withHour(0).withMinute(0).withSecond(0).withNano(0);
+            case WEEK -> startTime.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                    .withHour(0).withMinute(0).withSecond(0).withNano(0);
+            case MONTH -> startTime.with(TemporalAdjusters.firstDayOfMonth())
+                    .withHour(0).withMinute(0).withSecond(0).withNano(0);
+            case YEAR -> startTime.with(TemporalAdjusters.firstDayOfYear())
+                    .withHour(0).withMinute(0).withSecond(0).withNano(0);
+            case HOUR -> startTime.withMinute(0).withSecond(0).withNano(0);
+            case MINUTE -> startTime.withSecond(0).withNano(0);
+        };
     }
 }
+

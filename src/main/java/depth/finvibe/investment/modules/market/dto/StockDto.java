@@ -1,6 +1,7 @@
 package depth.finvibe.investment.modules.market.dto;
 
 import depth.finvibe.investment.modules.market.domain.Stock;
+import depth.finvibe.investment.modules.market.domain.enums.RankType;
 import lombok.*;
 
 public class StockDto {
@@ -42,9 +43,20 @@ public class StockDto {
     @NoArgsConstructor
     @Data
     @Builder
-    public static class CreateRequest {
-        private String name;
+    public static class RealMarketResponse {
         private String symbol;
-        private String rawCategoryCode; // 표준산업분류코드 (중분류)
+        private String name;
+        private String typeCode; // 표준산업분류코드 (중분류)
+    }
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Data
+    @Builder
+    public static class RankingResponse {
+        private String symbol;
+        private RankType rankType;
+        private Integer rank;
     }
 }
+

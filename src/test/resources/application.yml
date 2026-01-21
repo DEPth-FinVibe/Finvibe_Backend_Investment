@@ -22,3 +22,11 @@ spring:
 finvibe:
   redis:
     startup-check: false
+
+market:
+  kis:
+    api-key: test-key
+    api-secret: test-secret
+    user-id: test-user
+  init:
+    enabled: false

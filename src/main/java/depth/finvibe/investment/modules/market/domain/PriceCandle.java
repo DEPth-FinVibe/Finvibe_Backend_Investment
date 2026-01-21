@@ -24,7 +24,7 @@ import java.util.Objects;
 )
 @AllArgsConstructor
 @NoArgsConstructor
-@SuperBuilder
+@Builder
 @Getter
 public class PriceCandle {
 
@@ -43,24 +43,27 @@ public class PriceCandle {
     private LocalDateTime at;
 
     @Column(nullable = false)
+    private Boolean isMissing;
+
+    @Column(nullable = true)
     private BigDecimal open;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private BigDecimal high;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private BigDecimal low;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private BigDecimal close;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private BigDecimal prevDayChangePct;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private BigDecimal volume;
 
-    @Column(nullable = false)
+    @Column(name = "`value`", nullable = true)
     private BigDecimal value;
 
     public static PriceCandle create(Long stockId, Timeframe timeframe, LocalDateTime at, BigDecimal open, BigDecimal high,
@@ -69,6 +72,7 @@ public class PriceCandle {
                 .stockId(stockId)
                 .timeframe(timeframe)
                 .at(at)
+                .isMissing(false)
                 .open(open)
                 .high(high)
                 .low(low)
@@ -76,6 +80,15 @@ public class PriceCandle {
                 .prevDayChangePct(prevDayChangePct)
                 .volume(volume)
                 .value(value)
+                .build();
+    }
+
+    public static PriceCandle createMissing(Long stockId, Timeframe timeframe, LocalDateTime at) {
+        return PriceCandle.builder()
+                .stockId(stockId)
+                .timeframe(timeframe)
+                .at(at)
+                .isMissing(true)
                 .build();
     }
 
