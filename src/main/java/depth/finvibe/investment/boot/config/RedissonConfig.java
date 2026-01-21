@@ -18,10 +18,13 @@ public class RedissonConfig {
     @Value("${spring.data.redis.port}")
     private int redisPort;
 
+    @Value("${spring.data.redis.password:#{null}}")
+    private String redisPassword;
+
     @Bean
     public RedissonClient redissonClient() {
         Config config = new Config();
-        config.useSingleServer()
+        var serverConfig = config.useSingleServer()
                 .setAddress("redis://" + redisHost + ":" + redisPort)
                 .setConnectionPoolSize(50)
                 .setConnectionMinimumIdleSize(10)
@@ -29,6 +32,10 @@ public class RedissonConfig {
                 .setRetryInterval(1500)
                 .setTimeout(3000)
                 .setConnectTimeout(3000);
+
+        if (redisPassword != null && !redisPassword.isEmpty()) {
+            serverConfig.setPassword(redisPassword);
+        }
 
         return Redisson.create(config);
     }
