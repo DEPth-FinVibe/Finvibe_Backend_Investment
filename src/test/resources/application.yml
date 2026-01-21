@@ -23,6 +23,7 @@ spring:
 
 finvibe:
   redis:
+    enabled: false
     startup-check: false
 
 market:
