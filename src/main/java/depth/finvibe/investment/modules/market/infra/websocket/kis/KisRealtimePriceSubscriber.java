@@ -43,7 +43,7 @@ public class KisRealtimePriceSubscriber {
     private final Map<String, Long> symbolToStockId = new ConcurrentHashMap<>();
     private volatile String approvalKey;
 
-    @Value("${market.kis.websocket.url:ws://ops.koreainvestment.com:21000}")
+    @Value("${market.kis.websocket.url}")
     private String websocketUrl;
 
   public synchronized void syncSubscriptions(List<Long> stockIds) {
@@ -206,7 +206,11 @@ public class KisRealtimePriceSubscriber {
         String preview = message.length() > 200 ? message.substring(0, 200) + "..." : message;
         log.debug("KIS WebSocket 메시지 수신 - length: {}, preview: {}", message.length(), preview);
         log.trace("KIS WebSocket 메시지 원문 - {}", message);
-        messageHandler.handleMessage(message, symbolToStockId::get);
+        try {
+          messageHandler.handleMessage(message, symbolToStockId::get);
+        } catch (Exception ex) {
+          log.error("KIS WebSocket 메시지 처리 중 오류 발생", ex);
+        }
       } else {
         log.trace("KIS WebSocket 메시지 조각 수신 - length: {}", data.length());
       }

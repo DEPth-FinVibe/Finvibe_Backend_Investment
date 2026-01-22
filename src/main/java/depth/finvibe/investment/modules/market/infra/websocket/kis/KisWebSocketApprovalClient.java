@@ -19,7 +19,7 @@ public class KisWebSocketApprovalClient {
   public KisWebSocketApprovalClient(
           @Value("${market.kis.api-key}") String apiKey,
           @Value("${market.kis.api-secret}") String apiSecret,
-          @Value("${market.kis.base-url:https://openapi.koreainvestment.com:9443}") String baseUrl
+          @Value("${market.kis.base-url}") String baseUrl
   ) {
     this.apiKey = apiKey;
     this.apiSecret = apiSecret;
