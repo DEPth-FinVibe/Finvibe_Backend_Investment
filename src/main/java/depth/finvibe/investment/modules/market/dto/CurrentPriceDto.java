@@ -1,6 +1,7 @@
 package depth.finvibe.investment.modules.market.dto;
 
 import depth.finvibe.investment.modules.market.domain.CurrentPrice;
+import depth.finvibe.investment.modules.market.domain.Stock;
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,6 +20,7 @@ public class CurrentPriceDto {
     public static class Response {
 
         private Long stockId;
+        private String stockName;
         private Timeframe timeframe;
         private LocalDateTime at;
         private BigDecimal open;
@@ -29,9 +31,10 @@ public class CurrentPriceDto {
         private BigDecimal volume;
         private BigDecimal value;
 
-        public static Response from(CurrentPrice currentPrice) {
+        public static Response of(CurrentPrice currentPrice, Stock stock) {
             return Response.builder()
                     .stockId(currentPrice.getStockId())
+                    .stockName(stock.getName())
                     .at(currentPrice.getAt())
                     .open(currentPrice.getOpen())
                     .high(currentPrice.getHigh())

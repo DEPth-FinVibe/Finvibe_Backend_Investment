@@ -20,6 +20,7 @@ import depth.finvibe.investment.modules.market.dto.StockDto;
 import depth.finvibe.investment.shared.error.DomainException;
 import depth.finvibe.investment.shared.lock.DistributedLockManager;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +33,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class MarketQueryService implements MarketQueryUseCase {
 
@@ -283,11 +285,26 @@ public class MarketQueryService implements MarketQueryUseCase {
             throw new DomainException(MarketErrorCode.STOCK_NOT_FOUND);
         }
 
+        // db에서 종목 정보도 함께 조회
+        List<Stock> stocks = stockRepository.findAllById(stockIds);
+
         //인덱스에는 들어왔지만 실제로 값이 들어오지 않은 경우 예외가 발생. Infra에서 시간을 두고 N번 재시도.
         List<CurrentPrice> prices = currentPriceRepository.findByStockIds(stockIds);
 
+        // 종목Id -> 종목 매핑
+        Map<Long, Stock> stockMap = stocks.stream()
+                .collect(Collectors.toMap(Stock::getId, stock -> stock));
+
+        if (stockMap.size() != new HashSet<>(stockIds).size()) {
+            Set<Long> missingStockIds = new HashSet<>(stockIds);
+            missingStockIds.removeAll(stockMap.keySet());
+            log.warn("Some stockIds are missing in DB. stockIds={}", missingStockIds);
+        }
+
+        // 반환
         return prices.stream()
-                .map(CurrentPriceDto.Response::from)
+                .filter(price -> stockMap.containsKey(price.getStockId()))
+                .map(price -> CurrentPriceDto.Response.of(price, stockMap.get(price.getStockId())))
                 .toList();
     }
 

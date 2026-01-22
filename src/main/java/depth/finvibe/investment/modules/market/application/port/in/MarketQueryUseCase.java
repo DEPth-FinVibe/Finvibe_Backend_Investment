@@ -26,4 +26,9 @@ public interface MarketQueryUseCase {
     List<StockDto.Response> getTopRisingStocks();
 
     List<StockDto.Response> getTopFallingStocks();
+
+    /**
+     * 종목명 또는 코드 검색
+     * 전체 / 국내 / 해외 선택 가능
+     */
 }
