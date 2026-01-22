@@ -1,8 +1,11 @@
 package depth.finvibe.investment.modules.market.infra.websocket.kis;
 
-import depth.finvibe.investment.modules.market.infra.websocket.kis.handler.AbstractKisMessageHandler;
-import depth.finvibe.investment.modules.market.infra.websocket.kis.handler.KisRawMessageHandler;
-import depth.finvibe.investment.modules.market.infra.websocket.kis.model.KisMessage;
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.socket.TextMessage;
@@ -11,11 +14,9 @@ import org.springframework.web.socket.client.WebSocketClient;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import tools.jackson.databind.ObjectMapper;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
+import depth.finvibe.investment.modules.market.infra.websocket.kis.handler.AbstractKisMessageHandler;
+import depth.finvibe.investment.modules.market.infra.websocket.kis.handler.KisRawMessageHandler;
+import depth.finvibe.investment.modules.market.infra.websocket.kis.model.KisMessage;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -42,7 +43,7 @@ public class KisWebsocketSession extends AbstractKisMessageHandler {
         }
 
         WebSocketClient client = new StandardWebSocketClient();
-        CompletableFuture<WebSocketSession> future = client.execute(new KisRawMessageHandler(this), uri);
+        CompletableFuture<WebSocketSession> future = client.execute(new KisRawMessageHandler(this, objectMapper), uri);
 
         return future.thenApply(webSocketSession -> {
             this.session = webSocketSession;
