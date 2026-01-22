@@ -58,4 +58,9 @@ public class StockRepositoryImpl implements StockRepository {
     public List<Stock> findAllById(List<Long> stockIds) {
         return jpaRepository.findAllById(stockIds);
     }
+
+    @Override
+    public List<Stock> searchByNameOrSymbol(String query) {
+        return jpaRepository.findByNameContainingIgnoreCaseOrSymbolContainingIgnoreCase(query, query);
+    }
 }

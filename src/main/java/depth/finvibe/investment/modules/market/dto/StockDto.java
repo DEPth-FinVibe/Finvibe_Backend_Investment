@@ -1,6 +1,7 @@
 package depth.finvibe.investment.modules.market.dto;
 
 import depth.finvibe.investment.modules.market.domain.Stock;
+import depth.finvibe.investment.modules.market.domain.enums.MarketType;
 import depth.finvibe.investment.modules.market.domain.enums.RankType;
 import lombok.*;
 
@@ -46,6 +47,7 @@ public class StockDto {
     public static class RealMarketResponse {
         private String symbol;
         private String name;
+        private MarketType marketType;
         private String typeCode; // 표준산업분류코드 (중분류)
     }
 
@@ -59,4 +61,3 @@ public class StockDto {
         private Integer rank;
     }
 }
-

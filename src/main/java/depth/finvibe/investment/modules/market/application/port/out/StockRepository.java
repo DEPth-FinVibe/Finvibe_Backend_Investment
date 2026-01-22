@@ -23,4 +23,6 @@ public interface StockRepository {
     List<Stock> findAll();
 
     List<Stock> findAllById(List<Long> stockIds);
+
+    List<Stock> searchByNameOrSymbol(String query);
 }

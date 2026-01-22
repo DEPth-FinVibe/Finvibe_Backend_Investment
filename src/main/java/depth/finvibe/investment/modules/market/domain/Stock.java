@@ -1,5 +1,6 @@
 package depth.finvibe.investment.modules.market.domain;
 
+import depth.finvibe.investment.modules.market.domain.enums.MarketType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,20 +31,26 @@ public class Stock {
     @Column(nullable = false, unique = true)
     private String symbol;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private MarketType marketType;
+
     private Long categoryId;
 
-    public static Stock create(String name, String symbol, Long categoryId) {
+    public static Stock create(String name, String symbol, MarketType marketType, Long categoryId) {
         return Stock.builder()
                 .name(name)
                 .symbol(symbol)
+                .marketType(marketType)
                 .categoryId(categoryId)
                 .build();
     }
 
     // 종목 정보 업데이트
-    public void updateInfo(String name, String symbol, Long categoryId) {
+    public void updateInfo(String name, String symbol, MarketType marketType, Long categoryId) {
         this.name = name;
         this.symbol = symbol;
+        this.marketType = marketType;
         this.categoryId = categoryId;
     }
 

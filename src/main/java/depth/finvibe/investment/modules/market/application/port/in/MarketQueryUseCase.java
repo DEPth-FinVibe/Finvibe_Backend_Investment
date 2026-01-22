@@ -1,5 +1,6 @@
 package depth.finvibe.investment.modules.market.application.port.in;
 
+import depth.finvibe.investment.modules.market.domain.enums.MarketSearchType;
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
 import depth.finvibe.investment.modules.market.dto.CurrentPriceDto;
 import depth.finvibe.investment.modules.market.dto.PriceCandleDto;
@@ -31,4 +32,5 @@ public interface MarketQueryUseCase {
      * 종목명 또는 코드 검색
      * 전체 / 국내 / 해외 선택 가능
      */
+    List<StockDto.Response> searchStocks(String query, MarketSearchType marketType);
 }

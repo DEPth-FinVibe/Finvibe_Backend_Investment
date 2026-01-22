@@ -1,5 +1,6 @@
 package depth.finvibe.investment.modules.market.infra.client;
 
+import depth.finvibe.investment.modules.market.domain.enums.MarketType;
 import depth.finvibe.investment.modules.market.dto.StockDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -78,6 +79,7 @@ public class KonexKisFileClient implements KisFileClient {
                 result.add(StockDto.RealMarketResponse.builder()
                         .symbol(row.mkscShrnIscd)
                         .name(row.htsKorIsnm)
+                        .marketType(MarketType.DOMESTIC)
                         .typeCode(row.scrtGrpClsCode)
                         .build());
             }

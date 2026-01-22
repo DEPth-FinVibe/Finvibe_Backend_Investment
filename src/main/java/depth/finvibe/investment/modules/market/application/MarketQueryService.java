@@ -11,6 +11,8 @@ import depth.finvibe.investment.modules.market.domain.CurrentPrice;
 import depth.finvibe.investment.modules.market.domain.PriceCandle;
 import depth.finvibe.investment.modules.market.domain.Stock;
 import depth.finvibe.investment.modules.market.domain.StockRanking;
+import depth.finvibe.investment.modules.market.domain.enums.MarketSearchType;
+import depth.finvibe.investment.modules.market.domain.enums.MarketType;
 import depth.finvibe.investment.modules.market.domain.enums.RankType;
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
 import depth.finvibe.investment.modules.market.domain.error.MarketErrorCode;
@@ -326,6 +328,27 @@ public class MarketQueryService implements MarketQueryUseCase {
     @Override
     public List<StockDto.Response> getTopFallingStocks() {
         return getTopStocksByRankType(RankType.TOP_FALLING);
+    }
+
+    @Override
+    public List<StockDto.Response> searchStocks(String query, MarketSearchType marketType) {
+        String trimmedQuery = query == null ? "" : query.trim();
+
+        if (trimmedQuery.isEmpty()) {
+            return List.of();
+        }
+
+        List<Stock> stocks = stockRepository.searchByNameOrSymbol(trimmedQuery);
+
+        Stream<Stock> filteredStocks = switch (marketType) {
+            case DOMESTIC -> stocks.stream().filter(stock -> stock.getMarketType() == MarketType.DOMESTIC);
+            case INTERNATIONAL -> stocks.stream().filter(stock -> stock.getMarketType() == MarketType.INTERNATIONAL);
+            case ALL -> stocks.stream();
+        };
+
+        return filteredStocks
+                .map(StockDto.Response::from)
+                .toList();
     }
 
     private List<StockDto.Response> getTopStocksByRankType(RankType rankType) {
