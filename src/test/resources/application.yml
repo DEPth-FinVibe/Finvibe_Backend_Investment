@@ -28,9 +28,12 @@ finvibe:
 
 market:
   kis:
+    base-url: ${KIS_BASE_URL:https://openapi.koreainvestment.com:9443}
     api-key: test-key
     api-secret: test-secret
     user-id: test-user
+    websocket:
+      url: ${KIS_WEBSOCKET_URL:ws://ops.koreainvestment.com:21000}
   init:
     enabled: false
 
