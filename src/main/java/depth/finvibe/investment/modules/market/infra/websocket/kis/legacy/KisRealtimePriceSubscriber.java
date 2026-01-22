@@ -43,7 +43,7 @@ public class KisRealtimePriceSubscriber {
     private final Map<String, Long> symbolToStockId = new ConcurrentHashMap<>();
     private volatile String approvalKey;
 
-    @Value("${market.kis.websocket.url}")
+    @Value("${market.kis.websocket.url:wss://openapi.koreainvestment.com:9443/websocket}")
     private String websocketUrl;
 
   public synchronized void syncSubscriptions(List<Long> stockIds) {
@@ -203,21 +203,12 @@ public class KisRealtimePriceSubscriber {
       if (last) {
         String message = buffer.toString();
         buffer.setLength(0);
-        String preview = message.length() > 200 ? message.substring(0, 200) + "..." : message;
-        log.debug("KIS WebSocket 메시지 수신 - length: {}, preview: {}", message.length(), preview);
-        log.trace("KIS WebSocket 메시지 원문 - {}", message);
-        try {
-          messageHandler.handleMessage(message, symbolToStockId::get);
-        } catch (Exception ex) {
-          log.error("KIS WebSocket 메시지 처리 중 오류 발생", ex);
-        }
-      } else {
-        log.trace("KIS WebSocket 메시지 조각 수신 - length: {}", data.length());
+        log.trace("KIS WebSocket 메시지 수신 - length: {}", message.length());
+        messageHandler.handleMessage(message, symbolToStockId::get);
       }
       webSocket.request(1);
       return CompletableFuture.completedFuture(null);
     }
-
 
     @Override
     public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
