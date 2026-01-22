@@ -50,45 +50,7 @@ public class MarketController {
      */
     private LocalDateTime getLastCompletedCandleTime(Timeframe timeframe) {
         LocalDateTime now = LocalDateTime.now();
-        
-        return switch (timeframe) {
-            case MINUTE -> 
-                // 현재 분은 아직 진행중이므로 이전 분
-                now.minusMinutes(1).withSecond(0).withNano(0);
-                
-            case HOUR -> 
-                // 현재 시간은 아직 진행중이므로 이전 시간
-                now.minusHours(1).withMinute(0).withSecond(0).withNano(0);
-                
-            case DAY -> 
-                // 오늘은 아직 진행중이므로 어제
-                now.minusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
-                
-            case WEEK -> {
-                // 이번 주는 아직 진행중이므로 지난 주 월요일
-                LocalDateTime lastWeekMonday = now.minusWeeks(1)
-                        .with(java.time.DayOfWeek.MONDAY)
-                        .withHour(0).withMinute(0).withSecond(0).withNano(0);
-                yield lastWeekMonday;
-            }
-            
-            case MONTH -> {
-                // 이번 달은 아직 진행중이므로 지난 달 1일
-                LocalDateTime lastMonthFirst = now.minusMonths(1)
-                        .withDayOfMonth(1)
-                        .withHour(0).withMinute(0).withSecond(0).withNano(0);
-                yield lastMonthFirst;
-            }
-            
-            case YEAR -> {
-                // 올해는 아직 진행중이므로 작년 1월 1일
-                LocalDateTime lastYearFirst = now.minusYears(1)
-                        .withMonth(1)
-                        .withDayOfMonth(1)
-                        .withHour(0).withMinute(0).withSecond(0).withNano(0);
-                yield lastYearFirst;
-            }
-        };
+        return timeframe.lastCompletedTime(now);
     }
 
     @GetMapping("/stocks/current-prices")

@@ -64,13 +64,13 @@ class PriceCandleTest {
         // given
         LocalDateTime now = LocalDateTime.now();
         PriceCandle candle1 = PriceCandle.create(
-                1L, Timeframe.HOUR, now,
+                1L, Timeframe.MINUTE, now,
                 BigDecimal.valueOf(69000), BigDecimal.valueOf(71000),
                 BigDecimal.valueOf(68000), BigDecimal.valueOf(70000),
                 BigDecimal.valueOf(1.5), BigDecimal.valueOf(1000000), BigDecimal.valueOf(70000000000L)
         );
         PriceCandle candle2 = PriceCandle.create(
-                2L, Timeframe.HOUR, now,
+                2L, Timeframe.MINUTE, now,
                 BigDecimal.valueOf(69000), BigDecimal.valueOf(71000),
                 BigDecimal.valueOf(68000), BigDecimal.valueOf(70000),
                 BigDecimal.valueOf(1.5), BigDecimal.valueOf(1000000), BigDecimal.valueOf(70000000000L)
@@ -86,7 +86,7 @@ class PriceCandleTest {
         // given
         LocalDateTime now = LocalDateTime.now();
         PriceCandle candle1 = PriceCandle.create(
-                1L, Timeframe.HOUR, now,
+                1L, Timeframe.MINUTE, now,
                 BigDecimal.valueOf(69000), BigDecimal.valueOf(71000),
                 BigDecimal.valueOf(68000), BigDecimal.valueOf(70000),
                 BigDecimal.valueOf(1.5), BigDecimal.valueOf(1000000), BigDecimal.valueOf(70000000000L)
