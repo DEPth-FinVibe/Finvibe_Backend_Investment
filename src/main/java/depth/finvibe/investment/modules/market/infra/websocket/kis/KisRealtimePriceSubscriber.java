@@ -203,12 +203,17 @@ public class KisRealtimePriceSubscriber {
       if (last) {
         String message = buffer.toString();
         buffer.setLength(0);
-        log.trace("KIS WebSocket 메시지 수신 - length: {}", message.length());
+        String preview = message.length() > 200 ? message.substring(0, 200) + "..." : message;
+        log.debug("KIS WebSocket 메시지 수신 - length: {}, preview: {}", message.length(), preview);
+        log.trace("KIS WebSocket 메시지 원문 - {}", message);
         messageHandler.handleMessage(message, symbolToStockId::get);
+      } else {
+        log.trace("KIS WebSocket 메시지 조각 수신 - length: {}", data.length());
       }
       webSocket.request(1);
       return CompletableFuture.completedFuture(null);
     }
+
 
     @Override
     public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
