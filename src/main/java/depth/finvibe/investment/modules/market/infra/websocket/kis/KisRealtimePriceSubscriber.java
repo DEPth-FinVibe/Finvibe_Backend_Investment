@@ -43,7 +43,7 @@ public class KisRealtimePriceSubscriber {
     private final Map<String, Long> symbolToStockId = new ConcurrentHashMap<>();
     private volatile String approvalKey;
 
-    @Value("${market.kis.websocket.url:wss://openapi.koreainvestment.com:9443/websocket}")
+    @Value("${market.kis.websocket.url:ws://ops.koreainvestment.com:21000}")
     private String websocketUrl;
 
   public synchronized void syncSubscriptions(List<Long> stockIds) {
