@@ -4,10 +4,10 @@ import depth.finvibe.investment.modules.market.application.port.in.CurrentPriceC
 import depth.finvibe.investment.modules.market.application.port.out.CurrentPriceEventPublisher;
 import depth.finvibe.investment.modules.market.application.port.out.CurrentPriceRepository;
 import depth.finvibe.investment.modules.market.application.port.out.HoldingStockRepository;
-import depth.finvibe.investment.modules.market.application.port.out.RealtimeStockIndexRepository;
+import depth.finvibe.investment.modules.market.application.port.out.CurrentStockWatcherRepository;
 import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
 import depth.finvibe.investment.modules.market.domain.CurrentPrice;
-import depth.finvibe.investment.modules.market.domain.RealtimeStockIndex;
+import depth.finvibe.investment.modules.market.domain.CurrentStockWatcher;
 import depth.finvibe.investment.modules.market.domain.error.MarketErrorCode;
 import depth.finvibe.investment.modules.market.dto.CurrentPriceUpdatedEvent;
 import depth.finvibe.investment.shared.error.DomainException;
@@ -24,7 +24,7 @@ public class CurrentPriceService implements CurrentPriceCommandUseCase {
 
     private final StockRepository stockRepository;
     private final HoldingStockRepository holdingStockRepository;
-    private final RealtimeStockIndexRepository realtimeStockIndexRepository;
+    private final CurrentStockWatcherRepository currentStockWatcherRepository;
     private final CurrentPriceRepository currentPriceRepository;
     private final CurrentPriceEventPublisher currentPriceEventPublisher;
 
@@ -32,14 +32,14 @@ public class CurrentPriceService implements CurrentPriceCommandUseCase {
     public void registerWatchingStock(Long stockId, UUID userId) {
         checkStockIsExist(stockId);
 
-        realtimeStockIndexRepository.addRealtimeStockIndex(RealtimeStockIndex.create(stockId, userId));
+        currentStockWatcherRepository.save(CurrentStockWatcher.create(stockId, userId));
     }
 
     @Override
     public void unregisterWatchingStock(Long stockId, UUID userId) {
         checkStockIsExist(stockId);
 
-        realtimeStockIndexRepository.removeRealtimeStockIndex(RealtimeStockIndex.create(stockId, userId));
+        currentStockWatcherRepository.remove(CurrentStockWatcher.create(stockId, userId));
     }
 
     @Override
@@ -58,7 +58,7 @@ public class CurrentPriceService implements CurrentPriceCommandUseCase {
 
     @Override
     public void stockPriceUpdated(CurrentPriceUpdatedEvent priceUpdate) {
-        if(!realtimeStockIndexRepository.existsByStockId(priceUpdate.getStockId())) {
+        if(!currentStockWatcherRepository.existsByStockId(priceUpdate.getStockId())) {
             log.warn("Skipping stock price update for stockId={} as it is not in the realtime index.", priceUpdate.getStockId());
             return;
         }

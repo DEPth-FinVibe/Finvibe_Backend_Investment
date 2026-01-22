@@ -11,12 +11,12 @@ import java.util.UUID;
 @Getter
 @Builder
 @EqualsAndHashCode
-public class RealtimeStockIndex {
+public class CurrentStockWatcher {
     private final Long stockId;
     private final UUID watcherId;
 
-    public static RealtimeStockIndex create(Long stockId, UUID watcherId) {
-        return RealtimeStockIndex.builder()
+    public static CurrentStockWatcher create(Long stockId, UUID watcherId) {
+        return CurrentStockWatcher.builder()
                 .stockId(stockId)
                 .watcherId(watcherId)
                 .build();

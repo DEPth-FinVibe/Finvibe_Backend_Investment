@@ -1,6 +1,6 @@
 package depth.finvibe.investment.modules.market.infra.scheduler;
 
-import depth.finvibe.investment.modules.market.application.port.out.RealtimeStockIndexRepository;
+import depth.finvibe.investment.modules.market.application.port.out.CurrentStockWatcherRepository;
 import depth.finvibe.investment.modules.market.infra.websocket.kis.KisRealtimePriceSubscriber;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +14,7 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 public class KisRealtimePriceSubscriptionScheduler {
-  private final RealtimeStockIndexRepository realtimeStockIndexRepository;
+  private final CurrentStockWatcherRepository currentStockWatcherRepository;
   private final KisRealtimePriceSubscriber subscriber;
 
   @Scheduled(fixedDelayString = "${market.kis.websocket.sync-interval-ms:5000}")
@@ -25,7 +25,7 @@ public class KisRealtimePriceSubscriptionScheduler {
   )
   public void syncRealtimeSubscriptions() {
     try {
-      List<Long> activeStockIds = realtimeStockIndexRepository.findActiveStockIds();
+      List<Long> activeStockIds = currentStockWatcherRepository.findActiveStockIds();
       if (activeStockIds.isEmpty()) {
         log.trace("활성 구독 종목이 없어 KIS WebSocket 동기화를 건너뜁니다.");
         return;

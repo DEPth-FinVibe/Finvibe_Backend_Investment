@@ -4,7 +4,7 @@ import depth.finvibe.investment.modules.market.application.port.in.MarketQueryUs
 import depth.finvibe.investment.modules.market.application.port.out.CurrentPriceRepository;
 import depth.finvibe.investment.modules.market.application.port.out.PriceCandleRepository;
 import depth.finvibe.investment.modules.market.application.port.out.RealMarketClient;
-import depth.finvibe.investment.modules.market.application.port.out.RealtimeStockIndexRepository;
+import depth.finvibe.investment.modules.market.application.port.out.CurrentStockWatcherRepository;
 import depth.finvibe.investment.modules.market.application.port.out.StockRankingRepository;
 import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
 import depth.finvibe.investment.modules.market.domain.CurrentPrice;
@@ -38,7 +38,7 @@ public class MarketQueryService implements MarketQueryUseCase {
     private final PriceCandleRepository priceCandleRepository;
     private final RealMarketClient realMarketClient;
     private final CurrentPriceRepository currentPriceRepository;
-    private final RealtimeStockIndexRepository realtimeStockIndexRepository;
+    private final CurrentStockWatcherRepository currentStockWatcherRepository;
     private final StockRankingRepository stockRankingRepository;
     private final StockRepository stockRepository;
     private final DistributedLockManager distributedLockManager;
@@ -279,7 +279,7 @@ public class MarketQueryService implements MarketQueryUseCase {
      */
     @Override
     public List<CurrentPriceDto.Response> getCurrentPrices(List<Long> stockIds) {
-        if(!realtimeStockIndexRepository.allExistsByStockIds(stockIds)) {
+        if(!currentStockWatcherRepository.allExistsByStockIds(stockIds)) {
             throw new DomainException(MarketErrorCode.STOCK_NOT_FOUND);
         }
 

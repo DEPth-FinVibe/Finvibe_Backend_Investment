@@ -2,7 +2,6 @@ package depth.finvibe.investment.modules.market.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -12,21 +11,16 @@ import depth.finvibe.investment.modules.market.application.port.out.CurrentPrice
 import depth.finvibe.investment.modules.market.application.port.out.HoldingStockRepository;
 import depth.finvibe.investment.modules.market.application.port.out.PriceCandleRepository;
 import depth.finvibe.investment.modules.market.application.port.out.RealMarketClient;
-import depth.finvibe.investment.modules.market.application.port.out.RealtimeStockIndexRepository;
+import depth.finvibe.investment.modules.market.application.port.out.CurrentStockWatcherRepository;
 import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
-import depth.finvibe.investment.modules.market.domain.PriceCandle;
-import depth.finvibe.investment.modules.market.domain.RealtimeStockIndex;
-import depth.finvibe.investment.modules.market.domain.Stock;
+import depth.finvibe.investment.modules.market.domain.CurrentStockWatcher;
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
 import depth.finvibe.investment.modules.market.domain.error.MarketErrorCode;
 import depth.finvibe.investment.modules.market.dto.CurrentPriceUpdatedEvent;
 import depth.finvibe.investment.modules.market.dto.PriceCandleDto;
-import depth.finvibe.investment.modules.market.dto.StockDto;
 import depth.finvibe.investment.shared.error.DomainException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,7 +29,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
 class CurrentPriceServiceTest {
@@ -53,7 +46,7 @@ class CurrentPriceServiceTest {
     private HoldingStockRepository holdingStockRepository;
 
     @Mock
-    private RealtimeStockIndexRepository realtimeStockIndexRepository;
+    private CurrentStockWatcherRepository currentStockWatcherRepository;
 
     @Mock
     private CurrentPriceRepository currentPriceRepository;
@@ -70,9 +63,9 @@ class CurrentPriceServiceTest {
 
         currentPriceService.registerWatchingStock(stockId, userId);
 
-        ArgumentCaptor<RealtimeStockIndex> indexCaptor = ArgumentCaptor.forClass(RealtimeStockIndex.class);
-        verify(realtimeStockIndexRepository).addRealtimeStockIndex(indexCaptor.capture());
-        RealtimeStockIndex savedIndex = indexCaptor.getValue();
+        ArgumentCaptor<CurrentStockWatcher> indexCaptor = ArgumentCaptor.forClass(CurrentStockWatcher.class);
+        verify(currentStockWatcherRepository).save(indexCaptor.capture());
+        CurrentStockWatcher savedIndex = indexCaptor.getValue();
         assertThat(savedIndex.getStockId()).isEqualTo(stockId);
         assertThat(savedIndex.getWatcherId()).isEqualTo(userId);
     }
@@ -87,7 +80,7 @@ class CurrentPriceServiceTest {
         assertThatThrownBy(() -> currentPriceService.registerWatchingStock(stockId, userId))
                 .isInstanceOf(DomainException.class)
                 .hasFieldOrPropertyWithValue("errorCode", MarketErrorCode.STOCK_NOT_FOUND);
-        verifyNoInteractions(realtimeStockIndexRepository);
+        verifyNoInteractions(currentStockWatcherRepository);
     }
 
     @Test
@@ -104,7 +97,7 @@ class CurrentPriceServiceTest {
                 .volume(BigDecimal.ZERO)
                 .value(BigDecimal.ZERO)
                 .build();
-        when(realtimeStockIndexRepository.existsByStockId(1L)).thenReturn(false);
+        when(currentStockWatcherRepository.existsByStockId(1L)).thenReturn(false);
 
         currentPriceService.stockPriceUpdated(event);
 

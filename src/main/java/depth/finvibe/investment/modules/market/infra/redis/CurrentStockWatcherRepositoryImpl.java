@@ -1,7 +1,7 @@
 package depth.finvibe.investment.modules.market.infra.redis;
 
-import depth.finvibe.investment.modules.market.application.port.out.RealtimeStockIndexRepository;
-import depth.finvibe.investment.modules.market.domain.RealtimeStockIndex;
+import depth.finvibe.investment.modules.market.application.port.out.CurrentStockWatcherRepository;
+import depth.finvibe.investment.modules.market.domain.CurrentStockWatcher;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,34 +14,34 @@ import org.springframework.stereotype.Repository;
 @Slf4j
 @Repository
 @RequiredArgsConstructor
-public class RealtimeStockIndexRepositoryImpl implements RealtimeStockIndexRepository {
+public class CurrentStockWatcherRepositoryImpl implements CurrentStockWatcherRepository {
 
-    private static final String KEY_PREFIX = "market:realtime-index:";
+    private static final String KEY_PREFIX = "market:current-watcher:";
     private static final Duration INDEX_TTL = Duration.ofMinutes(10);
 
     private final StringRedisTemplate redisTemplate;
 
     @Override
-    public void addRealtimeStockIndex(RealtimeStockIndex realtimeStockIndex) {
-        String key = keyForStock(realtimeStockIndex.getStockId());
-        redisTemplate.opsForSet().add(key, realtimeStockIndex.getWatcherId().toString());
+    public void save(CurrentStockWatcher currentStockWatcher) {
+        String key = keyForStock(currentStockWatcher.getStockId());
+        redisTemplate.opsForSet().add(key, currentStockWatcher.getWatcherId().toString());
         redisTemplate.expire(key, INDEX_TTL);
     }
 
     @Override
-    public void renewRealtimeStockIndex(RealtimeStockIndex realtimeStockIndex) {
-        String key = keyForStock(realtimeStockIndex.getStockId());
+    public void renew(CurrentStockWatcher currentStockWatcher) {
+        String key = keyForStock(currentStockWatcher.getStockId());
         if (Boolean.TRUE.equals(redisTemplate.hasKey(key))) {
             redisTemplate.expire(key, INDEX_TTL);
         } else {
-            addRealtimeStockIndex(realtimeStockIndex);
+            save(currentStockWatcher);
         }
     }
 
     @Override
-    public void removeRealtimeStockIndex(RealtimeStockIndex realtimeStockIndex) {
-        String key = keyForStock(realtimeStockIndex.getStockId());
-        redisTemplate.opsForSet().remove(key, realtimeStockIndex.getWatcherId().toString());
+    public void remove(CurrentStockWatcher currentStockWatcher) {
+        String key = keyForStock(currentStockWatcher.getStockId());
+        redisTemplate.opsForSet().remove(key, currentStockWatcher.getWatcherId().toString());
         Long remaining = redisTemplate.opsForSet().size(key);
         if (remaining != null && remaining == 0L) {
             redisTemplate.delete(key);
@@ -80,7 +80,7 @@ public class RealtimeStockIndexRepositoryImpl implements RealtimeStockIndexRepos
             try {
                 stockIds.add(Long.parseLong(rawId));
             } catch (NumberFormatException ex) {
-                log.warn("Invalid realtime index key: {}", key);
+                log.warn("Invalid current watcher key: {}", key);
             }
         }
         return stockIds;
