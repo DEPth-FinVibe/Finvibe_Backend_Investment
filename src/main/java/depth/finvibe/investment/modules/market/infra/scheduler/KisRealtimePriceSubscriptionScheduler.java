@@ -1,7 +1,7 @@
 package depth.finvibe.investment.modules.market.infra.scheduler;
 
 import depth.finvibe.investment.modules.market.application.port.out.CurrentStockWatcherRepository;
-import depth.finvibe.investment.modules.market.infra.websocket.kis.KisRealtimePriceSubscriber;
+import depth.finvibe.investment.modules.market.infra.websocket.kis.legacy.KisRealtimePriceSubscriber;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;

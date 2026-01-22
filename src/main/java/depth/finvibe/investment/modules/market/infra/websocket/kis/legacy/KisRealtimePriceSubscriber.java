@@ -1,4 +1,4 @@
-package depth.finvibe.investment.modules.market.infra.websocket.kis;
+package depth.finvibe.investment.modules.market.infra.websocket.kis.legacy;
 
 import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
 import depth.finvibe.investment.modules.market.domain.Stock;

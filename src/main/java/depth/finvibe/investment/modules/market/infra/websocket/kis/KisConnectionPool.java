@@ -55,10 +55,8 @@ public class KisConnectionPool {
     }
 
     private void onPriceUpdated(KisMessage.TransactionResponse response) {
-        CurrentPriceUpdatedEvent priceUpdatedEvent = CurrentPriceUpdatedEvent.builder()
-                .stockId(response.get)
-                .build();
+        String symbol = response.getShortStockCode(); //ISCD 코드
 
-        currentPriceCommandUseCase.stockPriceUpdated();
+        //TODO: stockId를 알아내서 비즈니스 로직 실행
     }
 }

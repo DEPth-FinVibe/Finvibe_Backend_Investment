@@ -1,4 +1,4 @@
-package depth.finvibe.investment.modules.market.infra.websocket.kis;
+package depth.finvibe.investment.modules.market.infra.websocket.kis.legacy;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
