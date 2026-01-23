@@ -1,14 +1,17 @@
 package depth.finvibe.investment.modules.market.infra.client.tokenmanage;
 
+import java.util.List;
+import java.util.Objects;
+
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
+
+import depth.finvibe.investment.modules.market.infra.config.KisCredentialsProperties;
+import depth.finvibe.investment.modules.market.infra.config.KisCredentialsProperties.Credential;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
-
-import java.util.Objects;
 
 @Component
 public class KisTokenClient {
@@ -16,12 +19,17 @@ public class KisTokenClient {
     private final String apiSecret;
     private final RestClient tokenClient;
 
-    public KisTokenClient(
-            @Value("${market.kis.api-key}") String apiKey,
-            @Value("${market.kis.api-secret}") String apiSecret
-    ) {
-        this.apiKey = apiKey;
-        this.apiSecret = apiSecret;
+    public KisTokenClient(KisCredentialsProperties kisProperties) {
+        List<Credential> validCredentials = kisProperties.getValidCredentials();
+
+        if (validCredentials.isEmpty()) {
+            throw new IllegalStateException("최소 하나의 유효한 KIS credential이 필요합니다");
+        }
+
+        Credential firstCredential = validCredentials.getFirst();
+
+        this.apiKey = firstCredential.appKey();
+        this.apiSecret = firstCredential.appSecret();
         this.tokenClient = RestClient.builder()
                 .baseUrl("https://openapi.koreainvestment.com:9443")
                 .build();
@@ -31,11 +39,11 @@ public class KisTokenClient {
         KisTokenResponse response = tokenClient.post()
                 .uri("/oauth2/tokenP")
                 .body(
-                    KisTokenRequest.builder()
-                        .grant_type("client_credentials")
-                        .appkey(apiKey)
-                        .appsecret(apiSecret)
-                        .build()
+                        KisTokenRequest.builder()
+                                .grant_type("client_credentials")
+                                .appkey(apiKey)
+                                .appsecret(apiSecret)
+                                .build()
                 )
                 .retrieve()
                 .body(KisTokenResponse.class);
@@ -47,7 +55,8 @@ public class KisTokenClient {
         );
     }
 
-    public record TokenResponse(String accessToken, long expiresIn) {}
+    public record TokenResponse(String accessToken, long expiresIn) {
+    }
 
     @AllArgsConstructor
     @NoArgsConstructor
