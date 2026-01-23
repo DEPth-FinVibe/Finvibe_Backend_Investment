@@ -239,4 +239,35 @@ public class KisConnectionPool {
   public int getAvailableSessionCount() {
     return sessions.size();
   }
+
+  /**
+   * 연결이 끊긴 세션을 정리합니다.
+   * 닫힌 세션을 제거하고 관련 구독 매핑도 정리합니다.
+   *
+   * @return 제거된 세션 수
+   */
+  public int removeClosedSessions() {
+    int removedCount = 0;
+
+    var iterator = sessions.entrySet().iterator();
+    while (iterator.hasNext()) {
+      var entry = iterator.next();
+      String appKey = entry.getKey();
+      KisWebsocketSession session = entry.getValue();
+
+      if (!session.getIsConnected()) {
+        log.warn("닫힌 WebSocket 세션 제거 - AppKey: {}, 구독 수: {}",
+                appKey, session.getSubscriptionCount());
+        iterator.remove();
+        removedCount++;
+      }
+    }
+
+    if (removedCount > 0) {
+      log.info("닫힌 세션 정리 완료 - 제거된 세션 수: {}, 남은 세션 수: {}",
+              removedCount, sessions.size());
+    }
+
+    return removedCount;
+  }
 }

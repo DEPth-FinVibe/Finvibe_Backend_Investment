@@ -69,6 +69,9 @@ public class KisSubscriptionSynchronizer {
       // Heartbeat 기록
       activeNodeRegistry.recordHeartbeat();
 
+      // 닫힌 세션 정리
+      cleanupClosedSessions();
+
       List<Long> activeStockIds = currentStockWatcherRepository.findActiveStockIds();
 
       if (activeStockIds.isEmpty()) {
@@ -338,5 +341,20 @@ public class KisSubscriptionSynchronizer {
       }
     }
     subscriptionOrder.clear();
+  }
+
+  /**
+   * 연결이 끊긴 WebSocket 세션을 정리합니다.
+   * 닫힌 세션으로 인한 오류를 방지하기 위해 주기적으로 호출됩니다.
+   */
+  private void cleanupClosedSessions() {
+    try {
+      int removedCount = kisConnectionPool.removeClosedSessions();
+      if (removedCount > 0) {
+        log.warn("닫힌 WebSocket 세션 감지 및 제거 - 제거된 세션 수: {}", removedCount);
+      }
+    } catch (Exception ex) {
+      log.error("닫힌 세션 정리 중 오류 발생", ex);
+    }
   }
 }
