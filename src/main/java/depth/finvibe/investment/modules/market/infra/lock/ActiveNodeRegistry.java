@@ -1,0 +1,86 @@
+package depth.finvibe.investment.modules.market.infra.lock;
+
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import lombok.Getter;
+import org.redisson.api.RedissonClient;
+import org.springframework.stereotype.Component;
+
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * 분산 환경에서 활성 노드를 추적하고 관리하는 컴포넌트입니다.
+ * Heartbeat 방식으로 각 노드의 활성 상태를 Redis에 기록하고,
+ * 현재 활성화된 노드의 수를 조회할 수 있습니다.
+ */
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class ActiveNodeRegistry {
+
+  private static final String NODE_KEY_PREFIX = "market:subscription-node:";
+  private static final long HEARTBEAT_TTL_SECONDS = 15L;
+
+  private final RedissonClient redissonClient;
+    /**
+     * -- GETTER --
+     *  현재 노드의 ID를 반환합니다.
+     *
+     * @return 노드 ID
+     */
+    @Getter
+    private String nodeId;
+
+  @PostConstruct
+  public void initialize() {
+    this.nodeId = UUID.randomUUID().toString();
+    log.info("ActiveNodeRegistry 초기화 완료 - NodeId: {}", nodeId);
+  }
+
+  /**
+   * 현재 노드의 Heartbeat를 갱신합니다.
+   * 스케줄러에서 주기적으로 호출하여 이 노드가 활성 상태임을 알립니다.
+   */
+  public void recordHeartbeat() {
+    String key = NODE_KEY_PREFIX + nodeId;
+    try {
+      redissonClient.getBucket(key).set(System.currentTimeMillis(), HEARTBEAT_TTL_SECONDS, TimeUnit.SECONDS);
+      log.trace("Heartbeat 기록 완료 - NodeId: {}", nodeId);
+    } catch (Exception ex) {
+      log.error("Heartbeat 기록 실패 - NodeId: {}", nodeId, ex);
+    }
+  }
+
+  /**
+   * 현재 활성화된 노드의 수를 반환합니다.
+   * Redis에서 TTL이 유효한 노드 키의 개수를 조회합니다.
+   *
+   * @return 활성 노드 수 (최소 1)
+   */
+  public int getActiveNodeCount() {
+    try {
+      Iterable<String> keys = redissonClient.getKeys().getKeysByPattern(NODE_KEY_PREFIX + "*");
+      int activeCount = 0;
+      for (String key : keys) {
+        activeCount++;
+      }
+
+      if (activeCount == 0) {
+        log.warn("활성 노드가 0개로 조회되었습니다. 기본값 1을 반환합니다.");
+        return 1;
+      }
+
+      log.debug("활성 노드 수: {}", activeCount);
+      return activeCount;
+
+    } catch (Exception ex) {
+      log.error("활성 노드 수 조회 실패. 기본값 1을 반환합니다.", ex);
+      return 1;
+    }
+  }
+
+}

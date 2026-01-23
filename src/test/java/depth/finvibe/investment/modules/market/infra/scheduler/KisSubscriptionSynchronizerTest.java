@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -23,11 +22,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import depth.finvibe.investment.modules.market.application.port.out.CurrentStockWatcherRepository;
 import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
 import depth.finvibe.investment.modules.market.domain.Stock;
+import depth.finvibe.investment.modules.market.infra.lock.ActiveNodeRegistry;
 import depth.finvibe.investment.modules.market.infra.lock.StockSubscriptionLockManager;
 import depth.finvibe.investment.modules.market.infra.websocket.kis.KisConnectionPool;
 
 @ExtendWith(MockitoExtension.class)
-class KisRealtimePriceSubscriptionSchedulerTest {
+class KisSubscriptionSynchronizerTest {
 
   @Mock
   private CurrentStockWatcherRepository currentStockWatcherRepository;
@@ -41,8 +41,11 @@ class KisRealtimePriceSubscriptionSchedulerTest {
   @Mock
   private KisConnectionPool kisConnectionPool;
 
+  @Mock
+  private ActiveNodeRegistry activeNodeRegistry;
+
   @InjectMocks
-  private KisRealtimePriceSubscriptionScheduler scheduler;
+  private KisSubscriptionSynchronizer scheduler;
 
   @Test
   @DisplayName("활성 종목이 없으면 구독을 시도하지 않는다")
@@ -55,6 +58,7 @@ class KisRealtimePriceSubscriptionSchedulerTest {
     scheduler.syncRealtimeSubscriptions();
 
     // Then
+    verify(activeNodeRegistry).recordHeartbeat();
     verify(stockRepository, never()).findAllById(any());
     verify(lockManager, never()).tryAcquireLock(anyLong());
     verify(kisConnectionPool, never()).subscribe(anyLong(), any());
@@ -76,11 +80,14 @@ class KisRealtimePriceSubscriptionSchedulerTest {
     when(stockRepository.findAllById(List.of(stockId))).thenReturn(List.of(stock));
     when(lockManager.tryAcquireLock(stockId)).thenReturn(true);
     when(kisConnectionPool.getSubscribedStockIds()).thenReturn(Set.of());
+    when(activeNodeRegistry.getActiveNodeCount()).thenReturn(1);
+    when(kisConnectionPool.getAvailableSessionCount()).thenReturn(1);
 
     // When
     scheduler.syncRealtimeSubscriptions();
 
     // Then
+    verify(activeNodeRegistry).recordHeartbeat();
     verify(lockManager).tryAcquireLock(stockId);
     verify(kisConnectionPool).subscribe(stockId, symbol);
   }
@@ -101,11 +108,14 @@ class KisRealtimePriceSubscriptionSchedulerTest {
     when(stockRepository.findAllById(List.of(stockId))).thenReturn(List.of(stock));
     when(lockManager.tryAcquireLock(stockId)).thenReturn(false);
     when(kisConnectionPool.getSubscribedStockIds()).thenReturn(Set.of());
+    when(activeNodeRegistry.getActiveNodeCount()).thenReturn(1);
+    when(kisConnectionPool.getAvailableSessionCount()).thenReturn(1);
 
     // When
     scheduler.syncRealtimeSubscriptions();
 
     // Then
+    verify(activeNodeRegistry).recordHeartbeat();
     verify(lockManager).tryAcquireLock(stockId);
     verify(kisConnectionPool, never()).subscribe(anyLong(), any());
   }
@@ -124,11 +134,14 @@ class KisRealtimePriceSubscriptionSchedulerTest {
     when(lockManager.tryAcquireLock(2L)).thenReturn(false);
     when(lockManager.tryAcquireLock(3L)).thenReturn(true);
     when(kisConnectionPool.getSubscribedStockIds()).thenReturn(Set.of());
+    when(activeNodeRegistry.getActiveNodeCount()).thenReturn(1);
+    when(kisConnectionPool.getAvailableSessionCount()).thenReturn(1);
 
     // When
     scheduler.syncRealtimeSubscriptions();
 
     // Then
+    verify(activeNodeRegistry).recordHeartbeat();
     verify(kisConnectionPool).subscribe(1L, "005930");
     verify(kisConnectionPool, never()).subscribe(2L, "000660");
     verify(kisConnectionPool).subscribe(3L, "035720");
@@ -146,11 +159,14 @@ class KisRealtimePriceSubscriptionSchedulerTest {
     when(stockRepository.findAllById(any())).thenReturn(List.of(stock1, stock2));
     when(lockManager.tryAcquireLock(1L)).thenReturn(true);
     when(kisConnectionPool.getSubscribedStockIds()).thenReturn(Set.of(1L, 2L));
+    when(activeNodeRegistry.getActiveNodeCount()).thenReturn(1);
+    when(kisConnectionPool.getAvailableSessionCount()).thenReturn(1);
 
     // When
     scheduler.syncRealtimeSubscriptions();
 
     // Then
+    verify(activeNodeRegistry).recordHeartbeat();
     verify(kisConnectionPool).subscribe(1L, "005930");
     verify(kisConnectionPool).unsubscribe(2L, "000660");
   }
@@ -170,6 +186,7 @@ class KisRealtimePriceSubscriptionSchedulerTest {
     scheduler.syncRealtimeSubscriptions();
 
     // Then
+    verify(activeNodeRegistry).recordHeartbeat();
     verify(kisConnectionPool).unsubscribe(1L, "005930");
     verify(kisConnectionPool).unsubscribe(2L, "000660");
   }
@@ -186,6 +203,8 @@ class KisRealtimePriceSubscriptionSchedulerTest {
     when(lockManager.tryAcquireLock(1L)).thenReturn(true);
     when(lockManager.tryAcquireLock(2L)).thenReturn(true);
     when(kisConnectionPool.getSubscribedStockIds()).thenReturn(Set.of());
+    when(activeNodeRegistry.getActiveNodeCount()).thenReturn(1);
+    when(kisConnectionPool.getAvailableSessionCount()).thenReturn(1);
 
     // 첫 번째 구독에서 예외 발생
     doThrow(new RuntimeException("Network error"))
@@ -196,6 +215,7 @@ class KisRealtimePriceSubscriptionSchedulerTest {
             .doesNotThrowAnyException();
 
     // 두 번째 종목은 정상 처리되어야 함
+    verify(activeNodeRegistry).recordHeartbeat();
     verify(kisConnectionPool).subscribe(2L, "000660");
   }
 }

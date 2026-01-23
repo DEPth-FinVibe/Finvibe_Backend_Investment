@@ -219,13 +219,22 @@ public class KisConnectionPool {
         return new HashSet<>(stockIdToSymbol.keySet());
     }
 
-    /**
-     * 특정 종목이 이미 구독 중인지 확인합니다.
-     *
-     * @param stockId 종목 ID
-     * @return 구독 중이면 true, 아니면 false
-     */
-    public boolean isSubscribed(Long stockId) {
-        return stockIdToSymbol.containsKey(stockId);
-    }
+  /**
+   * 특정 종목이 이미 구독 중인지 확인합니다.
+   *
+   * @param stockId 종목 ID
+   * @return 구독 중이면 true, 아니면 false
+   */
+  public boolean isSubscribed(Long stockId) {
+    return stockIdToSymbol.containsKey(stockId);
+  }
+
+  /**
+   * 현재 사용 가능한 세션 수를 반환합니다.
+   *
+   * @return 등록된 세션 수
+   */
+  public int getAvailableSessionCount() {
+    return sessions.size();
+  }
 }
