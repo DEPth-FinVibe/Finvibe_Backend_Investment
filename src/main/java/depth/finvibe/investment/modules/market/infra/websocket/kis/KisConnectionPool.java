@@ -127,7 +127,7 @@ public class KisConnectionPool {
 
         KisWebsocketSession targetSession = findSessionAndUnsubscribe(symbol);
         if (targetSession == null) {
-            log.error("구독 해제 가능한 KIS WebSocket 세션이 없습니다. - stockId: {}, symbol: {}", stockId, symbol);
+            log.warn("구독 해제 가능한 KIS WebSocket 세션이 없습니다. - stockId: {}, symbol: {}", stockId, symbol);
             return;
         }
 
@@ -145,20 +145,22 @@ public class KisConnectionPool {
         return null;
     }
 
-    private KisWebsocketSession findSessionWithAvailableSlot() {
-        return sessions.values().stream()
-                .filter(session -> session.getSubscriptionCount() < MAX_SUBSCRIPTIONS_PER_SESSION)
-                .min(Comparator.comparingInt(KisWebsocketSession::getSubscriptionCount))
-                .orElse(null);
-    }
+  private KisWebsocketSession findSessionWithAvailableSlot() {
+    return sessions.values().stream()
+            .filter(KisWebsocketSession::getIsConnected)
+            .filter(session -> session.getSubscriptionCount() < MAX_SUBSCRIPTIONS_PER_SESSION)
+            .min(Comparator.comparingInt(KisWebsocketSession::getSubscriptionCount))
+            .orElse(null);
+  }
 
-    private KisWebsocketSession findSessionAndUnsubscribe(String symbol) {
-        return sessions.values().stream()
-                .filter(session -> session.getSubscriptionCount() > 0)
-                .filter(session -> tryUnsubscribe(session, symbol))
-                .findFirst()
-                .orElse(null);
-    }
+  private KisWebsocketSession findSessionAndUnsubscribe(String symbol) {
+    return sessions.values().stream()
+            .filter(KisWebsocketSession::getIsConnected)
+            .filter(session -> session.getSubscriptionCount() > 0)
+            .filter(session -> tryUnsubscribe(session, symbol))
+            .findFirst()
+            .orElse(null);
+  }
 
     private boolean tryUnsubscribe(KisWebsocketSession session, String symbol) {
         try {

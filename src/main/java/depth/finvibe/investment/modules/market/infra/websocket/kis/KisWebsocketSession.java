@@ -62,15 +62,21 @@ public class KisWebsocketSession extends AbstractKisMessageHandler {
         subscribedSymbols.add(symbol);
     }
 
-    public void unsubscribe(String symbol) {
-        if (!subscribedSymbols.contains(symbol)) {
-            throw new IllegalStateException("Symbol not subscribed: " + symbol);
-        }
-
-        KisMessage.TransactionRequest request = KisMessage.TransactionRequest.of(KisMessage.TransactionType.Unsubscribe, symbol);
-        sendRequest(request);
-        subscribedSymbols.remove(symbol);
+  public void unsubscribe(String symbol) {
+    if (!subscribedSymbols.contains(symbol)) {
+      throw new IllegalStateException("Symbol not subscribed: " + symbol);
     }
+
+    if (!getIsConnected()) {
+      log.warn("WebSocket 세션이 닫혀있어 구독 해제 요청을 건너뜁니다 - symbol: {}", symbol);
+      subscribedSymbols.remove(symbol);
+      return;
+    }
+
+    KisMessage.TransactionRequest request = KisMessage.TransactionRequest.of(KisMessage.TransactionType.Unsubscribe, symbol);
+    sendRequest(request);
+    subscribedSymbols.remove(symbol);
+  }
 
     public Integer getSubscriptionCount() {
         return subscribedSymbols.size();
