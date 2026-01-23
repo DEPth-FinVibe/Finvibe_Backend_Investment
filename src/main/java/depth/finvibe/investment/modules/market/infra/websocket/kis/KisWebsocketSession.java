@@ -3,6 +3,7 @@ package depth.finvibe.investment.modules.market.infra.websocket.kis;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
@@ -30,7 +31,7 @@ public class KisWebsocketSession extends AbstractKisMessageHandler {
     private WebSocketSession session;
     private AtomicBoolean connecting = new AtomicBoolean(false);
 
-    private List<String> subscribedSymbols;
+    private final List<String> subscribedSymbols = new CopyOnWriteArrayList<>();
 
     public CompletableFuture<KisWebsocketSession> connect(
             String uri
@@ -52,7 +53,7 @@ public class KisWebsocketSession extends AbstractKisMessageHandler {
     }
 
     public void subscribe(String symbol) {
-        if(subscribedSymbols.size() >= MAX_SUBSCRIPTIONS) {
+        if (subscribedSymbols.size() >= MAX_SUBSCRIPTIONS) {
             throw new IllegalStateException("KIS WebSocket subscription limit exceeded");
         }
 
@@ -62,7 +63,7 @@ public class KisWebsocketSession extends AbstractKisMessageHandler {
     }
 
     public void unsubscribe(String symbol) {
-        if(!subscribedSymbols.contains(symbol)) {
+        if (!subscribedSymbols.contains(symbol)) {
             throw new IllegalStateException("Symbol not subscribed: " + symbol);
         }
 

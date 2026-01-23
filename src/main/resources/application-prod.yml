@@ -38,9 +38,14 @@ logging:
 market:
   kis:
     base-url: ${KIS_BASE_URL:https://openapi.koreainvestment.com:9443}
-    api-key: ${KIS_API_KEY}
-    api-secret: ${KIS_API_SECRET}
     user-id: ${KIS_USER_ID}
+    credentials:
+      - app-key: ${KIS_API_KEY}
+        app-secret: ${KIS_API_SECRET}
+      - app-key: ${KIS_API_KEY_2:}
+        app-secret: ${KIS_API_SECRET_2:}
+      - app-key: ${KIS_API_KEY_3:}
+        app-secret: ${KIS_API_SECRET_3:}
     websocket:
       url: ${KIS_WEBSOCKET_URL:ws://ops.koreainvestment.com:21000}
 
