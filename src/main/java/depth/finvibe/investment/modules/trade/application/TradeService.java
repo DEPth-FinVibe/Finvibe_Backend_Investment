@@ -13,6 +13,9 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
@@ -25,6 +28,11 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
         Trade trade = tradeRepository.findById(tradeId)
                 .orElseThrow(() -> new DomainException(TradeErrorCode.TRADE_NOT_FOUND));
         return TradeDto.TradeResponse.from(trade);
+    }
+
+    @Transactional
+    public List<Long> findReservedStockIds(UUID userId) {
+        return tradeRepository.findDistinctStockIdsByUserIdAndTradeType(userId, TradeType.RESERVED);
     }
 
     @Transactional

@@ -1,5 +1,7 @@
 package depth.finvibe.investment.modules.trade.api.external;
 
+import depth.finvibe.investment.boot.security.model.AuthenticatedUser;
+import depth.finvibe.investment.boot.security.model.Requester;
 import depth.finvibe.investment.modules.trade.application.port.in.TradeCommandUseCase;
 import depth.finvibe.investment.modules.trade.application.port.in.TradeQueryUseCase;
 import depth.finvibe.investment.modules.trade.dto.TradeDto;
@@ -7,6 +9,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/trades")
@@ -21,6 +25,14 @@ public class TradeController {
     ) {
         TradeDto.TradeResponse response = tradeQueryUseCase.findTrade(tradeId);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/reserved/stock-ids")
+    public ResponseEntity<List<Long>> getReservedStockIds(
+            @AuthenticatedUser Requester requester
+    ) {
+        List<Long> stockIds = tradeQueryUseCase.findReservedStockIds(requester.getUuid());
+        return ResponseEntity.ok(stockIds);
     }
 
     @PostMapping
