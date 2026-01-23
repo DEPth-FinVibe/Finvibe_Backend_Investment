@@ -26,6 +26,8 @@ public class MarketEventService {
         UUID userId = event.getUserId();
         Boolean isHolding = event.getIsHolding();
 
+        //TODO: 보유종목 갱신
+
         if(isHolding) {
             currentPriceCommandUseCase.registerHoldingStock(stockId, userId);
         }else{
