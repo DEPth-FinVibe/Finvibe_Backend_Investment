@@ -270,4 +270,33 @@ public class KisConnectionPool {
 
     return removedCount;
   }
+
+  /**
+   * 모든 WebSocket 세션을 종료하고 구독 매핑을 정리합니다.
+   */
+  public void closeAllSessions() {
+    int closedCount = 0;
+
+    for (var entry : sessions.entrySet()) {
+      String appKey = entry.getKey();
+      KisWebsocketSession session = entry.getValue();
+
+      try {
+        if (session.close()) {
+          closedCount++;
+        }
+      } catch (Exception ex) {
+        log.warn("KIS WebSocket 세션 종료 중 오류 - AppKey: {}", appKey, ex);
+      }
+    }
+
+    sessions.clear();
+    symbolToStockId.clear();
+    stockIdToSymbol.clear();
+
+    if (closedCount > 0) {
+      log.info("KIS WebSocket 세션 전체 종료 완료 - 종료된 세션 수: {}", closedCount);
+    }
+
+  }
 }

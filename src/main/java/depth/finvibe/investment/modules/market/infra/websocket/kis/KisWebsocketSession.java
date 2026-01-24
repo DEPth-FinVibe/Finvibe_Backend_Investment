@@ -78,6 +78,25 @@ public class KisWebsocketSession extends AbstractKisMessageHandler {
     subscribedSymbols.remove(symbol);
   }
 
+  public boolean close() {
+    if (session == null) {
+      subscribedSymbols.clear();
+      return false;
+    }
+
+    try {
+      if (session.isOpen()) {
+        session.close();
+      }
+      return true;
+    } catch (IOException ex) {
+      log.warn("KIS WebSocket 세션 종료 실패", ex);
+      return false;
+    } finally {
+      subscribedSymbols.clear();
+    }
+  }
+
     public Integer getSubscriptionCount() {
         return subscribedSymbols.size();
     }

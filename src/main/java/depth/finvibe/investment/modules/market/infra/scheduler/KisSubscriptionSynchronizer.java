@@ -1,6 +1,10 @@
 package depth.finvibe.investment.modules.market.infra.scheduler;
 
 import java.time.Duration;
+import java.time.DayOfWeek;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +41,9 @@ public class KisSubscriptionSynchronizer {
     private static final int MAX_SUBSCRIPTIONS_PER_SESSION = 41;
     private static final Duration SUBSCRIPTION_LOCK_WAIT = Duration.ofMillis(0);
     private static final Duration SUBSCRIPTION_LOCK_LEASE = Duration.ofSeconds(3);
+    private static final ZoneId KIS_ZONE = ZoneId.of("Asia/Seoul");
+    private static final LocalTime MARKET_OPEN_TIME = LocalTime.of(9, 0);
+    private static final LocalTime MARKET_CLOSE_TIME = LocalTime.of(15, 30);
 
     private final CurrentStockWatcherRepository currentStockWatcherRepository;
     private final StockRepository stockRepository;
@@ -73,6 +80,13 @@ public class KisSubscriptionSynchronizer {
             // Heartbeat 기록
             activeNodeRegistry.recordHeartbeat();
 
+            if (!isMarketOpen()) {
+                handleMarketClosed(nodeId);
+                return;
+            }
+
+            ensureSessionsReady();
+
             // 닫힌 세션 정리
             cleanupClosedSessions();
 
@@ -95,6 +109,32 @@ public class KisSubscriptionSynchronizer {
         } catch (Exception ex) {
             log.error("KIS 실시간 가격 구독 동기화 실패", ex);
         }
+    }
+
+    private boolean isMarketOpen() {
+        ZonedDateTime now = ZonedDateTime.now(KIS_ZONE);
+        DayOfWeek dayOfWeek = now.getDayOfWeek();
+        if (dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY) {
+            return false;
+        }
+
+        LocalTime currentTime = now.toLocalTime();
+        return !currentTime.isBefore(MARKET_OPEN_TIME) && currentTime.isBefore(MARKET_CLOSE_TIME);
+    }
+
+    private void handleMarketClosed(String nodeId) {
+        log.info("장이 닫혀 KIS WebSocket 세션을 종료하고 구독 동기화를 중단합니다.");
+        kisConnectionPool.closeAllSessions();
+        releaseAllSubscriptions(nodeId);
+    }
+
+    private void ensureSessionsReady() {
+        if (kisConnectionPool.getAvailableSessionCount() > 0) {
+            return;
+        }
+
+        log.info("KIS WebSocket 세션이 없어 재초기화를 시도합니다.");
+        kisConnectionPool.initializeSessions();
     }
 
     /**
