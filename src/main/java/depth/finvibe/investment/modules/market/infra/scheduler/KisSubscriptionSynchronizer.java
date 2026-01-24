@@ -90,6 +90,8 @@ public class KisSubscriptionSynchronizer {
             // 닫힌 세션 정리
             cleanupClosedSessions();
 
+            reconcileSubscriptionOrder();
+
             List<Long> activeStockIds = currentStockWatcherRepository.findActiveStockIds();
 
             if (activeStockIds.isEmpty()) {
@@ -112,7 +114,7 @@ public class KisSubscriptionSynchronizer {
     }
 
     private boolean isMarketOpen() {
-        ZonedDateTime now = ZonedDateTime.now(KIS_ZONE);
+        ZonedDateTime now = now();
         DayOfWeek dayOfWeek = now.getDayOfWeek();
         if (dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY) {
             return false;
@@ -122,6 +124,10 @@ public class KisSubscriptionSynchronizer {
         return !currentTime.isBefore(MARKET_OPEN_TIME) && currentTime.isBefore(MARKET_CLOSE_TIME);
     }
 
+    ZonedDateTime now() {
+        return ZonedDateTime.now(KIS_ZONE);
+    }
+
     private void handleMarketClosed(String nodeId) {
         log.info("장이 닫혀 KIS WebSocket 세션을 종료하고 구독 동기화를 중단합니다.");
         kisConnectionPool.closeAllSessions();
@@ -129,12 +135,23 @@ public class KisSubscriptionSynchronizer {
     }
 
     private void ensureSessionsReady() {
-        if (kisConnectionPool.getAvailableSessionCount() > 0) {
+        kisConnectionPool.synchronizeSessions();
+        if (kisConnectionPool.getAvailableSessionCount() == 0) {
+            log.info("KIS WebSocket 세션이 없어 재초기화를 시도합니다.");
+            kisConnectionPool.initializeSessions();
+        }
+    }
+
+    private void reconcileSubscriptionOrder() {
+        if (subscriptionOrder.isEmpty()) {
             return;
         }
 
-        log.info("KIS WebSocket 세션이 없어 재초기화를 시도합니다.");
-        kisConnectionPool.initializeSessions();
+        Set<Long> subscribedStockIds = kisConnectionPool.getSubscribedStockIds();
+        boolean removed = subscriptionOrder.removeIf(stockId -> !subscribedStockIds.contains(stockId));
+        if (removed) {
+            log.debug("WebSocket 세션 변경으로 구독 순서를 정리했습니다. 남은 구독: {}", subscriptionOrder.size());
+        }
     }
 
     /**

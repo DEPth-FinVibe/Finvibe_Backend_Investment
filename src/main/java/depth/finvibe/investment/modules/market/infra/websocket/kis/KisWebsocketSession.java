@@ -101,6 +101,10 @@ public class KisWebsocketSession extends AbstractKisMessageHandler {
         return subscribedSymbols.size();
     }
 
+    public List<String> getSubscribedSymbols() {
+        return List.copyOf(subscribedSymbols);
+    }
+
     private void sendRequest(KisMessage.TransactionRequest request) {
         KisMessage.RawTransactionRequest rawRequest = request.toRawRequest(approvalKey);
         String payload = objectMapper.writeValueAsString(rawRequest);

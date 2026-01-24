@@ -1,41 +1,25 @@
 package depth.finvibe.investment.modules.market.infra.client.tokenmanage;
 
-import java.util.List;
 import java.util.Objects;
 
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
-
-import depth.finvibe.investment.modules.market.infra.config.KisCredentialsProperties;
-import depth.finvibe.investment.modules.market.infra.config.KisCredentialsProperties.Credential;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
 
 @Component
 public class KisTokenClient {
-    private final String apiKey;
-    private final String apiSecret;
     private final RestClient tokenClient;
 
-    public KisTokenClient(KisCredentialsProperties kisProperties) {
-        List<Credential> validCredentials = kisProperties.getValidCredentials();
-
-        if (validCredentials.isEmpty()) {
-            throw new IllegalStateException("최소 하나의 유효한 KIS credential이 필요합니다");
-        }
-
-        Credential firstCredential = validCredentials.getFirst();
-
-        this.apiKey = firstCredential.appKey();
-        this.apiSecret = firstCredential.appSecret();
+    public KisTokenClient() {
         this.tokenClient = RestClient.builder()
                 .baseUrl("https://openapi.koreainvestment.com:9443")
                 .build();
     }
 
-    public TokenResponse requestAccessToken() {
+    public TokenResponse requestAccessToken(String apiKey, String apiSecret) {
         KisTokenResponse response = tokenClient.post()
                 .uri("/oauth2/tokenP")
                 .body(

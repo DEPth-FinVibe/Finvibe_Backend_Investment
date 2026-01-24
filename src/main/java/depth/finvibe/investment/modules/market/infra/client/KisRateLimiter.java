@@ -24,6 +24,22 @@ public class KisRateLimiter {
             List.class
     );
 
+    private static final RedisScript<List> TRY_RATE_LIMIT_SCRIPT = new DefaultRedisScript<>(
+            "local second = redis.call('get', KEYS[1]) " +
+            "local minute = redis.call('get', KEYS[2]) " +
+            "second = tonumber(second) or 0 " +
+            "minute = tonumber(minute) or 0 " +
+            "if second >= tonumber(ARGV[1]) or minute >= tonumber(ARGV[2]) then " +
+            "return {0, redis.call('PTTL', KEYS[1]), redis.call('PTTL', KEYS[2])} " +
+            "end " +
+            "second = redis.call('INCR', KEYS[1]) " +
+            "if second == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[3]) end " +
+            "minute = redis.call('INCR', KEYS[2]) " +
+            "if minute == 1 then redis.call('PEXPIRE', KEYS[2], ARGV[4]) end " +
+            "return {1, 0, 0}",
+            List.class
+    );
+
     private final StringRedisTemplate redisTemplate;
     private final String keyPrefix;
     private final long secondLimit;
@@ -63,6 +79,25 @@ public class KisRateLimiter {
 
             sleep(waitMillis, key);
         }
+    }
+
+    public boolean tryAcquire(String key) {
+        String secondKey = keyPrefix + ":second:" + key;
+        String minuteKey = keyPrefix + ":minute:" + key;
+        List<Long> result = (List<Long>) redisTemplate.execute(
+                TRY_RATE_LIMIT_SCRIPT,
+                List.of(secondKey, minuteKey),
+                String.valueOf(secondLimit),
+                String.valueOf(minuteLimit),
+                String.valueOf(SECOND_WINDOW_MILLIS),
+                String.valueOf(MINUTE_WINDOW_MILLIS)
+        );
+
+        if (result == null || result.isEmpty()) {
+            throw new IllegalStateException("KIS rate limiter returned empty result.");
+        }
+
+        return result.get(0) != null && result.get(0) == 1L;
     }
 
     private RateResult increment(String key, long windowMillis) {

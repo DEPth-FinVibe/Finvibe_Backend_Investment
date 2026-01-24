@@ -15,12 +15,16 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.stereotype.Component;
 
-import depth.finvibe.investment.modules.market.application.port.in.CurrentPriceCommandUseCase;
-import depth.finvibe.investment.modules.market.dto.CurrentPriceUpdatedEvent;
-import depth.finvibe.investment.modules.market.infra.config.KisCredentialsProperties;
-import depth.finvibe.investment.modules.market.infra.websocket.kis.model.KisMessage;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.ObjectMapper;
+
+import depth.finvibe.investment.modules.market.application.port.in.CurrentPriceCommandUseCase;
+import depth.finvibe.investment.modules.market.dto.CurrentPriceUpdatedEvent;
+import depth.finvibe.investment.modules.market.infra.client.KisCredentialAllocator;
+import depth.finvibe.investment.modules.market.infra.client.KisRateLimiter;
+import depth.finvibe.investment.modules.market.infra.config.KisCredentialsProperties;
+import depth.finvibe.investment.modules.market.infra.config.KisCredentialsProperties.Credential;
+import depth.finvibe.investment.modules.market.infra.websocket.kis.model.KisMessage;
 
 @Slf4j
 @Component
@@ -35,15 +39,21 @@ public class KisConnectionPool {
     private final Map<Long, String> stockIdToSymbol = new ConcurrentHashMap<>();
 
     private final KisCredentialsProperties properties;
+    private final KisCredentialAllocator credentialAllocator;
+    private final KisRateLimiter rateLimiter;
     private final ObjectMapper objectMapper;
     private final CurrentPriceCommandUseCase currentPriceCommandUseCase;
 
     public KisConnectionPool(
             KisCredentialsProperties properties,
+            KisCredentialAllocator credentialAllocator,
+            KisRateLimiter rateLimiter,
             ObjectMapper objectMapper,
             CurrentPriceCommandUseCase currentPriceCommandUseCase
     ) {
         this.properties = properties;
+        this.credentialAllocator = credentialAllocator;
+        this.rateLimiter = rateLimiter;
         this.objectMapper = objectMapper;
         this.currentPriceCommandUseCase = currentPriceCommandUseCase;
     }
@@ -53,33 +63,39 @@ public class KisConnectionPool {
      * 애플리케이션 시작 시 자동으로 호출되지 않으며, 필요 시 명시적으로 호출해야 합니다.
      */
     public void initializeSessions() {
-        log.info("KIS WebSocket 세션 초기화 시작 - Credential 수: {}", properties.credentials().size());
+        synchronizeSessions();
+    }
 
-        List<KisCredentialsProperties.Credential> validCredentials = properties.credentials().stream()
-                .filter(this::isValidCredential)
-                .toList();
-
-        if (validCredentials.isEmpty()) {
-            log.warn("유효한 KIS Credential이 없습니다. WebSocket 세션을 생성하지 않습니다.");
+    public void synchronizeSessions() {
+        List<Credential> allocatedCredentials = credentialAllocator.getAllocatedCredentials();
+        if (allocatedCredentials.isEmpty()) {
+            log.warn("할당된 KIS Credential이 없어 WebSocket 세션을 종료합니다.");
+            closeAllSessions();
             return;
         }
 
-        validCredentials.forEach(credential ->
-                tryRegisterSession(credential.appKey(), credential.appSecret())
-        );
+        Set<String> allocatedAppKeys = allocatedCredentials.stream()
+                .map(Credential::appKey)
+                .collect(java.util.stream.Collectors.toSet());
 
-        log.info("KIS WebSocket 세션 초기화 완료 - 등록 시도: {}", validCredentials.size());
-    }
+        for (Credential credential : allocatedCredentials) {
+            if (!sessions.containsKey(credential.appKey())) {
+                tryRegisterSession(credential.appKey(), credential.appSecret());
+            }
+        }
 
-    private boolean isValidCredential(KisCredentialsProperties.Credential credential) {
-        return credential.appKey() != null && !credential.appKey().isBlank()
-                && credential.appSecret() != null && !credential.appSecret().isBlank();
+        for (String appKey : List.copyOf(sessions.keySet())) {
+            if (!allocatedAppKeys.contains(appKey)) {
+                closeSession(appKey);
+            }
+        }
     }
 
     public void tryRegisterSession(String appKey, String appSecret) {
         KisWebSocketApprovalKeyClient approvalKeyClient =
                 new KisWebSocketApprovalKeyClient(appKey, appSecret, properties.baseUrl());
 
+        rateLimiter.acquire(appKey);
         String approvalKey = approvalKeyClient.requestApprovalKey();
         KisWebsocketSession newSession = new KisWebsocketSession(approvalKey, this::onPriceUpdated, objectMapper);
 
@@ -143,6 +159,27 @@ public class KisConnectionPool {
     private Void handleSessionRegistrationFailure(String appKey, Throwable ex) {
         log.error("KIS WebSocket 세션 등록 실패 - AppKey: {}", appKey, ex);
         return null;
+    }
+
+    private void closeSession(String appKey) {
+        KisWebsocketSession session = sessions.remove(appKey);
+        if (session == null) {
+            return;
+        }
+
+        removeSessionSubscriptions(session);
+        session.close();
+        log.info("KIS WebSocket 세션 종료 - AppKey: {}", appKey);
+    }
+
+    private void removeSessionSubscriptions(KisWebsocketSession session) {
+        List<String> symbols = session.getSubscribedSymbols();
+        for (String symbol : symbols) {
+            Long stockId = symbolToStockId.remove(symbol);
+            if (stockId != null) {
+                stockIdToSymbol.remove(stockId);
+            }
+        }
     }
 
   private KisWebsocketSession findSessionWithAvailableSlot() {
@@ -258,6 +295,7 @@ public class KisConnectionPool {
       if (!session.getIsConnected()) {
         log.warn("닫힌 WebSocket 세션 제거 - AppKey: {}, 구독 수: {}",
                 appKey, session.getSubscriptionCount());
+        removeSessionSubscriptions(session);
         iterator.remove();
         removedCount++;
       }

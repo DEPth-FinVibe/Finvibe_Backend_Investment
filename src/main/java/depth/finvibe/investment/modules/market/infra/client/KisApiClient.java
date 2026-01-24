@@ -20,18 +20,15 @@ public class KisApiClient {
 
     private final RestClient restClient;
     private final String kisUserId;
-    private final KisRateLimiter rateLimiter;
 
     public KisApiClient(
         @Qualifier("kisRestClient")
         RestClient restClient,
         @Value("${market.kis.user-id}")
-        String kisUserId,
-        KisRateLimiter rateLimiter
+        String kisUserId
     ) {
         this.restClient = restClient;
         this.kisUserId = kisUserId;
-        this.rateLimiter = rateLimiter;
     }
 
 
@@ -41,7 +38,6 @@ public class KisApiClient {
      * @return 조건에 해당하는 종목 리스트
      */
     public List<KisDto.ConditionalStockSearchResponseItem> fetchConditionalStockSearch(ConditionSeq condition) {
-        rateLimiter.acquire(kisUserId);
         return Objects.requireNonNull(
                     restClient.get()
                             .uri("/uapi/domestic-stock/v1/quotations/psearch-result" +
@@ -69,7 +65,6 @@ public class KisApiClient {
             String includePastData,
             String includeFakeTick
     ) {
-        rateLimiter.acquire(kisUserId);
         String pastDataIncu = includePastData == null ? "N" : includePastData;
         String fakeTickIncu = includeFakeTick == null ? "" : includeFakeTick;
 
@@ -99,7 +94,6 @@ public class KisApiClient {
             String periodCode,
             String originalAdjustedPriceFlag
     ) {
-        rateLimiter.acquire(kisUserId);
         return Objects.requireNonNull(
                 restClient.get()
                         .uri("/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice" +
