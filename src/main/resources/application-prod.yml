@@ -33,7 +33,6 @@ spring:
 logging:
   level:
     root: info
-    depth.finvibe.investment: trace
 
 market:
   kis:

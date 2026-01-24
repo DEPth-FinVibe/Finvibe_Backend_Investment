@@ -129,7 +129,7 @@ public class KisSubscriptionSynchronizer {
     }
 
     private void handleMarketClosed(String nodeId) {
-        log.info("장이 닫혀 KIS WebSocket 세션을 종료하고 구독 동기화를 중단합니다.");
+        log.debug("장이 닫혀 KIS WebSocket 세션을 종료하고 구독 동기화를 중단합니다.");
         kisConnectionPool.closeAllSessions();
         releaseAllSubscriptions(nodeId);
     }
