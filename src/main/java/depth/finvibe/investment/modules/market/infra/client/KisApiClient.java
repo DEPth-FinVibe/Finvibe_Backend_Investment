@@ -109,6 +109,40 @@ public class KisApiClient {
         );
     }
 
+    /**
+     * <a href="https://apiportal.koreainvestment.com/apiservice-apiservice?/uapi/domestic-stock/v1/quotations/intstock-multprice">관심종목(멀티종목) 시세조회 API [국내주식-205]</a>
+     * 한 번의 호출에 최대 30종목의 시세 확인 가능합니다.
+     * @param stocks 종목 정보 리스트 (최대 30개)
+     * @return 관심종목 시세 리스트
+     */
+    public List<KisDto.IntstockMultpriceResponseItem> fetchIntstockMultprice(List<KisDto.StockInfo> stocks) {
+        if (stocks == null || stocks.isEmpty()) {
+            return List.of();
+        }
+        if (stocks.size() > 30) {
+            throw new IllegalArgumentException("최대 30종목까지 조회 가능합니다.");
+        }
+
+        StringBuilder uriBuilder = new StringBuilder("/uapi/domestic-stock/v1/quotations/intstock-multprice?");
+        for (int i = 0; i < stocks.size(); i++) {
+            if (i > 0) {
+                uriBuilder.append("&");
+            }
+            KisDto.StockInfo stock = stocks.get(i);
+            uriBuilder.append("FID_COND_MRKT_DIV_CODE_").append(i + 1).append("=").append(stock.getMarketCode());
+            uriBuilder.append("&");
+            uriBuilder.append("FID_INPUT_ISCD_").append(i + 1).append("=").append(stock.getStockCode());
+        }
+
+        return Objects.requireNonNull(
+                restClient.get()
+                        .uri(uriBuilder.toString())
+                        .headers(h -> h.set("tr_id", "FHKST11300006"))
+                        .retrieve()
+                        .body(KisDto.IntstockMultpriceResponse.class)
+        ).getOutput();
+    }
+
     @RequiredArgsConstructor
     @Getter
     public enum ConditionSeq {

@@ -8,7 +8,7 @@ import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
 import depth.finvibe.investment.modules.market.domain.error.MarketErrorCode;
 import depth.finvibe.investment.modules.market.dto.PriceCandleDto;
 import depth.finvibe.investment.modules.market.dto.StockDto.RankingResponse;
-import depth.finvibe.investment.modules.market.dto.StockDto.RealMarketResponse;
+import depth.finvibe.investment.modules.market.dto.StockDto.RealMarketStockResponse;
 import depth.finvibe.investment.modules.market.infra.client.dto.KisDto;
 import depth.finvibe.investment.shared.error.DomainException;
 import lombok.RequiredArgsConstructor;
@@ -54,8 +54,8 @@ public class RealMarketClientImpl implements RealMarketClient {
     }
 
     @Override
-    public List<RealMarketResponse> fetchStocksInRealMarket() {
-        List<CompletableFuture<List<RealMarketResponse>>> futures = kisFileClient.stream()
+    public List<RealMarketStockResponse> fetchStocksInRealMarket() {
+        List<CompletableFuture<List<RealMarketStockResponse>>> futures = kisFileClient.stream()
                 .map(client -> CompletableFuture.supplyAsync(client::fetchStocksInKisFile))
                 .toList();
 

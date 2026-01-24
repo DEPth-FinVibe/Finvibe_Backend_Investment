@@ -172,4 +172,60 @@ public class KisDto {
         private String prdy_vrss;
         private String revl_issu_reas;
     }
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Data
+    @Builder
+    public static class IntstockMultpriceResponse {
+        private String rt_cd;
+        private String msg_cd;
+        private String msg1;
+        private List<IntstockMultpriceResponseItem> output;
+    }
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Data
+    @Builder
+    public static class IntstockMultpriceResponseItem {
+        private String kospi_kosdaq_cls_name; // 코스피 코스닥 구분 명
+        private String mrkt_trtm_cls_name;    // 시장 조치 구분 명
+        private String hour_cls_code;         // 시간 구분 코드
+        private String inter_shrn_iscd;       // 관심 단축 종목코드
+        private String inter_kor_isnm;        // 관심 한글 종목명
+        private String inter2_prpr;           // 관심2 현재가
+        private String inter2_prdy_vrss;      // 관심2 전일 대비
+        private String prdy_vrss_sign;        // 전일 대비 부호
+        private String prdy_ctrt;             // 전일 대비율
+        private String acml_vol;              // 누적 거래량
+        private String inter2_oprc;           // 관심2 시가
+        private String inter2_hgpr;           // 관심2 고가
+        private String inter2_lwpr;           // 관심2 저가
+        private String inter2_llam;           // 관심2 하한가
+        private String inter2_mxpr;           // 관심2 상한가
+        private String inter2_askp;           // 관심2 매도호가
+        private String inter2_bidp;           // 관심2 매수호가
+        private String seln_rsqn;             // 매도 잔량
+        private String shnu_rsqn;             // 매수2 잔량
+        private String total_askp_rsqn;       // 총 매도호가 잔량
+        private String total_bidp_rsqn;       // 총 매수호가 잔량
+        private String acml_tr_pbmn;          // 누적 거래 대금
+        private String inter2_prdy_clpr;      // 관심2 전일 종가
+        private String oprc_vrss_hgpr_rate;   // 시가 대비 최고가 비율
+        private String intr_antc_cntg_vrss;   // 관심 예상 체결 대비
+        private String intr_antc_cntg_vrss_sign; // 관심 예상 체결 대비 부호
+        private String intr_antc_cntg_prdy_ctrt; // 관심 예상 체결 전일 대비율
+        private String intr_antc_vol;         // 관심 예상 거래량
+        private String inter2_sdpr;           // 관심2 기준가
+    }
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Data
+    @Builder
+    public static class StockInfo {
+        private String marketCode;
+        private String stockCode;
+    }
 }

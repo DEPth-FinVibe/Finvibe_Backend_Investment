@@ -9,5 +9,5 @@ import java.util.List;
  * KIS에서 제공하는 주식 관련 파일을 다운로드 및 파싱
  */
 public interface KisFileClient {
-    List<StockDto.RealMarketResponse> fetchStocksInKisFile();
+    List<StockDto.RealMarketStockResponse> fetchStocksInKisFile();
 }

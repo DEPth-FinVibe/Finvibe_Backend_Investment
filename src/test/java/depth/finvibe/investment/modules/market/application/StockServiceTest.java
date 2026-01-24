@@ -51,7 +51,7 @@ class StockServiceTest {
                 .build();
         when(categoryRepository.findAll()).thenReturn(List.of(fallbackCategory, matchCategory));
 
-        StockDto.RealMarketResponse request = StockDto.RealMarketResponse.builder()
+        StockDto.RealMarketStockResponse request = StockDto.RealMarketStockResponse.builder()
                 .name("Acme")
                 .symbol("1234ACM")
                 .build();
@@ -85,7 +85,7 @@ class StockServiceTest {
                 .build();
         when(categoryRepository.findAll()).thenReturn(List.of(fallbackCategory, otherCategory));
 
-        StockDto.RealMarketResponse request = StockDto.RealMarketResponse.builder()
+        StockDto.RealMarketStockResponse request = StockDto.RealMarketStockResponse.builder()
                 .name("Beta")
                 .symbol("9999BET")
                 .build();
@@ -112,7 +112,7 @@ class StockServiceTest {
                 .build();
         when(categoryRepository.findAll()).thenReturn(List.of(otherCategory));
 
-        StockDto.RealMarketResponse request = StockDto.RealMarketResponse.builder()
+        StockDto.RealMarketStockResponse request = StockDto.RealMarketStockResponse.builder()
                 .name("Gamma")
                 .symbol("9999GAM")
                 .build();

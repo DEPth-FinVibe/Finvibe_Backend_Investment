@@ -28,7 +28,7 @@ public class KosdaqKisFileClient implements KisFileClient {
     private static final int PART2_TOTAL_WIDTH = 222;
 
     @Override
-    public List<StockDto.RealMarketResponse> fetchStocksInKisFile() {
+    public List<StockDto.RealMarketStockResponse> fetchStocksInKisFile() {
         Path tempDir = null;
         try {
             tempDir = Files.createTempDirectory("kis-kosdaq-");
@@ -65,8 +65,8 @@ public class KosdaqKisFileClient implements KisFileClient {
         throw new IOException("Missing " + targetName + " in zip");
     }
 
-    private List<StockDto.RealMarketResponse> parseKosdaqFile(Path mstPath) throws IOException {
-        List<StockDto.RealMarketResponse> result = new ArrayList<>();
+    private List<StockDto.RealMarketStockResponse> parseKosdaqFile(Path mstPath) throws IOException {
+        List<StockDto.RealMarketStockResponse> result = new ArrayList<>();
         try (BufferedReader reader = Files.newBufferedReader(mstPath, KIS_CHARSET)) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -84,7 +84,7 @@ public class KosdaqKisFileClient implements KisFileClient {
                         row.bstpLargDivCode
                 );
 
-                result.add(StockDto.RealMarketResponse.builder()
+                result.add(StockDto.RealMarketStockResponse.builder()
                         .symbol(row.mkscShrnIscd)
                         .name(row.htsKorIsnm)
                         .marketType(MarketType.DOMESTIC)

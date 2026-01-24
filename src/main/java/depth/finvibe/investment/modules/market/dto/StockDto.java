@@ -44,7 +44,7 @@ public class StockDto {
     @NoArgsConstructor
     @Data
     @Builder
-    public static class RealMarketResponse {
+    public static class RealMarketStockResponse {
         private String symbol;
         private String name;
         private MarketType marketType;

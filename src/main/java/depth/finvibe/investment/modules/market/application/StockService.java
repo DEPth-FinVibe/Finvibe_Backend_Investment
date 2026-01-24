@@ -37,14 +37,14 @@ public class StockService implements StockCommandUseCase {
     @Override
     @Transactional
     public void bulkUpsertStocks() {
-        List<StockDto.RealMarketResponse> stocksInKOSPI = realMarketClient.fetchStocksInRealMarket();
+        List<StockDto.RealMarketStockResponse> stocksInKOSPI = realMarketClient.fetchStocksInRealMarket();
 
         List<Stock> stocksToUpsert = convertToStocksFrom(stocksInKOSPI);
 
         stockRepository.bulkUpsertStocks(stocksToUpsert);
     }
 
-    private List<Stock> convertToStocksFrom(List<StockDto.RealMarketResponse> stocksInKOSPI) {
+    private List<Stock> convertToStocksFrom(List<StockDto.RealMarketStockResponse> stocksInKOSPI) {
         List<Category> allCategories = categoryRepository.findAll();
 
         return stocksInKOSPI.stream()
@@ -55,7 +55,7 @@ public class StockService implements StockCommandUseCase {
                 .toList();
     }
 
-    private Stock createStockFrom(StockDto.RealMarketResponse res, Category category) {
+    private Stock createStockFrom(StockDto.RealMarketStockResponse res, Category category) {
         return Stock.builder()
                 .symbol(res.getSymbol())
                 .name(res.getName())

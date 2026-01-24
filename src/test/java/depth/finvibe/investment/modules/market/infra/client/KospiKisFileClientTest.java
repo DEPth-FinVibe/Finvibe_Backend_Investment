@@ -28,10 +28,10 @@ class KospiKisFileClientTest {
             String shortLine = "short";
             Files.write(mstFile, List.of(shortLine, validLine), KIS_CHARSET);
 
-            List<StockDto.RealMarketResponse> result = invokeParse(client, mstFile);
+            List<StockDto.RealMarketStockResponse> result = invokeParse(client, mstFile);
 
             assertThat(result).hasSize(1);
-            StockDto.RealMarketResponse parsed = result.get(0);
+            StockDto.RealMarketStockResponse parsed = result.get(0);
             assertThat(parsed.getSymbol()).isEqualTo("005930");
             assertThat(parsed.getName()).isEqualTo("SAMSUNG ELEC");
             assertThat(parsed.getTypeCode()).isEqualTo("1234");
@@ -40,12 +40,12 @@ class KospiKisFileClientTest {
         }
     }
 
-    private List<StockDto.RealMarketResponse> invokeParse(KospiKisFileClient client, Path mstFile) throws Exception {
+    private List<StockDto.RealMarketStockResponse> invokeParse(KospiKisFileClient client, Path mstFile) throws Exception {
         Method method = KospiKisFileClient.class.getDeclaredMethod("parseKospiFile", Path.class);
         method.setAccessible(true);
         @SuppressWarnings("unchecked")
-        List<StockDto.RealMarketResponse> result =
-                (List<StockDto.RealMarketResponse>) method.invoke(client, mstFile);
+        List<StockDto.RealMarketStockResponse> result =
+                (List<StockDto.RealMarketStockResponse>) method.invoke(client, mstFile);
         return result;
     }
 

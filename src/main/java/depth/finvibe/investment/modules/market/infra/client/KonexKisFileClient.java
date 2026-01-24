@@ -27,7 +27,7 @@ public class KonexKisFileClient implements KisFileClient {
     private static final Charset KIS_CHARSET = Charset.forName("MS949"); // cp949
 
     @Override
-    public List<StockDto.RealMarketResponse> fetchStocksInKisFile() {
+    public List<StockDto.RealMarketStockResponse> fetchStocksInKisFile() {
         Path tempDir = null;
         try {
             tempDir = Files.createTempDirectory("kis-konex-");
@@ -64,8 +64,8 @@ public class KonexKisFileClient implements KisFileClient {
         throw new IOException("Missing " + targetName + " in zip");
     }
 
-    private List<StockDto.RealMarketResponse> parseKonexFile(Path mstPath) throws IOException {
-        List<StockDto.RealMarketResponse> result = new ArrayList<>();
+    private List<StockDto.RealMarketStockResponse> parseKonexFile(Path mstPath) throws IOException {
+        List<StockDto.RealMarketStockResponse> result = new ArrayList<>();
         try (BufferedReader reader = Files.newBufferedReader(mstPath, KIS_CHARSET)) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -76,7 +76,7 @@ public class KonexKisFileClient implements KisFileClient {
 
                 KonexMasterRow row = parseMasterRow(line);
                 
-                result.add(StockDto.RealMarketResponse.builder()
+                result.add(StockDto.RealMarketStockResponse.builder()
                         .symbol(row.mkscShrnIscd)
                         .name(row.htsKorIsnm)
                         .marketType(MarketType.DOMESTIC)
