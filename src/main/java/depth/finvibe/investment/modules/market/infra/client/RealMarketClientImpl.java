@@ -1,20 +1,5 @@
 package depth.finvibe.investment.modules.market.infra.client;
 
-import depth.finvibe.investment.modules.market.application.port.out.RealMarketClient;
-import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
-import depth.finvibe.investment.modules.market.domain.Stock;
-import depth.finvibe.investment.modules.market.domain.enums.RankType;
-import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
-import depth.finvibe.investment.modules.market.domain.error.MarketErrorCode;
-import depth.finvibe.investment.modules.market.dto.PriceCandleDto;
-import depth.finvibe.investment.modules.market.dto.StockDto.RankingResponse;
-import depth.finvibe.investment.modules.market.dto.StockDto.RealMarketStockResponse;
-import depth.finvibe.investment.modules.market.infra.client.dto.KisDto;
-import depth.finvibe.investment.shared.error.DomainException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -27,7 +12,25 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
+import depth.finvibe.investment.modules.market.application.port.out.RealMarketClient;
+import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
+import depth.finvibe.investment.modules.market.domain.Stock;
+import depth.finvibe.investment.modules.market.domain.enums.RankType;
+import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
+import depth.finvibe.investment.modules.market.domain.error.MarketErrorCode;
+import depth.finvibe.investment.modules.market.dto.PriceCandleDto;
+import depth.finvibe.investment.modules.market.dto.StockDto.RankingResponse;
+import depth.finvibe.investment.modules.market.dto.StockDto.RealMarketStockResponse;
+import depth.finvibe.investment.modules.market.infra.client.dto.KisDto;
+import depth.finvibe.investment.shared.error.DomainException;
 
 @Slf4j
 @Component
@@ -100,71 +103,80 @@ public class RealMarketClientImpl implements RealMarketClient {
             LocalDateTime startTime,
             LocalDateTime endTime
     ) {
-        // 1. 시간 정규화 (Application 계층에서 이미 했지만, 방어적으로 한 번 더)
         LocalDateTime normalizedStart = startTime.withSecond(0).withNano(0);
         LocalDateTime normalizedEnd = endTime.withSecond(0).withNano(0);
-        
-        // 2. 1분봉 데이터 수집용 Map
-        Map<LocalDateTime, PriceCandleDto.Response> minuteCandles = new HashMap<>();
-        
-        // 3. 정각 단위로 API 호출 준비
-        LocalDateTime apiCallEnd = normalizedEnd.withMinute(0).withSecond(0).withNano(0);
-        if (apiCallEnd.isBefore(normalizedEnd)) {
-            apiCallEnd = apiCallEnd.plusHours(1);
+
+        if (normalizedStart.isAfter(normalizedEnd)) {
+            return List.of();
         }
-        
-        LocalDateTime apiCallStart = normalizedStart.withMinute(0).withSecond(0).withNano(0);
-        
-        // TODO: API 호출 최적화 필요
-        // 현재: 2시간씩 분할 호출 (12시간 요청 시 6번 API 호출)
-        // 개선 방안:
-        //   1. 장중 시간 고려 (09:00~15:30) - 불필요한 시간대 호출 방지
-        //   2. Rate Limit 고려 - 긴 범위 요청 시 지수 백오프 적용
-        //   3. 배치 API 지원 시 대체
-        // 4. 정각 단위로 역순 API 호출 (2시간씩)
-        LocalDateTime currentEnd = apiCallEnd;
-        while (currentEnd.isAfter(apiCallStart)) {
-            KisDto.TimeDailyChartPriceResponse response = kisApiClient.fetchTimeDailyChartPrice(
-                "J",
-                symbol,
-                currentEnd.format(DateTimeFormatter.ofPattern("HHmmss")),
-                currentEnd.format(DateTimeFormatter.BASIC_ISO_DATE),
-                "Y",  // 날짜 경계 넘을 때 대비
-                null
-            );
-            
-            if (response != null && response.getOutput2() != null) {
+
+        Map<LocalDateTime, PriceCandleDto.Response> minuteCandles = new HashMap<>();
+        List<LocalDate> tradingDates = getTradingDates(normalizedStart.toLocalDate(), normalizedEnd.toLocalDate());
+        if (tradingDates.isEmpty()) {
+            return List.of();
+        }
+
+        for (LocalDate tradingDate : tradingDates) {
+            LocalDateTime sessionStart = tradingDate.atTime(LocalTime.of(9, 0));
+            LocalDateTime sessionEnd = tradingDate.atTime(LocalTime.of(15, 30));
+            LocalDateTime effectiveStart = clampToSessionStart(normalizedStart, sessionStart, sessionEnd);
+            LocalDateTime effectiveEnd = clampToSessionEnd(normalizedEnd, sessionStart, sessionEnd);
+
+            if (effectiveStart == null || effectiveEnd == null || effectiveStart.isAfter(effectiveEnd)) {
+                continue;
+            }
+
+            List<LocalDateTime> queryTimes = buildQueryTimes(effectiveStart, effectiveEnd);
+            for (LocalDateTime queryTime : queryTimes) {
+                KisDto.TimeDailyChartPriceResponse response = fetchWithRetry(() ->
+                        kisApiClient.fetchTimeDailyChartPrice(
+                                "J",
+                                symbol,
+                                queryTime.format(DateTimeFormatter.ofPattern("HHmmss")),
+                                queryTime.format(DateTimeFormatter.BASIC_ISO_DATE),
+                                "Y",
+                                null
+                        )
+                );
+
+                if (response == null || response.getOutput2() == null) {
+                    continue;
+                }
+
                 for (KisDto.TimeDailyChartPriceOutput2 item : response.getOutput2()) {
                     LocalDateTime candleAt = parseDateTime(
-                        item.getStck_bsop_date(),
-                        item.getStck_cntg_hour()
+                            item.getStck_bsop_date(),
+                            item.getStck_cntg_hour()
                     );
                     LocalDateTime normalized = normalizeIntradayAt(candleAt);
-                    
-                    // 정규화된 범위로 필터링
+
                     if (normalized.isBefore(normalizedStart) || normalized.isAfter(normalizedEnd)) {
                         continue;
                     }
-                    
+
+                    if (normalized.isBefore(sessionStart) || normalized.isAfter(sessionEnd)) {
+                        continue;
+                    }
+
                     minuteCandles.putIfAbsent(normalized, PriceCandleDto.Response.builder()
-                        .open(toBigDecimal(item.getStck_oprc()))
-                        .close(toBigDecimal(item.getStck_prpr()))
-                        .high(toBigDecimal(item.getStck_hgpr()))
-                        .low(toBigDecimal(item.getStck_lwpr()))
-                        .volume(toBigDecimal(item.getCntg_vol()))
-                        .value(toBigDecimal(item.getAcml_tr_pbmn()))
-                        .stockId(stockId)
-                        .timeframe(Timeframe.MINUTE)
-                        .at(normalized)
-                        .prevDayChangePct(BigDecimal.ZERO)
-                        .build());
+                            .open(toBigDecimal(item.getStck_oprc()))
+                            .close(toBigDecimal(item.getStck_prpr()))
+                            .high(toBigDecimal(item.getStck_hgpr()))
+                            .low(toBigDecimal(item.getStck_lwpr()))
+                            .volume(toBigDecimal(item.getCntg_vol()))
+                            .value(toBigDecimal(item.getAcml_tr_pbmn()))
+                            .stockId(stockId)
+                            .timeframe(Timeframe.MINUTE)
+                            .at(normalized)
+                            .prevDayChangePct(BigDecimal.ZERO)
+                            .build());
                 }
             }
-            
-            currentEnd = currentEnd.minusHours(2);
         }
-        
-        return new ArrayList<>(minuteCandles.values());
+
+        return minuteCandles.values().stream()
+                .sorted((left, right) -> left.getAt().compareTo(right.getAt()))
+                .collect(Collectors.toList());
     }
 
     private List<PriceCandleDto.Response> fetchDailyCandles(
@@ -259,11 +271,144 @@ public class RealMarketClientImpl implements RealMarketClient {
         return new BigDecimal(value);
     }
 
-    private LocalDateTime earlier(LocalDateTime first, LocalDateTime second) {
-        if (first == null) {
-            return second;
+    private List<LocalDate> getTradingDates(LocalDate start, LocalDate end) {
+        List<LocalDate> dates = new ArrayList<>();
+        LocalDate current = start;
+        while (!current.isAfter(end)) {
+            if (isTradingDay(current)) {
+                dates.add(current);
+            }
+            current = current.plusDays(1);
         }
-        return second.isBefore(first) ? second : first;
+        return dates;
+    }
+
+    private boolean isTradingDay(LocalDate date) {
+        DayOfWeek dayOfWeek = date.getDayOfWeek();
+        return dayOfWeek != DayOfWeek.SATURDAY && dayOfWeek != DayOfWeek.SUNDAY;
+    }
+
+    private LocalDateTime clampToSessionStart(LocalDateTime time, LocalDateTime sessionStart, LocalDateTime sessionEnd) {
+        if (time.isAfter(sessionEnd)) {
+            return null;
+        }
+        if (time.isBefore(sessionStart)) {
+            return sessionStart;
+        }
+        return time;
+    }
+
+    private LocalDateTime clampToSessionEnd(LocalDateTime time, LocalDateTime sessionStart, LocalDateTime sessionEnd) {
+        if (time.isBefore(sessionStart)) {
+            return null;
+        }
+        if (time.isAfter(sessionEnd)) {
+            return sessionEnd;
+        }
+        return time;
+    }
+
+    private List<LocalDateTime> buildQueryTimes(LocalDateTime effectiveStart, LocalDateTime effectiveEnd) {
+        List<LocalDateTime> queryTimes = new ArrayList<>();
+        LocalDateTime current = effectiveEnd;
+        while (!current.isBefore(effectiveStart)) {
+            queryTimes.add(current);
+            current = current.minusHours(2);
+        }
+        return queryTimes;
+    }
+
+    private KisDto.TimeDailyChartPriceResponse fetchWithRetry(Supplier<KisDto.TimeDailyChartPriceResponse> requestSupplier) {
+        int maxAttempts = 3;
+        long delayMillis = 200L;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                return requestSupplier.get();
+            } catch (Exception ex) {
+                if (attempt == maxAttempts) {
+                    log.warn("Failed to fetch intraday prices after {} attempts", maxAttempts, ex);
+                    return null;
+                }
+                long jitter = ThreadLocalRandom.current().nextLong(50L, 151L);
+                sleep(delayMillis + jitter);
+                delayMillis = delayMillis * 2L;
+            }
+        }
+        return null;
+    }
+
+    private void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    @Override
+    public List<PriceCandleDto.Response> bulkFetchCurrentPrices(List<String> stockSymbols) {
+        if (stockSymbols == null || stockSymbols.isEmpty()) {
+            return List.of();
+        }
+
+        // symbol -> stockId 매핑 생성
+        List<Stock> stocks = stockRepository.findAllBySymbolIn(stockSymbols);
+        Map<String, Long> symbolToStockIdMap = stocks.stream()
+                .collect(Collectors.toMap(Stock::getSymbol, Stock::getId));
+
+        List<PriceCandleDto.Response> results = new ArrayList<>();
+
+        // API 제한: 한 번에 최대 30개 종목만 조회 가능
+        int batchSize = 30;
+        for (int i = 0; i < stockSymbols.size(); i += batchSize) {
+            int endIndex = Math.min(i + batchSize, stockSymbols.size());
+            List<String> batchSymbols = stockSymbols.subList(i, endIndex);
+
+            // StockInfo 리스트 생성 (marketCode는 "J"로 고정 - KRX)
+            List<KisDto.StockInfo> stockInfos = batchSymbols.stream()
+                    .map(symbol -> KisDto.StockInfo.of("J", symbol))
+                    .toList();
+
+            try {
+                List<KisDto.IntstockMultpriceResponseItem> responseItems = 
+                        kisApiClient.fetchIntstockMultprice(stockInfos);
+
+                // 응답을 PriceCandleDto.Response로 변환
+                for (KisDto.IntstockMultpriceResponseItem item : responseItems) {
+                    String symbol = item.getInter_shrn_iscd();
+                    Long stockId = symbolToStockIdMap.get(symbol);
+                    
+                    if (stockId == null) {
+                        log.warn("Stock ID not found for symbol: {}", symbol);
+                        continue;
+                    }
+
+                    BigDecimal currentPrice = toBigDecimal(item.getInter2_prpr());
+                    BigDecimal openPrice = toBigDecimal(item.getInter2_oprc());
+                    BigDecimal highPrice = toBigDecimal(item.getInter2_hgpr());
+                    BigDecimal lowPrice = toBigDecimal(item.getInter2_lwpr());
+
+                    // 현재가 정보를 캔들 형태로 변환 (현재 시점의 데이터)
+                    results.add(PriceCandleDto.Response.builder()
+                            .open(openPrice)
+                            .close(currentPrice)
+                            .high(highPrice)
+                            .low(lowPrice)
+                            .volume(toBigDecimal(item.getAcml_vol()))
+                            .value(toBigDecimal(item.getAcml_tr_pbmn()))
+                            .stockId(stockId)
+                            .timeframe(Timeframe.MINUTE) // 현재가 조회이므로 MINUTE로 설정
+                            .at(LocalDateTime.now().withSecond(0).withNano(0)) // 현재 시점
+                            .prevDayChangePct(toBigDecimal(item.getPrdy_ctrt()))
+                            .build());
+                }
+            } catch (Exception e) {
+                log.error("Failed to fetch current prices for batch starting at index {}", i, e);
+                // 에러가 발생해도 다음 배치 계속 처리
+            }
+        }
+
+        return results;
     }
 
 }

@@ -7,12 +7,21 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/**
+ * 한국투자증권 Open API 응답 및 요청 DTO 모음 클래스
+ */
 public class KisDto {
 
+    /**
+     * 종목조건검색조회 요청 DTO
+     */
     public static class ConditionalStockSearchRequest {
 
     }
 
+    /**
+     * 종목조건검색조회 응답 DTO
+     */
     @AllArgsConstructor
     @NoArgsConstructor
     @Data
@@ -24,6 +33,9 @@ public class KisDto {
         private List<ConditionalStockSearchResponseItem> output2;
     }
 
+    /**
+     * 종목조건검색조회 응답 상세 항목 DTO
+     */
     @AllArgsConstructor
     @NoArgsConstructor
     @Data
@@ -55,6 +67,9 @@ public class KisDto {
         private String stotprice;    // 시가총액
     }
 
+    /**
+     * 주식일별분봉조회 응답 DTO
+     */
     @AllArgsConstructor
     @NoArgsConstructor
     @Data
@@ -67,6 +82,9 @@ public class KisDto {
         private List<TimeDailyChartPriceOutput2> output2;
     }
 
+    /**
+     * 주식일별분봉조회 응답 출력1 (당일 시세 요약 정보)
+     */
     @AllArgsConstructor
     @NoArgsConstructor
     @Data
@@ -88,6 +106,9 @@ public class KisDto {
         private String cntg_vol;
     }
 
+    /**
+     * 주식일별분봉조회 응답 출력2 (시간대별 상세 시세 데이터)
+     */
     @AllArgsConstructor
     @NoArgsConstructor
     @Data
@@ -104,6 +125,9 @@ public class KisDto {
         private String acml_tr_pbmn;
     }
 
+    /**
+     * 국내주식기간별시세(일/주/월/년) 응답 DTO
+     */
     @AllArgsConstructor
     @NoArgsConstructor
     @Data
@@ -116,6 +140,9 @@ public class KisDto {
         private List<DailyItemChartPriceOutput2> output2;
     }
 
+    /**
+     * 국내주식기간별시세 응답 출력1 (종목 기본 시세 및 지표 정보)
+     */
     @AllArgsConstructor
     @NoArgsConstructor
     @Data
@@ -148,11 +175,15 @@ public class KisDto {
         private String cpfn;
         private String hts_avls;
         private String per;
+        private String per_nm;
         private String eps;
         private String pbr;
         private String itewhol_loan_rmnd_ratem;
     }
 
+    /**
+     * 국내주식기간별시세 응답 출력2 (기간별 상세 시세 데이터)
+     */
     @AllArgsConstructor
     @NoArgsConstructor
     @Data
@@ -173,6 +204,9 @@ public class KisDto {
         private String revl_issu_reas;
     }
 
+    /**
+     * 관심종목(멀티종목) 시세조회 응답 DTO
+     */
     @AllArgsConstructor
     @NoArgsConstructor
     @Data
@@ -184,6 +218,9 @@ public class KisDto {
         private List<IntstockMultpriceResponseItem> output;
     }
 
+    /**
+     * 관심종목(멀티종목) 시세조회 응답 상세 항목 DTO
+     */
     @AllArgsConstructor
     @NoArgsConstructor
     @Data
@@ -220,7 +257,10 @@ public class KisDto {
         private String inter2_sdpr;           // 관심2 기준가
     }
 
-    @AllArgsConstructor
+    /**
+     * API 요청 시 사용되는 종목 정보 DTO (시장 구분 코드 및 종목 코드)
+     */
+    @AllArgsConstructor(staticName = "of")
     @NoArgsConstructor
     @Data
     @Builder

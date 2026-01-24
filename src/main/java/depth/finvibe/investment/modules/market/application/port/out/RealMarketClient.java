@@ -16,4 +16,6 @@ public interface RealMarketClient {
     List<PriceCandleDto.Response> fetchPriceCandles(Long stockId, LocalDateTime startTime, LocalDateTime endTime, Timeframe timeframe);
 
     List<StockDto.RankingResponse> fetchStockRankings();
+
+    List<PriceCandleDto.Response> bulkFetchCurrentPrices(List<String> stockSymbols);
 }

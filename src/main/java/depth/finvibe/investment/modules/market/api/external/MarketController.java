@@ -1,19 +1,20 @@
 package depth.finvibe.investment.modules.market.api.external;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
 import depth.finvibe.investment.modules.market.application.port.in.MarketQueryUseCase;
+import depth.finvibe.investment.modules.market.domain.enums.MarketSearchType;
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
 import depth.finvibe.investment.modules.market.domain.error.MarketErrorCode;
 import depth.finvibe.investment.modules.market.dto.CurrentPriceDto;
 import depth.finvibe.investment.modules.market.dto.PriceCandleDto;
 import depth.finvibe.investment.modules.market.dto.StockDto;
 import depth.finvibe.investment.shared.error.DomainException;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDateTime;
-import java.util.List;
-
 @RestController
 @RequestMapping("/market")
 @RequiredArgsConstructor
@@ -82,6 +83,15 @@ public class MarketController {
     @GetMapping("/stocks/top-falling")
     public ResponseEntity<List<StockDto.Response>> getTopFallingStocks() {
         List<StockDto.Response> stocks = marketQueryUseCase.getTopFallingStocks();
+        return ResponseEntity.ok(stocks);
+    }
+
+    @GetMapping("/stocks/search")
+    public ResponseEntity<List<StockDto.Response>> searchStocks(
+            @RequestParam(defaultValue = "") String query,
+            @RequestParam(defaultValue = "ALL") MarketSearchType marketType
+    ) {
+        List<StockDto.Response> stocks = marketQueryUseCase.searchStocks(query, marketType);
         return ResponseEntity.ok(stocks);
     }
 }

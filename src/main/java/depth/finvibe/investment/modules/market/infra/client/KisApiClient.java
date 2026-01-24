@@ -34,6 +34,7 @@ public class KisApiClient {
 
     /**
      * <a href="https://apiportal.koreainvestment.com/apiservice-apiservice?/uapi/domestic-stock/v1/quotations/psearch-result">종목조건검색조회 API</a>
+     * 거래대금, 거래량, 상승률, 하락률 등 특정 조건으로 상위 종목들을 검색합니다.
      * @param condition 조건 번호
      * @return 조건에 해당하는 종목 리스트
      */
@@ -54,6 +55,7 @@ public class KisApiClient {
 
     /**
      * <a href="https://apiportal.koreainvestment.com/apiservice-apiservice?/uapi/domestic-stock/v1/quotations/inquire-time-dailychartprice">주식일별분봉조회 API</a>
+     * 특정 시간 기준으로 과거 2시간 동안의 1분봉 차트 데이터를 조회합니다.
      * 최대 120개의 분봉만 한번에 조회할 수 있음.
      * 조회할 시간부터 2시간 전의 시간까지 조회됨 (예: 130000 조회 시 130000~110000 1분 단위로 120개 조회됨, 순서는 최신 데이터가 먼저)
      */
@@ -85,6 +87,7 @@ public class KisApiClient {
 
     /**
      * <a href="https://apiportal.koreainvestment.com/apiservice-apiservice?/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice">국내주식기간별시세(일/주/월/년) API</a>
+     * 일/주/월/년 단위로 특정 기간 동안의 주가 차트 데이터를 조회합니다.
      */
     public KisDto.DailyItemChartPriceResponse fetchDailyItemChartPrice(
             String marketCode,
@@ -111,6 +114,7 @@ public class KisApiClient {
 
     /**
      * <a href="https://apiportal.koreainvestment.com/apiservice-apiservice?/uapi/domestic-stock/v1/quotations/intstock-multprice">관심종목(멀티종목) 시세조회 API [국내주식-205]</a>
+     * 한 번의 API 호출로 최대 30개 종목의 실시간 시세 정보를 동시에 조회합니다.
      * 한 번의 호출에 최대 30종목의 시세 확인 가능합니다.
      * @param stocks 종목 정보 리스트 (최대 30개)
      * @return 관심종목 시세 리스트
