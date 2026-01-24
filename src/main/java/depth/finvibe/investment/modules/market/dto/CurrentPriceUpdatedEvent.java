@@ -1,6 +1,5 @@
 package depth.finvibe.investment.modules.market.dto;
 
-import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,7 +14,6 @@ import java.time.LocalDateTime;
 @Builder
 public class CurrentPriceUpdatedEvent {
     private Long stockId;
-    private Timeframe timeframe;
     private LocalDateTime at;
     private BigDecimal open;
     private BigDecimal high;

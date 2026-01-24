@@ -7,18 +7,11 @@ import lombok.Getter;
 
 import java.util.UUID;
 
-@AllArgsConstructor
+@AllArgsConstructor(staticName = "create")
 @Getter
 @Builder
 @EqualsAndHashCode
 public class CurrentStockWatcher {
     private final Long stockId;
     private final UUID watcherId;
-
-    public static CurrentStockWatcher create(Long stockId, UUID watcherId) {
-        return CurrentStockWatcher.builder()
-                .stockId(stockId)
-                .watcherId(watcherId)
-                .build();
-    }
 }

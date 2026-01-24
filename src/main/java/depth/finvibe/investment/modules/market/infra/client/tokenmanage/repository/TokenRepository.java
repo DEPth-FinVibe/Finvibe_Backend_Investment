@@ -3,13 +3,13 @@ package depth.finvibe.investment.modules.market.infra.client.tokenmanage.reposit
 import java.time.LocalDateTime;
 
 public interface TokenRepository {
-    String getAccessToken();
+    String getAccessToken(String appKey);
 
-    LocalDateTime getExpiresAt();
+    LocalDateTime getExpiresAt(String appKey);
 
-    void saveToken(String token, LocalDateTime expiresAt);
+    void saveToken(String appKey, String token, LocalDateTime expiresAt);
 
-    boolean acquireRefreshLock();
+    boolean acquireRefreshLock(String appKey);
 
-    void releaseRefreshLock();
+    void releaseRefreshLock(String appKey);
 }

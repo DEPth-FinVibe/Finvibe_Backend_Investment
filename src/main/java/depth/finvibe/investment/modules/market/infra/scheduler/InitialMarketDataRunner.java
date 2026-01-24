@@ -62,6 +62,7 @@ public class InitialMarketDataRunner implements CommandLineRunner {
         }
 
         log.info("어플리케이션 초기화 작업을 위해 주식 데이터를 최초로 적재합니다.");
+
         stockCommandUseCase.bulkUpsertStocks();
         stockCommandUseCase.renewStockCharts();
     }

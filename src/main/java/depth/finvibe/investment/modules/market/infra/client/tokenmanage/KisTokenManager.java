@@ -1,92 +1,102 @@
 package depth.finvibe.investment.modules.market.infra.client.tokenmanage;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-import depth.finvibe.investment.modules.market.infra.client.tokenmanage.repository.TokenRepository;
-
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+import depth.finvibe.investment.modules.market.infra.client.KisCredentialAllocator;
+import depth.finvibe.investment.modules.market.infra.client.tokenmanage.repository.TokenRepository;
+import depth.finvibe.investment.modules.market.infra.config.KisCredentialsProperties.Credential;
 
 @Component
 @RequiredArgsConstructor
 public class KisTokenManager {
 
-    private final KisTokenClient tokenClient;
-    private final TokenRepository tokenRepository;
-    private volatile String accessToken;
-
     private static final ZoneId KIS_ZONE = ZoneId.of("Asia/Seoul");
 
-    public String getAccessToken() {
-        if (accessToken != null) {
-            return accessToken;
+    private final KisTokenClient tokenClient;
+    private final TokenRepository tokenRepository;
+    private final KisCredentialAllocator credentialAllocator;
+
+    private final Map<String, CachedToken> tokenCache = new ConcurrentHashMap<>();
+
+    public String getAccessToken(Credential credential) {
+        CachedToken cached = tokenCache.get(credential.appKey());
+        if (cached != null && !cached.isExpiringSoon()) {
+            return cached.token();
         }
-        CachedToken cachedToken = readTokenFromRepository();
-        if (cachedToken != null && !cachedToken.isExpiringSoon()) {
-            this.accessToken = cachedToken.token();
-            return accessToken;
+
+        CachedToken stored = readTokenFromRepository(credential.appKey());
+        if (stored != null && !stored.isExpiringSoon()) {
+            tokenCache.put(credential.appKey(), stored);
+            return stored.token();
         }
-        refreshToken();
-        return accessToken;
+
+        CachedToken refreshed = refreshToken(credential);
+        return refreshed == null ? null : refreshed.token();
     }
 
-    public LocalDateTime initAndGetNextRefreshTime() {
-        CachedToken cachedToken = readTokenFromRepository();
-        if (cachedToken == null || cachedToken.isExpiringSoon()) {
-            return refreshTokenAndGetNextRefreshTime();
+    public void refreshTokensForAllocatedCredentials() {
+        List<Credential> allocated = credentialAllocator.getAllocatedCredentials();
+        for (Credential credential : allocated) {
+            CachedToken cached = readTokenFromRepository(credential.appKey());
+            if (cached == null || cached.isExpiringSoon()) {
+                refreshToken(credential);
+            } else {
+                tokenCache.put(credential.appKey(), cached);
+            }
         }
-        this.accessToken = cachedToken.token();
-        return calculateNextRefreshTime(cachedToken.expiresAt());
     }
 
-    public LocalDateTime refreshTokenAndGetNextRefreshTime() {
-        CachedToken refreshed = refreshToken();
-        if (refreshed == null) {
-            return null;
+    private CachedToken refreshToken(Credential credential) {
+        if (!tokenRepository.acquireRefreshLock(credential.appKey())) {
+            waitForSharedToken(credential.appKey());
+            CachedToken cachedToken = readTokenFromRepository(credential.appKey());
+            if (cachedToken != null) {
+                tokenCache.put(credential.appKey(), cachedToken);
+            }
+            return cachedToken;
         }
-        return calculateNextRefreshTime(refreshed.expiresAt());
-    }
 
-    public CachedToken refreshToken() {
-        if (!tokenRepository.acquireRefreshLock()) {
-            waitForSharedToken();
-            return readTokenFromRepository();
-        }
         try {
-            KisTokenClient.TokenResponse response = tokenClient.requestAccessToken();
+            KisTokenClient.TokenResponse response = tokenClient.requestAccessToken(
+                    credential.appKey(),
+                    credential.appSecret()
+            );
             if (response == null) {
                 return null;
             }
+
             LocalDateTime expiresAt = LocalDateTime.now(KIS_ZONE).plusSeconds(response.expiresIn());
-            tokenRepository.saveToken(response.accessToken(), expiresAt);
-            this.accessToken = response.accessToken();
-            return new CachedToken(response.accessToken(), expiresAt);
+            CachedToken cachedToken = new CachedToken(response.accessToken(), expiresAt);
+            tokenRepository.saveToken(credential.appKey(), response.accessToken(), expiresAt);
+            tokenCache.put(credential.appKey(), cachedToken);
+            return cachedToken;
         } finally {
-            tokenRepository.releaseRefreshLock();
+            tokenRepository.releaseRefreshLock(credential.appKey());
         }
     }
 
-    private LocalDateTime calculateNextRefreshTime(LocalDateTime expiresAt) {
-        LocalDateTime sixHoursLater = LocalDateTime.now(KIS_ZONE).plusHours(6);
-        LocalDateTime safeRefreshTime = expiresAt.minusMinutes(10);
-        return safeRefreshTime.isBefore(sixHoursLater) ? safeRefreshTime : sixHoursLater;
-    }
-
-    private CachedToken readTokenFromRepository() {
-        String token = tokenRepository.getAccessToken();
-        LocalDateTime expiresAt = tokenRepository.getExpiresAt();
+    private CachedToken readTokenFromRepository(String appKey) {
+        String token = tokenRepository.getAccessToken(appKey);
+        LocalDateTime expiresAt = tokenRepository.getExpiresAt(appKey);
         if (token == null || expiresAt == null) {
             return null;
         }
         return new CachedToken(token, expiresAt);
     }
 
-    private void waitForSharedToken() {
+    private void waitForSharedToken(String appKey) {
         int attempts = 10;
         while (attempts-- > 0) {
-            CachedToken cachedToken = readTokenFromRepository();
+            CachedToken cachedToken = readTokenFromRepository(appKey);
             if (cachedToken != null && !cachedToken.isExpiringSoon()) {
-                this.accessToken = cachedToken.token();
+                tokenCache.put(appKey, cachedToken);
                 return;
             }
             try {
