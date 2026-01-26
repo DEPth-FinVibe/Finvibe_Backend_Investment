@@ -154,3 +154,6 @@ modules/{module}/
 ## Helpful References
 - `docs/external-api-spec.md`
 - `README.md`
+
+## 추가 정보
+- 사용자에게 응답할땐 항상 한국어로 응답할것
