@@ -1,11 +1,14 @@
 package depth.finvibe.investment.modules.market.infra.persistence;
 
-import depth.finvibe.investment.modules.market.application.port.out.HoldingStockRepository;
-import depth.finvibe.investment.modules.market.domain.HoldingStock;
+import java.util.List;
 import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+
+import depth.finvibe.investment.modules.market.application.port.out.HoldingStockRepository;
+import depth.finvibe.investment.modules.market.domain.HoldingStock;
 
 @Repository
 @RequiredArgsConstructor
@@ -24,6 +27,12 @@ public class HoldingStockRepositoryImpl implements HoldingStockRepository {
     public void unregisterHoldingStock(Long stockId, UUID userId) {
         jpaRepository.findByStockIdAndUserId(stockId, userId)
                 .ifPresent(jpaRepository::delete);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Long> findAllDistinctStockIds() {
+        return jpaRepository.findAllDistinctStockIds();
     }
 }
 
