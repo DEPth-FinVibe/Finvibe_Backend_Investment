@@ -1,13 +1,14 @@
 package depth.finvibe.investment.modules.asset.infra.persistence;
 
-import depth.finvibe.investment.modules.asset.application.port.out.PortfolioGroupRepository;
-import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Repository;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+
+import depth.finvibe.investment.modules.asset.application.port.out.PortfolioGroupRepository;
+import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
 
 @Repository
 @RequiredArgsConstructor
@@ -36,8 +37,18 @@ public class PortfolioGroupRepositoryImpl implements PortfolioGroupRepository {
     }
 
     @Override
+    public List<PortfolioGroup> findAllWithAssets() {
+        return queryRepository.findAllWithAssets();
+    }
+
+    @Override
     public Optional<PortfolioGroup> findDefaultByUserId(UUID userId) {
         return queryRepository.findDefaultByUserId(userId);
+    }
+
+    @Override
+    public List<PortfolioGroup> findAllByStockIdsWithAssets(List<Long> stockIds) {
+        return queryRepository.findAllByStockIdsWithAssets(stockIds);
     }
 
     @Override

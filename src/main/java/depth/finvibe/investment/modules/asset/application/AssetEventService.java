@@ -1,22 +1,27 @@
 package depth.finvibe.investment.modules.asset.application;
 
-import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUseCase;
-import depth.finvibe.investment.modules.asset.domain.Currency;
-import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
-import depth.finvibe.investment.shared.dto.SignUpEvent;
-import depth.finvibe.investment.shared.dto.TradeExecutedEvent;
+import java.util.UUID;
+
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
+import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUseCase;
+import depth.finvibe.investment.modules.asset.application.port.in.AssetEventUseCase;
+import depth.finvibe.investment.modules.asset.application.port.in.ProfitCalculationUseCase;
+import depth.finvibe.investment.modules.asset.domain.Currency;
+import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
+import depth.finvibe.investment.shared.dto.BatchPriceUpdatedEvent;
+import depth.finvibe.investment.shared.dto.SignUpEvent;
+import depth.finvibe.investment.shared.dto.TradeExecutedEvent;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class AssetEventService {
+public class AssetEventService implements AssetEventUseCase {
     private final AssetCommandUseCase commandUseCase;
+    private final ProfitCalculationUseCase profitCalculationService;
 
     @Transactional
     public void handleTradeExecutedEvent(TradeExecutedEvent event) {
@@ -40,6 +45,11 @@ public class AssetEventService {
     public void handleSignUpEvent(SignUpEvent event) {
         UUID userId = UUID.fromString(event.getUserId());
         commandUseCase.createDefaultPortfolioGroup(userId);
+    }
+
+    @Transactional
+    public void handleBatchPriceUpdatedEvent(BatchPriceUpdatedEvent event) {
+        profitCalculationService.recalculateAllProfits(event.getUpdatedStockIds());
     }
 
     private PortfolioGroupDto.RegisterAssetRequest createRegisterRequestFrom(TradeExecutedEvent event) {

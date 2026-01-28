@@ -1,5 +1,6 @@
 package depth.finvibe.investment.modules.market.application;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -8,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import depth.finvibe.investment.modules.market.application.port.out.BatchPriceEventProducer;
 import depth.finvibe.investment.modules.market.application.port.out.BatchUpdatePriceRepository;
 import depth.finvibe.investment.modules.market.application.port.out.HoldingStockRepository;
 import depth.finvibe.investment.modules.market.application.port.out.RealMarketClient;
@@ -15,6 +17,7 @@ import depth.finvibe.investment.modules.market.application.port.out.StockReposit
 import depth.finvibe.investment.modules.market.domain.BatchUpdatePrice;
 import depth.finvibe.investment.modules.market.domain.Stock;
 import depth.finvibe.investment.modules.market.dto.PriceCandleDto;
+import depth.finvibe.investment.shared.dto.BatchPriceUpdatedEvent;
 
 @Slf4j
 @Service
@@ -25,6 +28,7 @@ public class BatchPriceUpdateService {
   private final StockRepository stockRepository;
   private final RealMarketClient realMarketClient;
   private final BatchUpdatePriceRepository batchUpdatePriceRepository;
+  private final BatchPriceEventProducer batchPriceEventProducer;
 
   public void updateHoldingStockPrices() {
     log.info("Starting batch price update for holding stocks");
@@ -72,6 +76,14 @@ public class BatchPriceUpdateService {
       batchUpdatePriceRepository.saveAll(batchPrices);
 
       log.info("Successfully saved {} batch price updates to Redis", batchPrices.size());
+
+      BatchPriceUpdatedEvent event = BatchPriceUpdatedEvent.builder()
+              .batchExecutedAt(LocalDateTime.now())
+              .totalStockCount(batchPrices.size())
+              .updatedStockIds(batchPrices.stream().map(BatchUpdatePrice::getStockId).toList())
+              .build();
+      batchPriceEventProducer.publishBatchPriceUpdated(event);
+      log.info("Published batch price updated event for {} stocks", batchPrices.size());
     } catch (Exception e) {
       log.error("Failed to update batch prices for holding stocks", e);
       throw e;

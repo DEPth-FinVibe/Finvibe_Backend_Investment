@@ -1,19 +1,21 @@
 package depth.finvibe.investment.modules.trade.application;
 
-import depth.finvibe.investment.modules.trade.application.port.in.TradeCommandUseCase;
-import depth.finvibe.investment.modules.trade.domain.error.TradeErrorCode;
-import depth.finvibe.investment.modules.trade.dto.TradeDto;
-import depth.finvibe.investment.shared.dto.ReservationSatisfiedEvent;
-import depth.finvibe.investment.shared.error.DomainException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import depth.finvibe.investment.modules.trade.application.port.in.TradeCommandUseCase;
+import depth.finvibe.investment.modules.trade.application.port.in.TradeEventUseCase;
+import depth.finvibe.investment.modules.trade.domain.error.TradeErrorCode;
+import depth.finvibe.investment.modules.trade.dto.TradeDto;
+import depth.finvibe.investment.shared.dto.ReservationSatisfiedEvent;
+import depth.finvibe.investment.shared.error.DomainException;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class TradeEventService {
+public class TradeEventService implements TradeEventUseCase {
 
     private final TradeCommandUseCase tradeCommandUseCase;
 

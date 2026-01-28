@@ -1,22 +1,19 @@
 package depth.finvibe.investment.modules.market.application;
 
-import depth.finvibe.investment.modules.market.application.port.in.CurrentPriceCommandUseCase;
-import depth.finvibe.investment.shared.dto.StockHoldingChangedEvent;
-import depth.finvibe.investment.shared.dto.TradeExecutedEvent;
-import depth.finvibe.investment.shared.dto.UserLoginedEvent;
-import depth.finvibe.investment.shared.dto.UserLogoutedEvent;
-import jakarta.transaction.Transactional;
+import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.util.UUID;
+import depth.finvibe.investment.modules.market.application.port.in.CurrentPriceCommandUseCase;
+import depth.finvibe.investment.modules.market.application.port.in.MarketEventUseCase;
+import depth.finvibe.investment.shared.dto.StockHoldingChangedEvent;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class MarketEventService {
+public class MarketEventService implements MarketEventUseCase {
 
     private final CurrentPriceCommandUseCase currentPriceCommandUseCase;
 
