@@ -39,4 +39,18 @@ public class BatchUpdatePrice {
             .value(priceCandle.getValue())
             .build();
   }
+
+  public static BatchUpdatePrice from(CurrentPrice currentPrice) {
+    return BatchUpdatePrice.builder()
+            .stockId(currentPrice.getStockId())
+            .at(currentPrice.getAt())
+            .price(currentPrice.getPrice())
+            .open(currentPrice.getOpen())
+            .high(currentPrice.getHigh())
+            .low(currentPrice.getLow())
+            .prevDayChangePct(currentPrice.getPrevDayChangePct())
+            .volume(currentPrice.getVolume())
+            .value(currentPrice.getValue())
+            .build();
+  }
 }
