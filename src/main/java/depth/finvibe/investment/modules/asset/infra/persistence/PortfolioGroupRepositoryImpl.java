@@ -37,6 +37,11 @@ public class PortfolioGroupRepositoryImpl implements PortfolioGroupRepository {
     }
 
     @Override
+    public List<PortfolioGroup> findAllWithAssets() {
+        return queryRepository.findAllWithAssets();
+    }
+
+    @Override
     public Optional<PortfolioGroup> findDefaultByUserId(UUID userId) {
         return queryRepository.findDefaultByUserId(userId);
     }

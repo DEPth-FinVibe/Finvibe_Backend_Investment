@@ -8,28 +8,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import depth.finvibe.investment.modules.market.application.BatchPriceQueryService;
-import depth.finvibe.investment.modules.market.domain.BatchUpdatePrice;
+import depth.finvibe.investment.modules.market.application.port.in.BatchPriceQueryUseCase;
 import depth.finvibe.investment.shared.dto.BatchPriceSnapshot;
 
 @RestController
 @RequestMapping("/internal/market")
 @RequiredArgsConstructor
 public class MarketInternalController {
-    private final BatchPriceQueryService batchPriceQueryService;
+    private final BatchPriceQueryUseCase batchPriceQueryService;
 
     @GetMapping("/batch-prices")
     public List<BatchPriceSnapshot> getBatchPrices(@RequestParam List<Long> stockIds) {
-        return batchPriceQueryService.getBatchPrices(stockIds).stream()
-                .map(this::toSnapshot)
-                .toList();
-    }
-
-    private BatchPriceSnapshot toSnapshot(BatchUpdatePrice price) {
-        return BatchPriceSnapshot.builder()
-                .stockId(price.getStockId())
-                .price(price.getPrice())
-                .at(price.getAt())
-                .build();
+        return batchPriceQueryService.getBatchPrices(stockIds);
     }
 }

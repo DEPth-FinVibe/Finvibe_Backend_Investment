@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUseCase;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetEventUseCase;
+import depth.finvibe.investment.modules.asset.application.port.in.ProfitCalculationUseCase;
 import depth.finvibe.investment.modules.asset.domain.Currency;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
 import depth.finvibe.investment.shared.dto.BatchPriceUpdatedEvent;
@@ -20,7 +21,7 @@ import depth.finvibe.investment.shared.dto.TradeExecutedEvent;
 @Slf4j
 public class AssetEventService implements AssetEventUseCase {
     private final AssetCommandUseCase commandUseCase;
-    private final ProfitCalculationService profitCalculationService;
+    private final ProfitCalculationUseCase profitCalculationService;
 
     @Transactional
     public void handleTradeExecutedEvent(TradeExecutedEvent event) {

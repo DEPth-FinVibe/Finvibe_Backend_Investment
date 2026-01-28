@@ -5,15 +5,28 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import depth.finvibe.investment.modules.market.application.port.in.BatchPriceQueryUseCase;
 import depth.finvibe.investment.modules.market.application.port.out.BatchUpdatePriceRepository;
 import depth.finvibe.investment.modules.market.domain.BatchUpdatePrice;
+import depth.finvibe.investment.shared.dto.BatchPriceSnapshot;
 
 @Service
 @RequiredArgsConstructor
-public class BatchPriceQueryService {
+public class BatchPriceQueryService implements BatchPriceQueryUseCase {
     private final BatchUpdatePriceRepository batchUpdatePriceRepository;
 
-    public List<BatchUpdatePrice> getBatchPrices(List<Long> stockIds) {
-        return batchUpdatePriceRepository.findByStockIds(stockIds);
+    @Override
+    public List<BatchPriceSnapshot> getBatchPrices(List<Long> stockIds) {
+        return batchUpdatePriceRepository.findByStockIds(stockIds).stream()
+                .map(this::toSnapshot)
+                .toList();
+    }
+
+    private BatchPriceSnapshot toSnapshot(BatchUpdatePrice price) {
+        return BatchPriceSnapshot.builder()
+                .stockId(price.getStockId())
+                .price(price.getPrice())
+                .at(price.getAt())
+                .build();
     }
 }

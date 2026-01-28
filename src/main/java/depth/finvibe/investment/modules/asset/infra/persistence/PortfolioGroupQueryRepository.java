@@ -38,6 +38,14 @@ public class PortfolioGroupQueryRepository {
         );
     }
 
+    public List<PortfolioGroup> findAllWithAssets() {
+        return queryFactory
+                .selectFrom(portfolioGroup)
+                .leftJoin(portfolioGroup.assets, asset).fetchJoin()
+                .distinct()
+                .fetch();
+    }
+
     public List<PortfolioGroup> findAllByStockIdsWithAssets(List<Long> stockIds) {
         return queryFactory
                 .selectFrom(portfolioGroup)
