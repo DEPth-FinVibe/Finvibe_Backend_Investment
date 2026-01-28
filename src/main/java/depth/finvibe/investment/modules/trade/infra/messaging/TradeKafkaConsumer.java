@@ -1,18 +1,19 @@
 package depth.finvibe.investment.modules.trade.infra.messaging;
 
-import depth.finvibe.investment.modules.trade.application.TradeEventService;
-import depth.finvibe.investment.shared.dto.ReservationSatisfiedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
+import depth.finvibe.investment.modules.trade.application.port.in.TradeEventUseCase;
+import depth.finvibe.investment.shared.dto.ReservationSatisfiedEvent;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class TradeKafkaConsumer {
-    private final TradeEventService tradeEventService;
+    private final TradeEventUseCase tradeEventService;
 
     @KafkaListener(
             topics = "market.reservation-satisfied.v1",

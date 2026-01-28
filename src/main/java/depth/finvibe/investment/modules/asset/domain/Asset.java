@@ -3,8 +3,6 @@ package depth.finvibe.investment.modules.asset.domain;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-import depth.finvibe.investment.modules.asset.domain.Currency;
-import depth.finvibe.investment.shared.domain.TimeStampedBaseEntity;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.AttributeOverrides;
 import jakarta.persistence.Column;
@@ -21,6 +19,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+
+import depth.finvibe.investment.shared.domain.TimeStampedBaseEntity;
 
 @Entity
 @Getter
@@ -40,6 +40,15 @@ public class Asset extends TimeStampedBaseEntity {
     })
     private Money totalPrice;
 
+    @Embedded
+    @AttributeOverrides({
+        @AttributeOverride(name = "currentValue", column = @Column(name = "current_value")),
+        @AttributeOverride(name = "profitLoss", column = @Column(name = "profit_loss")),
+        @AttributeOverride(name = "returnRate", column = @Column(name = "return_rate")),
+        @AttributeOverride(name = "calculatedAt", column = @Column(name = "valuation_calculated_at"))
+    })
+    private AssetValuation valuation;
+
     private String name;
 
     private Long stockId;
@@ -58,6 +67,10 @@ public class Asset extends TimeStampedBaseEntity {
     public void partialSell(BigDecimal amount, Money totalPrice) {
         this.amount = this.amount.subtract(amount);
         this.totalPrice = this.totalPrice.minus(totalPrice);
+    }
+
+    public void updateValuation(BigDecimal currentPrice) {
+        this.valuation = AssetValuation.calculate(this.amount, this.totalPrice, currentPrice);
     }
 
     public static Asset create(BigDecimal amount, BigDecimal unitPrice, Currency currency, String name, Long stockId, UUID userId) {

@@ -1,21 +1,32 @@
 package depth.finvibe.investment.modules.asset.domain;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.AttributeOverrides;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import depth.finvibe.investment.modules.asset.domain.error.AssetErrorCode;
 import depth.finvibe.investment.shared.domain.TimeStampedBaseEntity;
 import depth.finvibe.investment.shared.error.DomainException;
-import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Builder;
-import lombok.experimental.SuperBuilder;
-import lombok.AllArgsConstructor;
-import java.util.List;
-import java.util.ArrayList;
 
 @Entity
 @Getter
@@ -45,6 +56,15 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
     @OneToMany(mappedBy = "portfolioGroup", fetch = FetchType.LAZY, orphanRemoval = true, cascade = CascadeType.ALL)
     @Builder.Default
     private List<Asset> assets = new ArrayList<>();
+
+    @Embedded
+    @AttributeOverrides({
+        @AttributeOverride(name = "totalCurrentValue", column = @Column(name = "total_current_value")),
+        @AttributeOverride(name = "totalProfitLoss", column = @Column(name = "total_profit_loss")),
+        @AttributeOverride(name = "totalReturnRate", column = @Column(name = "total_return_rate")),
+        @AttributeOverride(name = "calculatedAt", column = @Column(name = "portfolio_valuation_calculated_at"))
+    })
+    private PortfolioValuation valuation;
 
     public static PortfolioGroup create(String name, UUID userId, String iconCode) {
         if(name == null || name.isBlank() || userId == null) {
@@ -153,5 +173,26 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
             }
         }
         this.assets.clear();
+    }
+
+    public void recalculateValuation() {
+        List<Asset> valuedAssets = assets.stream()
+                .filter(asset -> asset.getValuation() != null)
+                .toList();
+
+        if (valuedAssets.isEmpty()) {
+            this.valuation = PortfolioValuation.empty();
+            return;
+        }
+
+        BigDecimal totalPurchaseAmount = valuedAssets.stream()
+                .map(asset -> asset.getTotalPrice().getAmount())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        List<AssetValuation> assetValuations = valuedAssets.stream()
+                .map(Asset::getValuation)
+                .toList();
+
+        this.valuation = PortfolioValuation.aggregate(assetValuations, totalPurchaseAmount);
     }
 }

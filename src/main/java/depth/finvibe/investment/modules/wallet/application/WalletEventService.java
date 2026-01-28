@@ -1,19 +1,21 @@
 package depth.finvibe.investment.modules.wallet.application;
 
-import depth.finvibe.investment.modules.wallet.application.port.in.WalletCommandUseCase;
-import depth.finvibe.investment.shared.dto.SignUpEvent;
-import depth.finvibe.investment.shared.dto.TradeExecutedEvent;
+import java.util.UUID;
+
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
+import depth.finvibe.investment.modules.wallet.application.port.in.WalletCommandUseCase;
+import depth.finvibe.investment.modules.wallet.application.port.in.WalletEventUseCase;
+import depth.finvibe.investment.shared.dto.SignUpEvent;
+import depth.finvibe.investment.shared.dto.TradeExecutedEvent;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class WalletEventService {
+public class WalletEventService implements WalletEventUseCase {
     private final WalletCommandUseCase commandUseCase;
 
     @Transactional

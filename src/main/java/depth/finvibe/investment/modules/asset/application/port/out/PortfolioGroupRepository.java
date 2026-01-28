@@ -1,10 +1,10 @@
 package depth.finvibe.investment.modules.asset.application.port.out;
 
-import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
 
 public interface PortfolioGroupRepository {
     PortfolioGroup save(PortfolioGroup portfolioGroup);
@@ -16,6 +16,8 @@ public interface PortfolioGroupRepository {
     List<PortfolioGroup> findAllByUserId(UUID userId);
 
     Optional<PortfolioGroup> findDefaultByUserId(UUID userId);
+
+    List<PortfolioGroup> findAllByStockIdsWithAssets(List<Long> stockIds);
 
     void delete(PortfolioGroup existing);
 
