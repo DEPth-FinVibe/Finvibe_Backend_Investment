@@ -16,6 +16,7 @@ import depth.finvibe.investment.modules.market.domain.enums.MarketType;
 import depth.finvibe.investment.modules.market.domain.enums.RankType;
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
 import depth.finvibe.investment.modules.market.domain.error.MarketErrorCode;
+import depth.finvibe.investment.modules.market.dto.ClosingPriceDto;
 import depth.finvibe.investment.modules.market.dto.CurrentPriceDto;
 import depth.finvibe.investment.modules.market.dto.PriceCandleDto;
 import depth.finvibe.investment.modules.market.dto.StockDto;
@@ -237,6 +238,59 @@ public class MarketQueryService implements MarketQueryUseCase {
                 .filter(price -> stockMap.containsKey(price.getStockId()))
                 .map(price -> CurrentPriceDto.Response.of(price, stockMap.get(price.getStockId())))
                 .toList();
+    }
+
+    @Override
+    public List<ClosingPriceDto.Response> getClosingPrices(List<Long> stockIds) {
+        if (stockIds == null || stockIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<Stock> stocks = stockRepository.findAllById(stockIds);
+        Map<Long, Stock> stockMap = stocks.stream()
+                .collect(Collectors.toMap(Stock::getId, stock -> stock));
+
+        if (stockMap.size() != new HashSet<>(stockIds).size()) {
+            Set<Long> missingStockIds = new HashSet<>(stockIds);
+            missingStockIds.removeAll(stockMap.keySet());
+            log.warn("Some stockIds are missing in DB. stockIds={}", missingStockIds);
+        }
+
+        List<PriceCandle> candles = priceCandleRepository.findLatestByStockIdsAndTimeframe(stockIds, Timeframe.DAY);
+        Set<Long> fetchedStockIds = candles.stream()
+                .map(PriceCandle::getStockId)
+                .collect(Collectors.toSet());
+
+        List<Long> missingStockIds = stockIds.stream()
+                .filter(stockMap::containsKey)
+                .filter(stockId -> !fetchedStockIds.contains(stockId))
+                .toList();
+
+        if (!missingStockIds.isEmpty()) {
+            fetchLatestDailyCandles(missingStockIds);
+            candles = priceCandleRepository.findLatestByStockIdsAndTimeframe(stockIds, Timeframe.DAY);
+        }
+
+        return candles.stream()
+                .filter(candle -> !candle.getIsMissing())
+                .filter(candle -> stockMap.containsKey(candle.getStockId()))
+                .map(candle -> ClosingPriceDto.Response.from(candle, stockMap.get(candle.getStockId())))
+                .toList();
+    }
+
+    private void fetchLatestDailyCandles(List<Long> stockIds) {
+        LocalDateTime endTime = Timeframe.DAY.lastCompletedTime(LocalDateTime.now());
+        LocalDateTime startTime = endTime.minusDays(30);
+
+        for (Long stockId : stockIds) {
+            String lockKey = String.format("stock:candle:%d:%s", stockId, Timeframe.DAY);
+            distributedLockManager.executeWithLock(
+                    lockKey,
+                    Duration.ofSeconds(10),
+                    Duration.ofSeconds(60),
+                    () -> fetchStockCandlesWithLock(stockId, startTime, endTime, Timeframe.DAY)
+            );
+        }
     }
 
     @Override

@@ -28,6 +28,11 @@ public class PriceCandleRepositoryImpl implements PriceCandleRepository {
     }
 
     @Override
+    public List<PriceCandle> findLatestByStockIdsAndTimeframe(List<Long> stockIds, Timeframe timeframe) {
+        return jpaRepository.findLatestByStockIdsAndTimeframe(stockIds, timeframe);
+    }
+
+    @Override
     @Transactional
     public void saveAll(List<PriceCandle> fetchedResult) {
         jpaRepository.saveAll(fetchedResult);

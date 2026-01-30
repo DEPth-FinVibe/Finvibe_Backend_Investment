@@ -325,3 +325,60 @@
 
 #### 응답 (200 OK)
 - 응답 바디는 [거래 상태 조회](#거래-상태-조회)와 동일하며, `tradeType`이 `CANCELLED`로 변경됩니다.
+
+---
+
+## 5. 시장 (Market)
+
+### 장 상태 조회
+`GET /market/status`
+
+**설명**: 국내 시장의 개장/폐장 상태를 조회합니다.
+
+#### 응답 (200 OK)
+| 필드명 | 타입 | 설명 |
+| :--- | :--- | :--- |
+| `status` | String | 장 상태 (`OPEN`, `CLOSED`) |
+
+**응답 예시**:
+```json
+{
+  "status": "OPEN"
+}
+```
+
+### 종가 조회
+`GET /market/stocks/closing-prices`
+
+**설명**: 국내 종목의 최신 종가(마지막 일봉)를 조회합니다.
+
+#### 요청 파라미터
+| 이름 | 타입 | 설명 | 필수 여부 |
+| :--- | :--- | :--- | :--- |
+| `stockIds` | Number[] | 종목 ID 리스트 | Y |
+
+#### 응답 (200 OK)
+| 필드명 | 타입 | 설명 |
+| :--- | :--- | :--- |
+| `stockId` | Number | 종목 식별자 |
+| `stockName` | String | 종목명 |
+| `at` | String (DateTime) | 종가 기준 시각 |
+| `close` | Number | 종가 |
+| `prevDayChangePct` | Number | 전일 대비 등락률 |
+| `volume` | Number | 거래량 |
+| `value` | Number | 거래대금 |
+
+**응답 예시**:
+```json
+[
+  {
+    "stockId": 1,
+    "stockName": "삼성전자",
+    "at": "2024-01-02T15:30:00",
+    "close": 70000,
+    "prevDayChangePct": 0.5,
+    "volume": 12000000,
+    "value": 840000000000
+  }
+]
+```

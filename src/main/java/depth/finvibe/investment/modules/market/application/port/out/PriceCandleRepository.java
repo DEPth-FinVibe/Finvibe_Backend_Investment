@@ -12,5 +12,7 @@ public interface PriceCandleRepository {
 
     List<PriceCandle> findByStockIdAndTimeframeAndAtIn(Long stockId, Timeframe timeframe, List<LocalDateTime> times);
 
+    List<PriceCandle> findLatestByStockIdsAndTimeframe(List<Long> stockIds, Timeframe timeframe);
+
     void saveAll(List<PriceCandle> fetchedResult);
 }

@@ -12,6 +12,7 @@ import depth.finvibe.investment.modules.market.application.port.in.MarketStatusQ
 import depth.finvibe.investment.modules.market.domain.enums.MarketSearchType;
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
 import depth.finvibe.investment.modules.market.domain.error.MarketErrorCode;
+import depth.finvibe.investment.modules.market.dto.ClosingPriceDto;
 import depth.finvibe.investment.modules.market.dto.CurrentPriceDto;
 import depth.finvibe.investment.modules.market.dto.MarketStatusDto;
 import depth.finvibe.investment.modules.market.dto.PriceCandleDto;
@@ -63,6 +64,14 @@ public class MarketController {
     ) {
         List<CurrentPriceDto.Response> currentPrices = marketQueryUseCase.getCurrentPrices(stockIds);
         return ResponseEntity.ok(currentPrices);
+    }
+
+    @GetMapping("/stocks/closing-prices")
+    public ResponseEntity<List<ClosingPriceDto.Response>> getClosingPrices(
+            @RequestParam List<Long> stockIds
+    ) {
+        List<ClosingPriceDto.Response> closingPrices = marketQueryUseCase.getClosingPrices(stockIds);
+        return ResponseEntity.ok(closingPrices);
     }
 
     @GetMapping("/stocks/top-by-value")

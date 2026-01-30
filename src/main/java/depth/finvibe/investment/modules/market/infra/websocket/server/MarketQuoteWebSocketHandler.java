@@ -1,7 +1,5 @@
 package depth.finvibe.investment.modules.market.infra.websocket.server;
 
-import depth.finvibe.investment.boot.security.JwtTokenVerifier;
-import depth.finvibe.investment.boot.security.JwtTokenVerifier.JwtVerificationException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,6 +20,11 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+
+import depth.finvibe.investment.boot.security.JwtTokenVerifier;
+import depth.finvibe.investment.boot.security.JwtTokenVerifier.JwtVerificationException;
+import depth.finvibe.investment.modules.market.domain.MarketHours;
+import depth.finvibe.investment.modules.market.domain.enums.MarketStatus;
 
 @Slf4j
 @Component
@@ -175,7 +178,8 @@ public class MarketQuoteWebSocketHandler extends TextWebSocketHandler {
                     Map.of("limit", MAX_SUBSCRIPTIONS));
         }
 
-        sendSubscribeAck(session, requestId, result, rejected);
+        Map<String, Object> warning = buildMarketClosedWarning();
+        sendSubscribeAck(session, requestId, result, rejected, warning);
     }
 
     private void handleUnsubscribe(WebSocketSession session, MarketWebSocketConnection connection, JsonNode root) {
@@ -228,7 +232,8 @@ public class MarketQuoteWebSocketHandler extends TextWebSocketHandler {
             WebSocketSession session,
             String requestId,
             MarketWebSocketRegistry.SubscribeResult result,
-            List<String> rejected
+            List<String> rejected,
+            Map<String, Object> warning
     ) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("type", "subscribe");
@@ -236,7 +241,22 @@ public class MarketQuoteWebSocketHandler extends TextWebSocketHandler {
         payload.put("subscribed", result.subscribed());
         payload.put("already_subscribed", result.alreadySubscribed());
         payload.put("rejected", rejected);
+        if (warning != null) {
+            payload.put("warning", warning);
+        }
         sendMessage(session, payload);
+    }
+
+    private Map<String, Object> buildMarketClosedWarning() {
+        if (MarketHours.getCurrentStatus() == MarketStatus.OPEN) {
+            return null;
+        }
+        Map<String, Object> warning = new HashMap<>();
+        warning.put("code", "MARKET_CLOSED");
+        warning.put("message", "Market is currently closed. Price updates will resume when market opens.");
+        warning.put("market_status", MarketStatus.CLOSED.name());
+        warning.put("fallback_api", "/market/stocks/closing-prices");
+        return warning;
     }
 
     private void sendUnsubscribeAck(WebSocketSession session, String requestId, MarketWebSocketRegistry.UnsubscribeResult result) {

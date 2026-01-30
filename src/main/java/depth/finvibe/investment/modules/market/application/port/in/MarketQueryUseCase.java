@@ -2,6 +2,7 @@ package depth.finvibe.investment.modules.market.application.port.in;
 
 import depth.finvibe.investment.modules.market.domain.enums.MarketSearchType;
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
+import depth.finvibe.investment.modules.market.dto.ClosingPriceDto;
 import depth.finvibe.investment.modules.market.dto.CurrentPriceDto;
 import depth.finvibe.investment.modules.market.dto.PriceCandleDto;
 import depth.finvibe.investment.modules.market.dto.StockDto;
@@ -19,6 +20,8 @@ public interface MarketQueryUseCase {
     );
 
     List<CurrentPriceDto.Response> getCurrentPrices(List<Long> stockIds);
+
+    List<ClosingPriceDto.Response> getClosingPrices(List<Long> stockIds);
 
     List<StockDto.Response> getTopStocksByValue();
 
