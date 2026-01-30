@@ -183,16 +183,21 @@ public class KisCredentialAllocator {
   private void rebalanceAndRenew() {
         List<Credential> validCredentials = properties.getValidCredentials();
         if (validCredentials.isEmpty()) {
+            log.error("유효한 KIS credential이 없습니다. application-prod.yml의 KIS_API_KEY 환경 변수들을 확인하세요.");
             throw new IllegalStateException("최소 하나의 유효한 KIS credential이 필요합니다");
         }
 
+        log.debug("유효한 credential 개수: {}", validCredentials.size());
         renewAllocatedLocks();
         int targetCount = calculateTargetCount(validCredentials.size());
+        log.debug("목표 credential 할당 개수: {}, 활성 노드 수: {}", targetCount, activeNodeRegistry.getActiveNodeCount());
         adjustAllocation(validCredentials, targetCount);
 
         if (allocatedCredentials.isEmpty()) {
+            log.error("KIS credential 할당 실패. Redis 연결 상태 및 다른 노드의 락 점유 상태를 확인하세요. 유효한 credential: {}", validCredentials.size());
             throw new IllegalStateException("KIS credential allocation failed. No credentials assigned.");
         }
+        log.info("KIS credential 할당 성공 - 할당된 개수: {}/{}", allocatedCredentials.size(), validCredentials.size());
     }
 
     /**
@@ -251,7 +256,7 @@ public class KisCredentialAllocator {
             if (releaseLock(credential.appKey())) {
                 allocatedCredentials.remove(credential.appKey());
                 releaseCount--;
-                log.info("Released KIS credential lock - appKey={}", credential.appKey());
+                log.info("Released KIS credential lock - appKey={}", maskAppKey(credential.appKey()));
             }
         }
     }
@@ -266,8 +271,10 @@ public class KisCredentialAllocator {
    * @param acquireCount 획득할 Credential 개수
    */
   private void acquireMissingCredentials(List<Credential> validCredentials, int acquireCount) {
+        log.debug("부족한 credential 획득 시도 - 목표 개수: {}", acquireCount);
         int attempts = 0;
-        while (acquireCount > 0 && attempts++ < resolveRetryMax()) {
+        int maxRetries = resolveRetryMax();
+        while (acquireCount > 0 && attempts++ < maxRetries) {
             for (Credential credential : validCredentials) {
                 if (allocatedCredentials.containsKey(credential.appKey())) {
                     continue;
@@ -280,7 +287,16 @@ public class KisCredentialAllocator {
                     }
                 }
             }
+            
+            if (acquireCount > 0 && attempts % 10 == 0) {
+                log.warn("Credential 획득 재시도 중 - 시도 횟수: {}/{}, 남은 개수: {}", attempts, maxRetries, acquireCount);
+            }
+            
             sleep(resolveRetryDelayMillis());
+        }
+        
+        if (acquireCount > 0) {
+            log.warn("최대 재시도 횟수 도달 - 획득하지 못한 credential 개수: {}", acquireCount);
         }
     }
 
@@ -299,10 +315,18 @@ public class KisCredentialAllocator {
         );
         if (Boolean.TRUE.equals(acquired)) {
             allocatedCredentials.put(credential.appKey(), credential);
-            log.info("Allocated KIS credential lock - appKey={}", credential.appKey());
+            log.info("Allocated KIS credential lock - appKey={}", maskAppKey(credential.appKey()));
             return true;
         }
+        log.trace("Failed to acquire credential lock - appKey={} (이미 다른 노드가 점유 중)", maskAppKey(credential.appKey()));
         return false;
+    }
+
+    private String maskAppKey(String appKey) {
+        if (appKey == null || appKey.length() < 8) {
+            return "***";
+        }
+        return appKey.substring(0, 4) + "****" + appKey.substring(appKey.length() - 4);
     }
 
     /**

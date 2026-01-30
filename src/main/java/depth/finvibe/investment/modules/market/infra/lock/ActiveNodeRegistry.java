@@ -39,6 +39,7 @@ public class ActiveNodeRegistry {
   public void initialize() {
     this.nodeId = UUID.randomUUID().toString();
     log.info("ActiveNodeRegistry 초기화 완료 - NodeId: {}", nodeId);
+    recordHeartbeat();
   }
 
   /**
