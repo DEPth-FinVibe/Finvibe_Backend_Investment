@@ -8,10 +8,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import depth.finvibe.investment.modules.market.application.port.in.MarketQueryUseCase;
+import depth.finvibe.investment.modules.market.application.port.in.MarketStatusQueryUseCase;
 import depth.finvibe.investment.modules.market.domain.enums.MarketSearchType;
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
 import depth.finvibe.investment.modules.market.domain.error.MarketErrorCode;
 import depth.finvibe.investment.modules.market.dto.CurrentPriceDto;
+import depth.finvibe.investment.modules.market.dto.MarketStatusDto;
 import depth.finvibe.investment.modules.market.dto.PriceCandleDto;
 import depth.finvibe.investment.modules.market.dto.StockDto;
 import depth.finvibe.investment.shared.error.DomainException;
@@ -21,6 +23,7 @@ import depth.finvibe.investment.shared.error.DomainException;
 public class MarketController {
 
     private final MarketQueryUseCase marketQueryUseCase;
+    private final MarketStatusQueryUseCase marketStatusQueryUseCase;
 
     @GetMapping("/stocks/{stockId}/candles")
     public ResponseEntity<List<PriceCandleDto.Response>> getStockCandles(
@@ -93,5 +96,10 @@ public class MarketController {
     ) {
         List<StockDto.Response> stocks = marketQueryUseCase.searchStocks(query, marketType);
         return ResponseEntity.ok(stocks);
+    }
+
+    @GetMapping("/status")
+    public ResponseEntity<MarketStatusDto.Response> getMarketStatus() {
+        return ResponseEntity.ok(marketStatusQueryUseCase.getMarketStatus());
     }
 }

@@ -1,10 +1,6 @@
 package depth.finvibe.investment.modules.market.infra.scheduler;
 
 import java.time.Duration;
-import java.time.DayOfWeek;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +15,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import depth.finvibe.investment.modules.market.application.port.out.CurrentStockWatcherRepository;
 import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
+import depth.finvibe.investment.modules.market.domain.MarketHours;
 import depth.finvibe.investment.modules.market.domain.Stock;
+import depth.finvibe.investment.modules.market.domain.enums.MarketStatus;
 import depth.finvibe.investment.modules.market.infra.lock.ActiveNodeRegistry;
 import depth.finvibe.investment.modules.market.infra.lock.SubscriptionOwnershipManager;
 import depth.finvibe.investment.modules.market.infra.websocket.kis.KisConnectionPool;
@@ -41,9 +39,6 @@ public class KisSubscriptionSynchronizer {
     private static final int MAX_SUBSCRIPTIONS_PER_SESSION = 41;
     private static final Duration SUBSCRIPTION_LOCK_WAIT = Duration.ofMillis(0);
     private static final Duration SUBSCRIPTION_LOCK_LEASE = Duration.ofSeconds(3);
-    private static final ZoneId KIS_ZONE = ZoneId.of("Asia/Seoul");
-    private static final LocalTime MARKET_OPEN_TIME = LocalTime.of(9, 0);
-    private static final LocalTime MARKET_CLOSE_TIME = LocalTime.of(15, 30);
 
     private final CurrentStockWatcherRepository currentStockWatcherRepository;
     private final StockRepository stockRepository;
@@ -80,7 +75,7 @@ public class KisSubscriptionSynchronizer {
             // Heartbeat 기록
             activeNodeRegistry.recordHeartbeat();
 
-            if (!isMarketOpen()) {
+            if (MarketHours.getCurrentStatus() != MarketStatus.OPEN) {
                 handleMarketClosed(nodeId);
                 return;
             }
@@ -111,21 +106,6 @@ public class KisSubscriptionSynchronizer {
         } catch (Exception ex) {
             log.error("KIS 실시간 가격 구독 동기화 실패", ex);
         }
-    }
-
-    private boolean isMarketOpen() {
-        ZonedDateTime now = now();
-        DayOfWeek dayOfWeek = now.getDayOfWeek();
-        if (dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY) {
-            return false;
-        }
-
-        LocalTime currentTime = now.toLocalTime();
-        return !currentTime.isBefore(MARKET_OPEN_TIME) && currentTime.isBefore(MARKET_CLOSE_TIME);
-    }
-
-    ZonedDateTime now() {
-        return ZonedDateTime.now(KIS_ZONE);
     }
 
     private void handleMarketClosed(String nodeId) {

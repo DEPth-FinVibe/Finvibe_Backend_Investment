@@ -1,10 +1,5 @@
 package depth.finvibe.investment.modules.market.infra.scheduler;
 
-import java.time.DayOfWeek;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneId;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
@@ -12,6 +7,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import depth.finvibe.investment.modules.market.application.BatchPriceUpdateService;
+import depth.finvibe.investment.modules.market.domain.MarketHours;
+import depth.finvibe.investment.modules.market.domain.enums.MarketStatus;
 
 @Slf4j
 @Component
@@ -27,7 +24,7 @@ public class BatchPriceUpdateScheduler {
           lockAtLeastFor = "PT1M"
   )
   public void executeBatchPriceUpdate() {
-    if (!isMarketHours()) {
+    if (MarketHours.getCurrentStatus() != MarketStatus.OPEN) {
       log.debug("Skipping batch price update - outside market hours");
       return;
     }
@@ -41,14 +38,4 @@ public class BatchPriceUpdateScheduler {
     }
   }
 
-  private boolean isMarketHours() {
-    LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
-    DayOfWeek dayOfWeek = now.getDayOfWeek();
-    LocalTime time = now.toLocalTime();
-
-    return dayOfWeek != DayOfWeek.SATURDAY
-            && dayOfWeek != DayOfWeek.SUNDAY
-            && !time.isBefore(LocalTime.of(9, 0))
-            && !time.isAfter(LocalTime.of(15, 30));
-  }
 }
