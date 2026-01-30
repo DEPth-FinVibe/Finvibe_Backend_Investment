@@ -27,6 +27,7 @@ import depth.finvibe.investment.modules.market.dto.StockDto;
 import depth.finvibe.investment.shared.error.DomainException;
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/market")
 @Tag(name = "시장", description = "시장 API")
 public class MarketController {
 
