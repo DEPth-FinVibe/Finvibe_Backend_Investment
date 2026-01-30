@@ -1,13 +1,18 @@
 package depth.finvibe.investment.modules.dev.api;
 
-import depth.finvibe.investment.boot.security.JwtTokenGenerator;
-import depth.finvibe.investment.boot.security.model.UserRole;
+import java.util.UUID;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
+import depth.finvibe.investment.boot.security.JwtTokenGenerator;
+import depth.finvibe.investment.boot.security.model.UserRole;
 
 /**
  * 개발 환경 전용 테스트 API 컨트롤러
@@ -17,6 +22,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/dev")
 @RequiredArgsConstructor
+@Tag(name = "개발", description = "개발 전용 API")
 public class DevController {
 
     private final JwtTokenGenerator jwtTokenGenerator;
@@ -28,6 +34,7 @@ public class DevController {
      * @return 생성된 JWT 토큰
      */
     @PostMapping("/jwt/token")
+    @Operation(summary = "테스트 JWT 발급", description = "로컬 테스트용 JWT 토큰을 발급합니다.")
     public ResponseEntity<JwtTokenResponse> generateToken() {
         UUID userId = UUID.randomUUID();
         UserRole role = UserRole.USER;

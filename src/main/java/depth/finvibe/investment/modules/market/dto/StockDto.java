@@ -1,19 +1,30 @@
 package depth.finvibe.investment.modules.market.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
 import depth.finvibe.investment.modules.market.domain.Stock;
 import depth.finvibe.investment.modules.market.domain.enums.MarketType;
 import depth.finvibe.investment.modules.market.domain.enums.RankType;
-import lombok.*;
 
 public class StockDto {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @Schema(name = "StockResponse", description = "종목 응답")
     public static class Response {
+        @Schema(description = "종목 ID", example = "1")
         private Long stockId;
+        @Schema(description = "종목 코드", example = "005930")
         private String symbol;
+        @Schema(description = "종목명", example = "삼성전자")
         private String name;
+        @Schema(description = "카테고리 ID", example = "10")
         private Long categoryId;
 
         public static Response from(Stock stock) {
@@ -30,7 +41,9 @@ public class StockDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public static class TopStockResponse{
+    @Schema(name = "TopStockResponse", description = "TOP 종목 응답")
+    public static class TopStockResponse {
+        @Schema(description = "종목 코드", example = "005930")
         private String symbol;
 
         public static TopStockResponse from(Stock stock){
@@ -44,10 +57,15 @@ public class StockDto {
     @NoArgsConstructor
     @Data
     @Builder
+    @Schema(name = "RealMarketStockResponse", description = "실시간 종목 응답")
     public static class RealMarketStockResponse {
+        @Schema(description = "종목 코드", example = "005930")
         private String symbol;
+        @Schema(description = "종목명", example = "삼성전자")
         private String name;
+        @Schema(description = "시장 구분", example = "DOMESTIC")
         private MarketType marketType;
+        @Schema(description = "표준산업분류 중분류 코드", example = "10")
         private String typeCode; // 표준산업분류코드 (중분류)
     }
 
@@ -55,9 +73,13 @@ public class StockDto {
     @NoArgsConstructor
     @Data
     @Builder
+    @Schema(name = "RankingResponse", description = "종목 순위 응답")
     public static class RankingResponse {
+        @Schema(description = "종목 코드", example = "005930")
         private String symbol;
+        @Schema(description = "순위 타입", example = "VOLUME")
         private RankType rankType;
+        @Schema(description = "순위", example = "1")
         private Integer rank;
     }
 }

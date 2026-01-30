@@ -3,4 +3,10 @@ spring:
     active: local
   web:
     resources:
-      add-mappings: false
+      add-mappings: true
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

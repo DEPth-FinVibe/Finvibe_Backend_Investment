@@ -2,14 +2,16 @@ package depth.finvibe.investment.modules.asset.dto;
 
 import java.math.BigDecimal;
 
-import depth.finvibe.investment.modules.asset.domain.Asset;
-import depth.finvibe.investment.modules.asset.domain.Currency;
-import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import depth.finvibe.investment.modules.asset.domain.Asset;
+import depth.finvibe.investment.modules.asset.domain.Currency;
+import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
 
 public class PortfolioGroupDto {
 
@@ -17,9 +19,13 @@ public class PortfolioGroupDto {
     @NoArgsConstructor
     @Data
     @Builder
+    @Schema(name = "PortfolioGroupResponse", description = "포트폴리오 그룹 응답")
     public static class PortfolioGroupResponse {
+        @Schema(description = "포트폴리오 그룹 ID", example = "1")
         private Long id;
+        @Schema(description = "포트폴리오 그룹 이름", example = "내 포트폴리오")
         private String name;
+        @Schema(description = "아이콘 코드", example = "ICON_01")
         private String iconCode;
 
         public static PortfolioGroupResponse from(PortfolioGroup portfolioGroup) {
@@ -35,10 +41,13 @@ public class PortfolioGroupDto {
     @NoArgsConstructor
     @Data
     @Builder
+    @Schema(name = "CreatePortfolioGroupRequest", description = "포트폴리오 그룹 생성 요청")
     public static class CreatePortfolioGroupRequest {
         @NotNull
+        @Schema(description = "포트폴리오 그룹 이름", example = "성장주 포트폴리오")
         private String name;
         @NotNull
+        @Schema(description = "아이콘 코드", example = "ICON_02")
         private String iconCode;
     }
 
@@ -46,10 +55,13 @@ public class PortfolioGroupDto {
     @NoArgsConstructor
     @Data
     @Builder
+    @Schema(name = "UpdatePortfolioGroupRequest", description = "포트폴리오 그룹 수정 요청")
     public static class UpdatePortfolioGroupRequest {
         @NotNull
+        @Schema(description = "포트폴리오 그룹 이름", example = "수정된 포트폴리오")
         private String name;
         @NotNull
+        @Schema(description = "아이콘 코드", example = "ICON_03")
         private String iconCode;
     }
 
@@ -57,16 +69,22 @@ public class PortfolioGroupDto {
     @NoArgsConstructor
     @Data
     @Builder
+    @Schema(name = "RegisterAssetRequest", description = "자산 등록 요청")
     public static class RegisterAssetRequest {
         @NotNull
+        @Schema(description = "종목 ID", example = "101")
         private Long stockId;
         @NotNull
+        @Schema(description = "보유 수량", example = "10.5")
         private BigDecimal amount;
         @NotNull
+        @Schema(description = "매수 단가", example = "150.25")
         private BigDecimal stockPrice;
         @NotNull
+        @Schema(description = "자산 이름", example = "애플")
         private String name;
         @NotNull
+        @Schema(description = "통화", example = "USD")
         private Currency currency;
     }
 
@@ -74,14 +92,18 @@ public class PortfolioGroupDto {
     @NoArgsConstructor
     @Data
     @Builder
+    @Schema(name = "UnregisterAssetRequest", description = "자산 삭제 요청")
     public static class UnregisterAssetRequest {
         @NotNull
+        @Schema(description = "종목 ID", example = "101")
         private Long stockId;
         @NotNull
+        @Schema(description = "삭제 수량", example = "2")
         private BigDecimal amount;
         @NotNull
+        @Schema(description = "기준 단가", example = "160.00")
         private BigDecimal stockPrice;
-
+        @Schema(description = "통화", example = "USD")
         private Currency currency;
     }
 
@@ -89,12 +111,19 @@ public class PortfolioGroupDto {
     @NoArgsConstructor
     @Data
     @Builder
+    @Schema(name = "AssetResponse", description = "자산 응답")
     public static class AssetResponse {
+        @Schema(description = "자산 ID", example = "1")
         private Long id;
+        @Schema(description = "자산 이름", example = "애플")
         private String name;
+        @Schema(description = "보유 수량", example = "10")
         private BigDecimal amount;
+        @Schema(description = "총 평가금액", example = "1800")
         private BigDecimal totalPrice;
+        @Schema(description = "통화", example = "USD")
         private Currency currency;
+        @Schema(description = "종목 ID", example = "101")
         private Long stockId;
 
         public static AssetResponse from(Asset asset) {
