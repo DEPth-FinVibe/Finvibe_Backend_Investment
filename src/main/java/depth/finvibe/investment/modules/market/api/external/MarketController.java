@@ -67,15 +67,6 @@ public class MarketController {
         return timeframe.lastCompletedTime(now);
     }
 
-    @GetMapping("/stocks/current-prices")
-    @Operation(summary = "현재가 조회", description = "종목 현재가를 조회합니다.")
-    public ResponseEntity<List<CurrentPriceDto.Response>> getCurrentPrices(
-            @Parameter(description = "종목 ID 목록", example = "1,2,3") @RequestParam List<Long> stockIds
-    ) {
-        List<CurrentPriceDto.Response> currentPrices = marketQueryUseCase.getCurrentPrices(stockIds);
-        return ResponseEntity.ok(currentPrices);
-    }
-
     @GetMapping("/stocks/closing-prices")
     @Operation(summary = "종가 조회", description = "종목의 최신 종가를 조회합니다.")
     public ResponseEntity<List<ClosingPriceDto.Response>> getClosingPrices(
