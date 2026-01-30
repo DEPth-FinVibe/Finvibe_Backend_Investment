@@ -11,4 +11,6 @@ public interface StockRankingJpaRepository extends JpaRepository<StockRanking, L
     List<StockRanking> findByRankTypeOrderByRankAsc(RankType rankType, Pageable pageable);
     
     List<StockRanking> findByRankTypeOrderByRankAsc(RankType rankType);
+
+    void deleteByRankTypeIn(List<RankType> rankTypes);
 }

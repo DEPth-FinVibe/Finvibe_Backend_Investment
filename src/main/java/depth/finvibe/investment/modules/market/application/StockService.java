@@ -19,7 +19,6 @@ import java.time.LocalDateTime;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 
@@ -86,47 +85,22 @@ public class StockService implements StockCommandUseCase {
         Map<String, Long> symbolToStockIdMap = stocks.stream()
                 .collect(Collectors.toMap(Stock::getSymbol, Stock::getId));
 
-        Set<RankType> rankTypes = rankingResponses.stream()
+        List<RankType> rankTypes = rankingResponses.stream()
                 .map(StockDto.RankingResponse::getRankType)
-                .collect(Collectors.toSet());
-        Map<StockRankingKey, Long> existingRankingIdMap = rankTypes.stream()
-                .flatMap(rankType -> stockRankingRepository.findByRankType(rankType).stream())
-                .collect(Collectors.toMap(
-                        ranking -> new StockRankingKey(ranking.getStockId(), ranking.getRankType()),
-                        StockRanking::getId
-                ));
+                .distinct()
+                .toList();
+        stockRankingRepository.deleteByRankTypeIn(rankTypes);
 
         List<StockRanking> stockRankings = rankingResponses.stream()
                 .filter(ranking -> symbolToStockIdMap.containsKey(ranking.getSymbol()))
                 .map(ranking -> createStockRankingFrom(
                         ranking,
-                        symbolToStockIdMap.get(ranking.getSymbol()),
-                        existingRankingIdMap
+                        symbolToStockIdMap.get(ranking.getSymbol())
                 ))
                 .toList();
 
         stockRankingRepository.bulkUpsertStockRankings(stockRankings);
     }
-
-    private StockRanking createStockRankingFrom(
-            StockDto.RankingResponse rankingResponse,
-            Long stockId,
-            Map<StockRankingKey, Long> existingRankingIdMap
-    ) {
-        StockRankingKey key = new StockRankingKey(stockId, rankingResponse.getRankType());
-        Long rankingId = existingRankingIdMap.get(key);
-        return StockRanking.builder()
-                .id(rankingId)
-                .stockId(stockId)
-                .rankType(rankingResponse.getRankType())
-                .rank(rankingResponse.getRank())
-                .updatedAt(LocalDateTime.now())
-                .build();
-    }
-
-    private record StockRankingKey(Long stockId, RankType rankType) {
-    }
-
 
     private StockRanking createStockRankingFrom(StockDto.RankingResponse rankingResponse, Long stockId) {
         return StockRanking.builder()

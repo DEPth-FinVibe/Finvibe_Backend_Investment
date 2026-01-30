@@ -26,4 +26,10 @@ public class StockRankingRepositoryImpl implements StockRankingRepository {
     public List<StockRanking> findByRankType(RankType rankType) {
         return jpaRepository.findByRankTypeOrderByRankAsc(rankType);
     }
+
+    @Override
+    @Transactional
+    public void deleteByRankTypeIn(List<RankType> rankTypes) {
+        jpaRepository.deleteByRankTypeIn(rankTypes);
+    }
 }

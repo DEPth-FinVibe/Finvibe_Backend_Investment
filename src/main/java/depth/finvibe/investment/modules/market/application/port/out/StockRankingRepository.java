@@ -9,4 +9,6 @@ public interface StockRankingRepository {
     void bulkUpsertStockRankings(List<StockRanking> stockRankings);
 
     List<StockRanking> findByRankType(RankType rankType);
+
+    void deleteByRankTypeIn(List<RankType> rankTypes);
 }
