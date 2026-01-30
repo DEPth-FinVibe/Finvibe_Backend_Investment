@@ -19,7 +19,7 @@ public final class MarketHours {
     return getStatusAt(ZonedDateTime.now(KOREA_ZONE));
   }
 
-  static MarketStatus getStatusAt(ZonedDateTime now) {
+  public static MarketStatus getStatusAt(ZonedDateTime now) {
     // TODO: 한국 공휴일 및 거래소 휴장일 반영 필요
     DayOfWeek dayOfWeek = now.getDayOfWeek();
     if (dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY) {

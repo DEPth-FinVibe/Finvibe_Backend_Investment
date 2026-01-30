@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -75,10 +77,10 @@ public class KisSubscriptionSynchronizer {
             // Heartbeat 기록
             activeNodeRegistry.recordHeartbeat();
 
-            if (MarketHours.getCurrentStatus() != MarketStatus.OPEN) {
-                handleMarketClosed(nodeId);
-                return;
-            }
+        if (MarketHours.getStatusAt(now()) != MarketStatus.OPEN) {
+            handleMarketClosed(nodeId);
+            return;
+        }
 
             ensureSessionsReady();
 
@@ -492,5 +494,9 @@ public class KisSubscriptionSynchronizer {
         } catch (Exception ex) {
             log.error("닫힌 세션 정리 중 오류 발생", ex);
         }
+    }
+
+    ZonedDateTime now() {
+        return ZonedDateTime.now(ZoneId.of("Asia/Seoul"));
     }
 }
