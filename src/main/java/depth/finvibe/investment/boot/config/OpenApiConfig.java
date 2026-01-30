@@ -2,6 +2,8 @@ package depth.finvibe.investment.boot.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.Paths;
+import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springdoc.core.utils.SpringDocUtils;
 import org.springframework.context.annotation.Bean;
@@ -31,6 +33,8 @@ public class OpenApiConfig {
         return GroupedOpenApi.builder()
                 .group("asset")
                 .pathsToMatch("/portfolios/**")
+                .pathsToExclude("/internal/**")
+                .addOpenApiCustomizer(prefixPaths("/api/asset"))
                 .build();
     }
 
@@ -39,6 +43,8 @@ public class OpenApiConfig {
         return GroupedOpenApi.builder()
                 .group("wallet")
                 .pathsToMatch("/wallets/**")
+                .pathsToExclude("/internal/**")
+                .addOpenApiCustomizer(prefixPaths("/api/wallet"))
                 .build();
     }
 
@@ -47,6 +53,8 @@ public class OpenApiConfig {
         return GroupedOpenApi.builder()
                 .group("trade")
                 .pathsToMatch("/trades/**")
+                .pathsToExclude("/internal/**")
+                .addOpenApiCustomizer(prefixPaths("/api/trade"))
                 .build();
     }
 
@@ -55,6 +63,20 @@ public class OpenApiConfig {
         return GroupedOpenApi.builder()
                 .group("market")
                 .pathsToMatch("/market/**")
+                .pathsToExclude("/internal/**")
+                .addOpenApiCustomizer(prefixPaths("/api/market"))
                 .build();
+    }
+
+    private OpenApiCustomizer prefixPaths(String prefix) {
+        return openApi -> {
+            if (openApi.getPaths() == null || openApi.getPaths().isEmpty()) {
+                return;
+            }
+
+            Paths prefixedPaths = new Paths();
+            openApi.getPaths().forEach((path, item) -> prefixedPaths.addPathItem(prefix + path, item));
+            openApi.setPaths(prefixedPaths);
+        };
     }
 }
