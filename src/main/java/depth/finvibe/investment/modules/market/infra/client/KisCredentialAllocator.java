@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -110,6 +111,29 @@ public class KisCredentialAllocator {
   public void init() {
     rebalanceAndRenew();
     taskScheduler.scheduleAtFixedRate(this::rebalanceAndRenew, resolveRenewInterval());
+  }
+
+  /**
+   * 애플리케이션 종료 시 할당된 모든 Credential 락을 해제합니다.
+   * <p>
+   * Graceful shutdown을 위해 이 노드가 점유한 모든 락을 명시적으로 해제합니다.
+   * TTL로 자동 해제되기를 기다리지 않고 즉시 해제하여 다른 노드가 빠르게 재할당할 수 있도록 합니다.
+   * </p>
+   */
+  @PreDestroy
+  public void destroy() {
+    log.info("KisCredentialAllocator 종료 시작 - 할당된 credential 락 해제 중...");
+    int releasedCount = 0;
+    for (String appKey : List.copyOf(allocatedCredentials.keySet())) {
+      if (releaseLock(appKey)) {
+        allocatedCredentials.remove(appKey);
+        releasedCount++;
+        log.info("Credential 락 해제 완료 - appKey={}", maskAppKey(appKey));
+      } else {
+        log.warn("Credential 락 해제 실패 - appKey={} (이미 만료되었거나 다른 노드가 점유)", maskAppKey(appKey));
+      }
+    }
+    log.info("KisCredentialAllocator 종료 완료 - 해제된 락 개수: {}", releasedCount);
   }
 
   /**

@@ -32,6 +32,6 @@ public class Wallet extends TimeStampedBaseEntity {
   }
 
   public static Wallet create(UUID userId) {
-    return new Wallet(null, userId, new Money(0L));
+    return new Wallet(null, userId, new Money(1000000L));
   }
 }

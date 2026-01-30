@@ -9,6 +9,7 @@ import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -40,6 +41,24 @@ public class ActiveNodeRegistry {
     this.nodeId = UUID.randomUUID().toString();
     log.info("ActiveNodeRegistry 초기화 완료 - NodeId: {}", nodeId);
     recordHeartbeat();
+  }
+
+  /**
+   * 애플리케이션 종료 시 현재 노드의 Heartbeat를 삭제합니다.
+   * <p>
+   * Graceful shutdown을 위해 Redis에서 현재 노드의 heartbeat 키를 즉시 삭제하여
+   * 다른 노드가 정확한 활성 노드 수를 파악할 수 있도록 합니다.
+   * </p>
+   */
+  @PreDestroy
+  public void shutdown() {
+    String key = NODE_KEY_PREFIX + nodeId;
+    try {
+      redissonClient.getBucket(key).delete();
+      log.info("ActiveNodeRegistry 종료 완료 - NodeId: {} heartbeat 삭제됨", nodeId);
+    } catch (Exception ex) {
+      log.error("ActiveNodeRegistry 종료 중 heartbeat 삭제 실패 - NodeId: {}", nodeId, ex);
+    }
   }
 
   /**
