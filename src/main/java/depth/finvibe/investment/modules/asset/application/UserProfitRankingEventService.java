@@ -1,28 +1,33 @@
 package depth.finvibe.investment.modules.asset.application;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Service;
+import java.util.List;
 
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
+
+import depth.finvibe.investment.modules.asset.application.event.AllUserProfitRatesUpdatedEvent;
+import depth.finvibe.investment.modules.asset.application.port.out.UserProfitRankingData;
 import depth.finvibe.investment.modules.asset.application.port.out.UserProfitRankingRepository;
-import depth.finvibe.investment.shared.dto.UserProfitRateUpdatedEvent;
 
 @Service
 @RequiredArgsConstructor
 public class UserProfitRankingEventService {
-  private final UserProfitRankingRepository userProfitRankingRepository;
+    private final UserProfitRankingRepository userProfitRankingRepository;
 
-  @EventListener
-  public void handleUserProfitRateUpdatedEvent(UserProfitRateUpdatedEvent event) {
-    if (event == null || event.getUserId() == null) {
-      return;
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleAllUserProfitRatesUpdatedEvent(AllUserProfitRatesUpdatedEvent event) {
+        if (event == null) {
+            return;
+        }
+
+        List<UserProfitRankingData> rankings = event.getRankings();
+        if (rankings == null) {
+            userProfitRankingRepository.replaceAllRankings(List.of());
+            return;
+        }
+
+        userProfitRankingRepository.replaceAllRankings(event.getRankings());
     }
-
-    if (event.isHasAssets()) {
-      userProfitRankingRepository.update(event.getUserId(), event.getTotalReturnRate());
-      return;
-    }
-
-    userProfitRankingRepository.remove(event.getUserId());
-  }
 }
