@@ -38,6 +38,10 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
     @Transactional
     public TradeDto.TradeResponse createTrade(TradeDto.TransactionRequest request) {
 
+        //TODO: 포트폴리오가 존재하는지, 요청자의 포트폴리오와 일치하는지 검증
+        //TODO: 장이 열려있는지 검증
+        //TODO: 잔고가 충분한지 검증.
+
         if (request.getTradeType() == TradeType.NORMAL) {
             return processNormalTrade(request);
         } else if (request.getTradeType() == TradeType.RESERVED) {
@@ -102,7 +106,7 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
     }
 
     private static Trade createTradeFrom(TradeDto.TransactionRequest request) {
-        Trade trade = Trade.create(
+        return Trade.create(
                 request.getMarketType(),
                 request.getStockId(),
                 request.getAmount(),
@@ -112,7 +116,6 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
                 request.getTransactionType(),
                 request.getTradeType()
         );
-        return trade;
     }
 
     private TradeDto.TradeResponse processReservedTrade(TradeDto.TransactionRequest request) {
