@@ -15,6 +15,6 @@ import depth.finvibe.investment.modules.asset.application.port.out.UserProfitRan
 @NoArgsConstructor
 @AllArgsConstructor
 public class AllUserProfitRatesUpdatedEvent {
-    private List<UserProfitRankingData> rankings;
-    private LocalDateTime calculatedAt;
+  private List<UserProfitRankingData> rankings;
+  private LocalDateTime calculatedAt;
 }
