@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import depth.finvibe.investment.modules.asset.domain.UserProfitRanking;
@@ -15,4 +17,6 @@ public interface UserProfitRankingJpaRepository extends JpaRepository<UserProfit
   Optional<UserProfitRanking> findByRankTypeAndUserId(UserProfitRankType rankType, UUID userId);
 
   List<UserProfitRanking> findByRankTypeOrderByRankAsc(UserProfitRankType rankType);
+
+  Page<UserProfitRanking> findByRankTypeOrderByRankAsc(UserProfitRankType rankType, Pageable pageable);
 }
