@@ -1,9 +1,10 @@
 package depth.finvibe.investment.modules.trade.application;
 
+import depth.finvibe.investment.boot.security.model.Requester;
+import depth.finvibe.investment.boot.security.model.UserRole;
 import depth.finvibe.investment.modules.trade.application.port.in.TradeCommandUseCase;
 import depth.finvibe.investment.modules.trade.application.port.in.TradeQueryUseCase;
-import depth.finvibe.investment.modules.trade.application.port.out.TradeEventProducer;
-import depth.finvibe.investment.modules.trade.application.port.out.TradeRepository;
+import depth.finvibe.investment.modules.trade.application.port.out.*;
 import depth.finvibe.investment.modules.trade.domain.Trade;
 import depth.finvibe.investment.modules.trade.domain.enums.TradeType;
 import depth.finvibe.investment.modules.trade.domain.error.TradeErrorCode;
@@ -22,6 +23,10 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
 
     private final TradeRepository tradeRepository;
     private final TradeEventProducer tradeEventProducer;
+    private final AssetClient assetClient;
+    private final MarketClient marketClient;
+    private final WalletClient walletClient;
+
 
     @Transactional()
     public TradeDto.TradeResponse findTrade(Long tradeId) {
@@ -36,11 +41,8 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
     }
 
     @Transactional
-    public TradeDto.TradeResponse createTrade(TradeDto.TransactionRequest request) {
-
-        //TODO: 포트폴리오가 존재하는지, 요청자의 포트폴리오와 일치하는지 검증
-        //TODO: 장이 열려있는지 검증
-        //TODO: 잔고가 충분한지 검증.
+    public TradeDto.TradeResponse createTrade(TradeDto.TransactionRequest request, Requester requester) {
+        validateTradeContexts(request, requester);
 
         if (request.getTradeType() == TradeType.NORMAL) {
             return processNormalTrade(request);
@@ -51,12 +53,27 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
         throw new DomainException(TradeErrorCode.INVALID_TRADE_TYPE);
     }
 
+    private void validateTradeContexts(TradeDto.TransactionRequest request, Requester requester) {
+        if(!marketClient.isMarketOpen()) {
+            throw new DomainException(TradeErrorCode.MARKET_CLOSED);
+        }
+
+        if(!assetClient.isExistPortfolio(request.getPortfolioId(), requester.getUuid())) {
+            throw new DomainException(TradeErrorCode.PORTFOLIO_NOT_FOUND);
+        }
+
+        Long balance = walletClient.getWalletBalance(requester.getUuid());
+        if(balance < request.getAmount() * request.getPrice()) {
+            throw new DomainException(TradeErrorCode.INSUFFICIENT_BALANCE);
+        }
+    }
+
     @Transactional
-    public TradeDto.TradeResponse cancelTrade(Long tradeId) {
+    public TradeDto.TradeResponse cancelTrade(Long tradeId, Requester requester) {
         Trade trade = tradeRepository.findById(tradeId)
                 .orElseThrow(() -> new DomainException(TradeErrorCode.TRADE_NOT_FOUND));
 
-        ensureTradeCancelable(trade);
+        ensureTradeCancelable(trade, requester);
 
         trade.cancel();
         Trade cancelledTrade = tradeRepository.save(trade);
@@ -86,7 +103,11 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
         }
     }
 
-    private static void ensureTradeCancelable(Trade trade) {
+    private static void ensureTradeCancelable(Trade trade, Requester requester) {
+        if (!trade.getUserId().equals(requester.getUuid()) && requester.getRole() != UserRole.ADMIN) {
+            throw new DomainException(TradeErrorCode.CANNOT_CANCEL_BY_OTHER_USER);
+        }
+
         if (trade.getTradeType() == TradeType.CANCELLED) {
             throw new DomainException(TradeErrorCode.ALREADY_CANCELLED_TRADE);
         }

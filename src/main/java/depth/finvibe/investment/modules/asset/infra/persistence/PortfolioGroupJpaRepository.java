@@ -8,4 +8,6 @@ import java.util.UUID;
 
 public interface PortfolioGroupJpaRepository extends JpaRepository<PortfolioGroup, Long> {
     List<PortfolioGroup> findAllByUserId(UUID userId);
+
+    boolean existsByIdAndUserId(Long portfolioId, UUID userId);
 }

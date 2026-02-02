@@ -8,4 +8,5 @@ import java.util.UUID;
 public interface AssetQueryUseCase {
     List<PortfolioGroupDto.AssetResponse> getAssetsByPortfolio(Long portfolioId, UUID requesterUserId);
     List<PortfolioGroupDto.PortfolioGroupResponse> getPortfoliosByUser(UUID userId);
+    boolean isExistPortfolio(Long portfolioId, UUID userId);
 }

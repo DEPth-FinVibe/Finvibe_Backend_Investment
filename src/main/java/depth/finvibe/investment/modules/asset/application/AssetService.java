@@ -45,6 +45,12 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public boolean isExistPortfolio(Long portfolioId, UUID userId) {
+        return portfolioGroupRepository.existsByIdAndUserId(portfolioId, userId);
+    }
+
+    @Override
     @Transactional
     public void registerAsset(Long portfolioId, PortfolioGroupDto.RegisterAssetRequest request, UUID requesterUserId) {
         PortfolioGroup foundPortfolioGroup = findPortfolioGroupWithAssets(portfolioId);

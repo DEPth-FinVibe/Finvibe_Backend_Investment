@@ -52,18 +52,20 @@ public class TradeController {
     @PostMapping
     @Operation(summary = "거래 생성", description = "신규 거래 주문을 생성합니다.")
     public ResponseEntity<TradeDto.TradeResponse> placeTrade(
-            @RequestBody @Valid TradeDto.TransactionRequest request
+            @RequestBody @Valid TradeDto.TransactionRequest request,
+            @Parameter(hidden = true) @AuthenticatedUser Requester requester
     ) {
-        TradeDto.TradeResponse response = tradeCommandUseCase.createTrade(request);
+        TradeDto.TradeResponse response = tradeCommandUseCase.createTrade(request, requester);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{tradeId}")
     @Operation(summary = "거래 취소", description = "거래 주문을 취소합니다.")
     public ResponseEntity<TradeDto.TradeResponse> cancelTrade(
-            @Parameter(description = "거래 ID", example = "123") @PathVariable Long tradeId
+            @Parameter(description = "거래 ID", example = "123") @PathVariable Long tradeId,
+            @Parameter(hidden = true) @AuthenticatedUser Requester requester
     ) {
-        TradeDto.TradeResponse response = tradeCommandUseCase.cancelTrade(tradeId);
+        TradeDto.TradeResponse response = tradeCommandUseCase.cancelTrade(tradeId, requester);
         return ResponseEntity.ok(response);
     }
 }

@@ -57,6 +57,11 @@ public class PortfolioGroupRepositoryImpl implements PortfolioGroupRepository {
     }
 
     @Override
+    public boolean existsByIdAndUserId(Long portfolioId, UUID userId) {
+        return jpaRepository.existsByIdAndUserId(portfolioId, userId);
+    }
+
+    @Override
     public void delete(PortfolioGroup existing) {
         jpaRepository.delete(existing);
     }

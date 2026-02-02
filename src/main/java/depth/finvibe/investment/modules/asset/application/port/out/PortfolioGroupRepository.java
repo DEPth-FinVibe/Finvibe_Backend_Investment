@@ -24,4 +24,6 @@ public interface PortfolioGroupRepository {
     void delete(PortfolioGroup existing);
 
     boolean existDefaultByUserId(UUID userId);
+
+    boolean existsByIdAndUserId(Long portfolioId, UUID userId);
 }
