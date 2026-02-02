@@ -21,11 +21,9 @@ public class TradeEventService implements TradeEventUseCase {
 
     @Transactional
     public void processReservedTradeExecution(ReservationSatisfiedEvent event) {
-        log.info("예약 거래 조건 충족 처리 시작: tradeId={}, userId={}, type={}, amount={}, price={}",
-            event.tradeId(), event.userId(), event.type(), event.amount(), event.price());
 
         try {
-            Long tradeId = Long.parseLong(event.tradeId());
+            Long tradeId = event.getTradeId();
 
             TradeDto.TradeResponse response = tradeCommandUseCase.executeReservedTrade(tradeId);
 
@@ -35,11 +33,10 @@ public class TradeEventService implements TradeEventUseCase {
                 response.getPrice());
 
         } catch (NumberFormatException e) {
-            log.error("잘못된 tradeId 형식: tradeId={}", event.tradeId(), e);
+            log.error("잘못된 tradeId 형식: tradeId={}", event.getTradeId(), e);
             throw new DomainException(TradeErrorCode.INVALID_TRADE_ID_FORMAT);
         } catch (Exception e) {
-            log.error("예약 거래 체결 실패: tradeId={}, userId={}, error={}",
-                event.tradeId(), event.userId(), e.getMessage(), e);
+            log.error("예약 거래 체결 중 오류 발생: tradeId={}", event.getTradeId(), e);
             throw e;
         }
     }

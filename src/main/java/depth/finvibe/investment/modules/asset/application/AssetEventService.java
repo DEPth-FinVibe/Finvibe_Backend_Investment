@@ -1,5 +1,6 @@
 package depth.finvibe.investment.modules.asset.application;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 import jakarta.transaction.Transactional;
@@ -56,7 +57,7 @@ public class AssetEventService implements AssetEventUseCase {
         return PortfolioGroupDto.RegisterAssetRequest.builder()
                 .stockId(event.getStockId())
                 .name(event.getName())
-                .stockPrice(event.getPrice())
+                .stockPrice(BigDecimal.valueOf(event.getPrice()))
                 .amount(event.getAmount())
                 .currency(Currency.valueOf(event.getCurrency()))
                 .build();
@@ -65,7 +66,7 @@ public class AssetEventService implements AssetEventUseCase {
     private PortfolioGroupDto.UnregisterAssetRequest createUnregisterRequestFrom(TradeExecutedEvent event) {
         return PortfolioGroupDto.UnregisterAssetRequest.builder()
                 .stockId(event.getStockId())
-                .stockPrice(event.getPrice())
+                .stockPrice(BigDecimal.valueOf(event.getPrice()))
                 .amount(event.getAmount())
                 .currency(Currency.valueOf(event.getCurrency()))
                 .build();

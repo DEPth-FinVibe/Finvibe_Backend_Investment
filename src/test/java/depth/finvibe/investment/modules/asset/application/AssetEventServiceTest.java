@@ -38,11 +38,11 @@ class AssetEventServiceTest {
         UUID userId = UUID.randomUUID();
 
         TradeExecutedEvent event = TradeExecutedEvent.builder()
-                .tradeId("trade-uuid")
+                .tradeId(1L)
                 .userId(userId.toString())
                 .type("BUY")
                 .amount(BigDecimal.valueOf(5))
-                .price(BigDecimal.valueOf(70000))
+                .price(70000L)
                 .stockId(101L)
                 .name("삼성전자")
                 .currency("KRW")
@@ -75,11 +75,11 @@ class AssetEventServiceTest {
         UUID userId = UUID.randomUUID();
 
         TradeExecutedEvent event = TradeExecutedEvent.builder()
-                .tradeId("trade-uuid")
+                .tradeId(2L)
                 .userId(userId.toString())
                 .type("SELL")
                 .amount(BigDecimal.valueOf(3))
-                .price(BigDecimal.valueOf(150))
+                .price(150L)
                 .stockId(202L)
                 .name("Apple")
                 .currency("USD")
@@ -108,11 +108,11 @@ class AssetEventServiceTest {
     void handleTradeExecutedEvent_UnknownType() {
         // given
         TradeExecutedEvent event = TradeExecutedEvent.builder()
-                .tradeId("trade-uuid")
+                .tradeId(3L)
                 .userId(UUID.randomUUID().toString())
                 .type("HOLD")
                 .amount(BigDecimal.TEN)
-                .price(BigDecimal.TEN)
+                .price(10L)
                 .stockId(1L)
                 .name("Test")
                 .currency("KRW")

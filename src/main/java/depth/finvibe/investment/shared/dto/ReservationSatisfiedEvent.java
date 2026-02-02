@@ -1,10 +1,17 @@
 package depth.finvibe.investment.shared.dto;
 
-public record ReservationSatisfiedEvent (
-    String tradeId,
-    String userId,
-    String type, // "BUY", "SELL"
-    Double amount,
-    Long price
 
-){}
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@AllArgsConstructor(staticName = "of")
+@NoArgsConstructor
+@Data
+@Builder
+public class ReservationSatisfiedEvent {
+    private Long tradeId;
+    private String type; // "BUY", "SELL"
+    private Long price;
+}

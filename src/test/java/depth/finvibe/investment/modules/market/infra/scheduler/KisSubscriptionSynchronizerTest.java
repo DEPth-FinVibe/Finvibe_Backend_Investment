@@ -15,6 +15,7 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import depth.finvibe.investment.modules.market.application.port.out.CurrentStockWatcherRepository;
+import depth.finvibe.investment.modules.market.application.port.out.ReservationRepository;
 import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
 import depth.finvibe.investment.modules.market.domain.Stock;
 import depth.finvibe.investment.modules.market.infra.lock.ActiveNodeRegistry;
@@ -43,6 +44,9 @@ class KisSubscriptionSynchronizerTest {
   private StockRepository stockRepository;
 
   @Mock
+  private ReservationRepository reservationRepository;
+
+  @Mock
   private DistributedLockManager distributedLockManager;
 
   @Mock
@@ -63,6 +67,7 @@ class KisSubscriptionSynchronizerTest {
   void syncRealtimeSubscriptions_noActiveStocks() {
     // Given
     mockMarketOpen();
+    when(reservationRepository.findReservedStockIds()).thenReturn(List.of());
     when(currentStockWatcherRepository.findActiveStockIds()).thenReturn(List.of());
     when(kisConnectionPool.getSubscribedStockIds()).thenReturn(Set.of());
 
@@ -90,6 +95,7 @@ class KisSubscriptionSynchronizerTest {
 
     mockMarketOpen();
     mockLockSuccess();
+    when(reservationRepository.findReservedStockIds()).thenReturn(List.of());
     when(currentStockWatcherRepository.findActiveStockIds()).thenReturn(List.of(stockId));
     when(stockRepository.findAllById(List.of(stockId))).thenReturn(List.of(stock));
     when(ownershipManager.tryAcquireOwnership(stockId, "node-1")).thenReturn(true);
@@ -121,6 +127,7 @@ class KisSubscriptionSynchronizerTest {
 
     mockMarketOpen();
     mockLockSuccess();
+    when(reservationRepository.findReservedStockIds()).thenReturn(List.of());
     when(currentStockWatcherRepository.findActiveStockIds()).thenReturn(List.of(stockId));
     when(stockRepository.findAllById(List.of(stockId))).thenReturn(List.of(stock));
     when(ownershipManager.tryAcquireOwnership(stockId, "node-1")).thenReturn(false);
@@ -148,6 +155,7 @@ class KisSubscriptionSynchronizerTest {
 
     mockMarketOpen();
     mockLockSuccess();
+    when(reservationRepository.findReservedStockIds()).thenReturn(List.of());
     when(currentStockWatcherRepository.findActiveStockIds()).thenReturn(List.of(1L, 2L, 3L));
     when(stockRepository.findAllById(List.of(1L, 2L, 3L))).thenReturn(List.of(stock1, stock2, stock3));
     when(ownershipManager.tryAcquireOwnership(1L, "node-1")).thenReturn(true);
@@ -177,6 +185,7 @@ class KisSubscriptionSynchronizerTest {
 
     mockMarketOpen();
     mockLockSuccess();
+    when(reservationRepository.findReservedStockIds()).thenReturn(List.of());
     // 현재 구독 중: 1L, 2L / 활성 종목: 1L만 활성
     when(currentStockWatcherRepository.findActiveStockIds()).thenReturn(List.of(1L));
     when(stockRepository.findAllById(any())).thenReturn(List.of(stock1, stock2));
@@ -203,6 +212,7 @@ class KisSubscriptionSynchronizerTest {
     Stock stock2 = Stock.builder().id(2L).symbol("000660").name("SK하이닉스").build();
 
     mockMarketOpen();
+    when(reservationRepository.findReservedStockIds()).thenReturn(List.of());
     when(currentStockWatcherRepository.findActiveStockIds()).thenReturn(List.of());
     when(kisConnectionPool.getSubscribedStockIds()).thenReturn(Set.of(1L, 2L));
     when(stockRepository.findAllById(any())).thenReturn(List.of(stock1, stock2));
@@ -225,6 +235,7 @@ class KisSubscriptionSynchronizerTest {
 
     mockMarketOpen();
     mockLockSuccess();
+    when(reservationRepository.findReservedStockIds()).thenReturn(List.of());
     when(currentStockWatcherRepository.findActiveStockIds()).thenReturn(List.of(1L, 2L));
     when(stockRepository.findAllById(List.of(1L, 2L))).thenReturn(List.of(stock1, stock2));
     when(ownershipManager.tryAcquireOwnership(1L, "node-1")).thenReturn(true);

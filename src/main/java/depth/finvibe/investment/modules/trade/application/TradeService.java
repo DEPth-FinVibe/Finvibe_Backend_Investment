@@ -121,6 +121,8 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
         Trade trade = createTradeFrom(request);
         Trade savedTrade = tradeRepository.save(trade);
 
+        //TODO: 실제 시장 가격 확인 후 체결 시뮬레이션
+
         tradeEventProducer.publishNormalTradeExecutedEvent(trade);
 
         return TradeDto.TradeResponse.from(savedTrade);

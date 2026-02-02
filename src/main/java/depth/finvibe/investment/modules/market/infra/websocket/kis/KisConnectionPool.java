@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import lombok.extern.slf4j.Slf4j;
@@ -42,20 +43,20 @@ public class KisConnectionPool {
     private final KisCredentialAllocator credentialAllocator;
     private final KisRateLimiter rateLimiter;
     private final ObjectMapper objectMapper;
-    private final CurrentPriceCommandUseCase currentPriceCommandUseCase;
+    private final ApplicationEventPublisher eventPublisher;
 
     public KisConnectionPool(
             KisCredentialsProperties properties,
             KisCredentialAllocator credentialAllocator,
             KisRateLimiter rateLimiter,
             ObjectMapper objectMapper,
-            CurrentPriceCommandUseCase currentPriceCommandUseCase
+            ApplicationEventPublisher eventPublisher
     ) {
         this.properties = properties;
         this.credentialAllocator = credentialAllocator;
         this.rateLimiter = rateLimiter;
         this.objectMapper = objectMapper;
-        this.currentPriceCommandUseCase = currentPriceCommandUseCase;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -220,7 +221,7 @@ public class KisConnectionPool {
         }
 
         CurrentPriceUpdatedEvent event = mapToEvent(response, stockId);
-        currentPriceCommandUseCase.stockPriceUpdated(event);
+        eventPublisher.publishEvent(event);
     }
 
     private CurrentPriceUpdatedEvent mapToEvent(KisMessage.TransactionResponse response, Long stockId) {

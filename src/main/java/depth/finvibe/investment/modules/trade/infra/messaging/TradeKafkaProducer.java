@@ -18,6 +18,8 @@ public class TradeKafkaProducer implements TradeEventProducer {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private static final String TRADE_EXECUTED_TOPIC = "trade.trade-executed.v1";
+    private static final String TRADE_CANCELLED_TOPIC = "trade.trade-cancelled.v1";
+    private static final String TRADE_RESERVED_TOPIC = "trade.trade-reserved.v1";
 
     @Override
     public void publishNormalTradeExecutedEvent(Trade trade) {
@@ -30,16 +32,22 @@ public class TradeKafkaProducer implements TradeEventProducer {
     public void publishReservedTradeExecutedEvent(Trade trade) {
         log.info("Publishing reserved trade executed event for trade: {}", trade.getId());
         TradeExecutedEvent event = createTradeExecutedEvent(trade);
-        kafkaTemplate.send(TRADE_EXECUTED_TOPIC, trade.getUserId().toString(), event);
+        kafkaTemplate.send(TRADE_RESERVED_TOPIC, trade.getUserId().toString(), event);
+    }
+
+    @Override
+    public void publishTradeCancelledEvent(Trade trade) {
+        log.info("Publishing trade cancelled event for trade: {}", trade.getId());
+        kafkaTemplate.send(TRADE_CANCELLED_TOPIC, trade.getUserId().toString(), trade.getId());
     }
 
     private TradeExecutedEvent createTradeExecutedEvent(Trade trade) {
         return TradeExecutedEvent.builder()
-                .tradeId(trade.getId().toString())
+                .tradeId(trade.getId())
                 .userId(trade.getUserId().toString())
                 .type(trade.getTransactionType().name())
                 .amount(BigDecimal.valueOf(trade.getAmount()))
-                .price(BigDecimal.valueOf(trade.getPrice()))
+                .price(trade.getPrice())
                 .stockId(trade.getStockId())
                 .name("Unknown") //TODO: 종목명도 Trade 엔티티에서 저장하도록 수정
                 .currency(trade.getMarketType() == MarketType.DOMESTIC ? "KRW" : "USD")

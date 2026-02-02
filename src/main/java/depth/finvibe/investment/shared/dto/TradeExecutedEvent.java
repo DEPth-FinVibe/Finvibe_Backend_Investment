@@ -12,11 +12,11 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TradeExecutedEvent {
-    private String tradeId;
+    private Long tradeId;
     private String userId;
     private String type; // "BUY", "SELL"
     private BigDecimal amount;
-    private BigDecimal price;
+    private Long price;
     private Long stockId;
     private String name;
     private String currency;

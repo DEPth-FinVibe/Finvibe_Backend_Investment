@@ -14,6 +14,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import org.apache.kafka.common.protocol.types.Field;
 
 import java.util.UUID;
 
@@ -30,6 +31,8 @@ public class Trade extends TimeStampedBaseEntity{
     private MarketType marketType;
 
     private Long stockId;
+
+    //TODO: 종목명 저장
 
     private Double amount;
 

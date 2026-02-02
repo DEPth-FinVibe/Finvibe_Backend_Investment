@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import depth.finvibe.investment.modules.market.application.port.out.CurrentStockWatcherRepository;
+import depth.finvibe.investment.modules.market.application.port.out.ReservationRepository;
 import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
 import depth.finvibe.investment.modules.market.domain.MarketHours;
 import depth.finvibe.investment.modules.market.domain.Stock;
@@ -43,6 +44,7 @@ public class KisSubscriptionSynchronizer {
     private static final Duration SUBSCRIPTION_LOCK_LEASE = Duration.ofSeconds(3);
 
     private final CurrentStockWatcherRepository currentStockWatcherRepository;
+    private final ReservationRepository reservationRepository;
     private final StockRepository stockRepository;
     private final DistributedLockManager distributedLockManager;
     private final KisConnectionPool kisConnectionPool;
@@ -89,7 +91,9 @@ public class KisSubscriptionSynchronizer {
 
             reconcileSubscriptionOrder();
 
-            List<Long> activeStockIds = currentStockWatcherRepository.findActiveStockIds();
+            List<Long> reservationStockIds = reservationRepository.findReservedStockIds();
+            List<Long> watcherStockIds = currentStockWatcherRepository.findActiveStockIds();
+            List<Long> activeStockIds = buildActiveStockIds(reservationStockIds, watcherStockIds);
 
             if (activeStockIds.isEmpty()) {
                 handleEmptyActiveStocks(nodeId);
@@ -100,7 +104,13 @@ public class KisSubscriptionSynchronizer {
             int maxSubscriptionsForNode = calculateMaxSubscriptionsForNode(activeStockIds.size());
 
             Map<Long, String> stockIdToSymbol = buildStockIdToSymbolMap(activeStockIds);
-            SubscriptionResult result = processActiveStocks(activeStockIds, stockIdToSymbol, maxSubscriptionsForNode, nodeId);
+            SubscriptionResult result = processActiveStocks(
+                    activeStockIds,
+                    stockIdToSymbol,
+                    maxSubscriptionsForNode,
+                    nodeId,
+                    Set.copyOf(reservationStockIds)
+            );
             cleanupInactiveStocks(activeStockIds, nodeId);
 
             logSyncComplete(result, activeStockIds.size(), maxSubscriptionsForNode);
@@ -180,7 +190,8 @@ public class KisSubscriptionSynchronizer {
             List<Long> activeStockIds,
             Map<Long, String> stockIdToSymbol,
             int maxSubscriptionsForNode,
-            String nodeId
+            String nodeId,
+            Set<Long> reservationStockIds
     ) {
         log.debug("KIS WebSocket 구독 동기화 시작 - 활성 종목 수: {}, 최대 구독 수: {}",
                 activeStockIds.size(), maxSubscriptionsForNode);
@@ -190,7 +201,7 @@ public class KisSubscriptionSynchronizer {
         int releasedCount = 0;
 
         // 1. 초과 구독 해제 (FIFO 방식)
-        releasedCount = releaseExcessSubscriptions(maxSubscriptionsForNode, stockIdToSymbol, nodeId);
+        releasedCount = releaseExcessSubscriptions(maxSubscriptionsForNode, stockIdToSymbol, nodeId, reservationStockIds);
 
         // 2. 신규 구독 처리
         for (Long stockId : activeStockIds) {
@@ -236,12 +247,16 @@ public class KisSubscriptionSynchronizer {
     private int releaseExcessSubscriptions(
             int maxSubscriptions,
             Map<Long, String> stockIdToSymbol,
-            String nodeId
+            String nodeId,
+            Set<Long> reservationStockIds
     ) {
         int releasedCount = 0;
 
         while (subscriptionOrder.size() > maxSubscriptions) {
-            Long oldestStockId = subscriptionOrder.iterator().next();
+            Long oldestStockId = findOldestNonReservation(reservationStockIds);
+            if (oldestStockId == null) {
+                oldestStockId = subscriptionOrder.iterator().next();
+            }
             String symbol = stockIdToSymbol.get(oldestStockId);
 
             if (symbol == null) {
@@ -271,6 +286,28 @@ public class KisSubscriptionSynchronizer {
         }
 
         return releasedCount;
+    }
+
+    private Long findOldestNonReservation(Set<Long> reservationStockIds) {
+        for (Long stockId : subscriptionOrder) {
+            if (!reservationStockIds.contains(stockId)) {
+                return stockId;
+            }
+        }
+        return null;
+    }
+
+    private List<Long> buildActiveStockIds(List<Long> reservationStockIds, List<Long> watcherStockIds) {
+        if (reservationStockIds.isEmpty()) {
+            return watcherStockIds;
+        }
+        if (watcherStockIds.isEmpty()) {
+            return reservationStockIds;
+        }
+
+        LinkedHashSet<Long> merged = new LinkedHashSet<>(reservationStockIds);
+        merged.addAll(watcherStockIds);
+        return merged.stream().toList();
     }
 
     private void releaseLocalSubscription(

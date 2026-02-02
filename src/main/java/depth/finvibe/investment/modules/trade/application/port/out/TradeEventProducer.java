@@ -6,4 +6,5 @@ public interface TradeEventProducer {
 
     void publishNormalTradeExecutedEvent(Trade trade);
     void publishReservedTradeExecutedEvent(Trade trade);
+    void publishTradeCancelledEvent(Trade trade);
 }

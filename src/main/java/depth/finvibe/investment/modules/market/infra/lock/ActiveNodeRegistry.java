@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import lombok.Getter;
+import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Component;
 
@@ -54,7 +55,12 @@ public class ActiveNodeRegistry {
   public void shutdown() {
     String key = NODE_KEY_PREFIX + nodeId;
     try {
-      redissonClient.getBucket(key).delete();
+      RBucket<Object> bucket = redissonClient.getBucket(key);
+      if (bucket == null) {
+        log.warn("ActiveNodeRegistry 종료 중 heartbeat 버킷을 찾지 못했습니다 - NodeId: {}", nodeId);
+        return;
+      }
+      bucket.delete();
       log.info("ActiveNodeRegistry 종료 완료 - NodeId: {} heartbeat 삭제됨", nodeId);
     } catch (Exception ex) {
       log.error("ActiveNodeRegistry 종료 중 heartbeat 삭제 실패 - NodeId: {}", nodeId, ex);
@@ -68,7 +74,12 @@ public class ActiveNodeRegistry {
   public void recordHeartbeat() {
     String key = NODE_KEY_PREFIX + nodeId;
     try {
-      redissonClient.getBucket(key).set(System.currentTimeMillis(), HEARTBEAT_TTL_SECONDS, TimeUnit.SECONDS);
+      RBucket<Object> bucket = redissonClient.getBucket(key);
+      if (bucket == null) {
+        log.warn("Heartbeat 기록 실패 - 버킷을 찾지 못했습니다 - NodeId: {}", nodeId);
+        return;
+      }
+      bucket.set(System.currentTimeMillis(), HEARTBEAT_TTL_SECONDS, TimeUnit.SECONDS);
       log.trace("Heartbeat 기록 완료 - NodeId: {}", nodeId);
     } catch (Exception ex) {
       log.error("Heartbeat 기록 실패 - NodeId: {}", nodeId, ex);
