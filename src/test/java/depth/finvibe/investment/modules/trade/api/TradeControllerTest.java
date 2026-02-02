@@ -1,5 +1,8 @@
 package depth.finvibe.investment.modules.trade.api;
 
+import depth.finvibe.investment.boot.config.WebMvcConfig;
+import depth.finvibe.investment.boot.security.model.UserRole;
+import depth.finvibe.investment.boot.security.resolver.JwtArgumentResolver;
 import depth.finvibe.investment.modules.trade.api.external.TradeController;
 import depth.finvibe.investment.modules.trade.application.port.in.TradeCommandUseCase;
 import depth.finvibe.investment.modules.trade.application.port.in.TradeQueryUseCase;
@@ -7,15 +10,20 @@ import depth.finvibe.investment.modules.trade.domain.enums.MarketType;
 import depth.finvibe.investment.modules.trade.domain.enums.TradeType;
 import depth.finvibe.investment.modules.trade.domain.enums.TransactionType;
 import depth.finvibe.investment.modules.trade.dto.TradeDto;
+import depth.finvibe.investment.boot.security.model.Requester;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -28,6 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(TradeController.class)
+@Import({WebMvcConfig.class, JwtArgumentResolver.class})
 class TradeControllerTest {
 
     @Autowired
@@ -65,6 +74,7 @@ class TradeControllerTest {
 
         // when & then
         mockMvc.perform(get("/trades/{tradeId}", tradeId)
+                        .header("Authorization", bearerToken(userId))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tradeId").value(tradeId))
@@ -99,12 +109,13 @@ class TradeControllerTest {
                 .transactionType(TransactionType.BUY)
                 .build();
 
-        given(tradeCommandUseCase.createTrade(any(TradeDto.TransactionRequest.class)))
+        given(tradeCommandUseCase.createTrade(any(TradeDto.TransactionRequest.class), any(Requester.class)))
                 .willReturn(mockResponse);
 
         // when & then
         mockMvc.perform(post("/trades")
                         .content(objectMapper.writeValueAsString(request))
+                        .header("Authorization", bearerToken(userId))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tradeId").value(1L))
@@ -117,20 +128,33 @@ class TradeControllerTest {
     void cancelTrade() throws Exception {
         // given
         Long tradeId = 1L;
+        UUID userId = UUID.randomUUID();
 
         TradeDto.TradeResponse mockResponse = TradeDto.TradeResponse.builder()
                 .tradeId(tradeId)
                 .tradeType(TradeType.CANCELLED)
                 .build();
 
-        given(tradeCommandUseCase.cancelTrade(tradeId)).willReturn(mockResponse);
+        given(tradeCommandUseCase.cancelTrade(eq(tradeId), any(Requester.class))).willReturn(mockResponse);
 
         // when & then
         mockMvc.perform(delete("/trades/{tradeId}", tradeId)
+                        .header("Authorization", bearerToken(userId))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andDo(print());
 
-        verify(tradeCommandUseCase).cancelTrade(eq(tradeId));
+        verify(tradeCommandUseCase).cancelTrade(eq(tradeId), any(Requester.class));
+    }
+
+    private String bearerToken(UUID userId) throws Exception {
+        String header = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("{}".getBytes(StandardCharsets.UTF_8));
+        String payload = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(objectMapper.writeValueAsBytes(Map.of(
+                        "id", userId.toString(),
+                        "role", UserRole.USER.name()
+                )));
+        return "Bearer " + header + "." + payload + ".sig";
     }
 }

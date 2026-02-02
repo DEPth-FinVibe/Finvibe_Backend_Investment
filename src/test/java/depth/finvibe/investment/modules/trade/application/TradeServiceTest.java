@@ -1,7 +1,12 @@
 package depth.finvibe.investment.modules.trade.application;
 
+import depth.finvibe.investment.boot.security.model.Requester;
+import depth.finvibe.investment.boot.security.model.UserRole;
+import depth.finvibe.investment.modules.trade.application.port.out.AssetClient;
+import depth.finvibe.investment.modules.trade.application.port.out.MarketClient;
 import depth.finvibe.investment.modules.trade.application.port.out.TradeEventProducer;
 import depth.finvibe.investment.modules.trade.application.port.out.TradeRepository;
+import depth.finvibe.investment.modules.trade.application.port.out.WalletClient;
 import depth.finvibe.investment.modules.trade.domain.Trade;
 import depth.finvibe.investment.modules.trade.domain.enums.MarketType;
 import depth.finvibe.investment.modules.trade.domain.enums.TradeType;
@@ -23,6 +28,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
@@ -36,6 +42,15 @@ class TradeServiceTest {
     @Mock
     private TradeEventProducer tradeEventProducer;
 
+    @Mock
+    private AssetClient assetClient;
+
+    @Mock
+    private MarketClient marketClient;
+
+    @Mock
+    private WalletClient walletClient;
+
     @InjectMocks
     private TradeService tradeService;
 
@@ -44,10 +59,15 @@ class TradeServiceTest {
     private Trade normalTrade;
     private Trade reservedTrade;
     private UUID userId;
+    private Requester requester;
 
     @BeforeEach
     void setUp() {
         userId = UUID.randomUUID();
+        requester = Requester.builder()
+                .uuid(userId)
+                .role(UserRole.USER)
+                .build();
 
         normalBuyRequest = TradeDto.TransactionRequest.builder()
                 .marketType(MarketType.DOMESTIC)
@@ -125,10 +145,11 @@ class TradeServiceTest {
     @DisplayName("일반 거래 생성 성공")
     void createNormalTrade_Success() {
         // given
+        stubTradeContexts();
         given(tradeRepository.save(any(Trade.class))).willReturn(normalTrade);
 
         // when
-        TradeDto.TradeResponse response = tradeService.createTrade(normalBuyRequest);
+        TradeDto.TradeResponse response = tradeService.createTrade(normalBuyRequest, requester);
 
         // then
         assertThat(response.getStockId()).isEqualTo(5930L);
@@ -141,10 +162,11 @@ class TradeServiceTest {
     @DisplayName("예약 거래 생성 성공")
     void createReservedTrade_Success() {
         // given
+        stubTradeContexts();
         given(tradeRepository.save(any(Trade.class))).willReturn(reservedTrade);
 
         // when
-        TradeDto.TradeResponse response = tradeService.createTrade(reservedBuyRequest);
+        TradeDto.TradeResponse response = tradeService.createTrade(reservedBuyRequest, requester);
 
         // then
         assertThat(response.getStockId()).isEqualTo(5930L);
@@ -156,6 +178,7 @@ class TradeServiceTest {
     @DisplayName("매도 거래 생성 성공")
     void createSellTrade_Success() {
         // given
+        stubTradeContexts();
         TradeDto.TransactionRequest sellRequest = TradeDto.TransactionRequest.builder()
                 .marketType(MarketType.DOMESTIC)
                 .stockId(5930L)
@@ -181,7 +204,7 @@ class TradeServiceTest {
         given(tradeRepository.save(any(Trade.class))).willReturn(sellTrade);
 
         // when
-        TradeDto.TradeResponse response = tradeService.createTrade(sellRequest);
+        TradeDto.TradeResponse response = tradeService.createTrade(sellRequest, requester);
 
         // then
         assertThat(response.getTransactionType()).isEqualTo(TransactionType.SELL);
@@ -193,6 +216,7 @@ class TradeServiceTest {
     @DisplayName("잘못된 거래 타입으로 생성 실패")
     void createTrade_InvalidTradeType() {
         // given
+        stubTradeContexts();
         TradeDto.TransactionRequest invalidRequest = TradeDto.TransactionRequest.builder()
                 .marketType(MarketType.DOMESTIC)
                 .stockId(5930L)
@@ -205,7 +229,7 @@ class TradeServiceTest {
                 .build();
 
         // when & then
-        assertThatThrownBy(() -> tradeService.createTrade(invalidRequest))
+        assertThatThrownBy(() -> tradeService.createTrade(invalidRequest, requester))
                 .isInstanceOf(DomainException.class)
                 .hasFieldOrPropertyWithValue("errorCode", TradeErrorCode.INVALID_TRADE_TYPE);
     }
@@ -219,7 +243,7 @@ class TradeServiceTest {
         given(tradeRepository.save(any(Trade.class))).willReturn(spyReservedTrade);
 
         // when
-        TradeDto.TradeResponse response = tradeService.cancelTrade(1L);
+        TradeDto.TradeResponse response = tradeService.cancelTrade(1L, requester);
 
         // then
         verify(spyReservedTrade, times(1)).cancel();
@@ -233,7 +257,7 @@ class TradeServiceTest {
         given(tradeRepository.findById(1L)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> tradeService.cancelTrade(1L))
+        assertThatThrownBy(() -> tradeService.cancelTrade(1L, requester))
                 .isInstanceOf(DomainException.class)
                 .hasFieldOrPropertyWithValue("errorCode", TradeErrorCode.TRADE_NOT_FOUND);
     }
@@ -245,9 +269,15 @@ class TradeServiceTest {
         given(tradeRepository.findById(1L)).willReturn(Optional.of(normalTrade));
 
         // when & then
-        assertThatThrownBy(() -> tradeService.cancelTrade(1L))
+        assertThatThrownBy(() -> tradeService.cancelTrade(1L, requester))
                 .isInstanceOf(DomainException.class)
                 .hasFieldOrPropertyWithValue("errorCode", TradeErrorCode.RESERVED_TRADE_ONLY_CANCELLABLE);
+    }
+
+    private void stubTradeContexts() {
+        given(marketClient.isMarketOpen()).willReturn(true);
+        given(assetClient.isExistPortfolio(eq(1L), eq(userId))).willReturn(true);
+        given(walletClient.getWalletBalance(eq(userId))).willReturn(1_000_000L);
     }
 
     @Test

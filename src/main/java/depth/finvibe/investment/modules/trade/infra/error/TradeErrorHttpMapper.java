@@ -19,13 +19,18 @@ public class TradeErrorHttpMapper implements DomainErrorHttpMapper {
     public HttpStatusCode toStatus(DomainErrorCode code) {
         TradeErrorCode tradeCode = (TradeErrorCode) code;
         return switch (tradeCode) {
-            case TRADE_NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case TRADE_NOT_FOUND,
+                 PORTFOLIO_NOT_FOUND -> HttpStatus.NOT_FOUND;
 
             case ALREADY_CANCELLED_TRADE,
                  RESERVED_TRADE_ONLY_CANCELLABLE,
                  INVALID_TRADE_TYPE,
                  INVALID_TRADE_ID_FORMAT,
-                 CANNOT_CANCEL_NON_RESERVED_TRADE -> HttpStatus.BAD_REQUEST;
+                 CANNOT_CANCEL_NON_RESERVED_TRADE,
+                 MARKET_CLOSED,
+                 INSUFFICIENT_BALANCE -> HttpStatus.BAD_REQUEST;
+
+            case CANNOT_CANCEL_BY_OTHER_USER -> HttpStatus.FORBIDDEN;
         };
     }
 }
