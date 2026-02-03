@@ -13,6 +13,7 @@ import depth.finvibe.investment.modules.trade.domain.enums.TradeType;
 import depth.finvibe.investment.modules.trade.domain.enums.TransactionType;
 import depth.finvibe.investment.modules.trade.domain.error.TradeErrorCode;
 import depth.finvibe.investment.modules.trade.dto.TradeDto;
+import depth.finvibe.investment.shared.application.port.out.GamificationEventProducer;
 import depth.finvibe.investment.shared.error.DomainException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -41,6 +42,9 @@ class TradeServiceTest {
 
     @Mock
     private TradeEventProducer tradeEventProducer;
+
+    @Mock
+    private GamificationEventProducer gamificationEventProducer;
 
     @Mock
     private AssetClient assetClient;
