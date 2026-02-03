@@ -2,107 +2,258 @@
 
 이 문서는 finvibe-investment 내 Kafka 기반 인터페이스(토픽, 프로듀서/컨슈머, 이벤트 스키마)를 정리한다.
 
-## Topic Summary
+## Trade Module
 
-| Topic | Direction | Producers | Consumers | Event DTO | Description |
-| --- | --- | --- | --- | --- | --- |
-| trade.trade-executed.v1 | publish | TradeKafkaProducer | Asset KafkaConsumer, WalletKafkaConsumer | TradeExecutedEvent | 체결 완료 거래 발생 이벤트 |
-| user.signup.v1 | subscribe | (external) | Asset KafkaConsumer, WalletKafkaConsumer | SignUpEvent | 사용자 가입 이벤트 |
-| market.batch-price-updated.v1 | publish | MarketKafkaProducer | Asset KafkaConsumer | BatchPriceUpdatedEvent | 배치 시세 갱신 완료 이벤트 |
-| market.reservation-satisfied.v1 | subscribe | (external) | TradeKafkaConsumer | ReservationSatisfiedEvent | 예약 주문 체결 조건 만족 이벤트 |
+### Topics
 
-## Producers
+- `trade.trade-executed.v1` (publish)
+- `trade.trade-reserved.v1` (publish)
+- `trade.trade-cancelled.v1` (publish)
+- `market.reservation-satisfied.v1` (subscribe)
 
-### trade.trade-executed.v1
+### Producers
 
-- Event: 체결 완료된 거래를 알리는 이벤트
-- Class: `src/main/java/depth/finvibe/investment/modules/trade/infra/messaging/TradeKafkaProducer.java`
-- Key: `userId.toString()`
-- Value: `TradeExecutedEvent`
-- Notes: 정상/예약 체결 모두 동일 토픽으로 발행
+- trade.trade-executed.v1
+  - Event: 체결 완료된 거래를 알리는 이벤트
+  - Class: `src/main/java/depth/finvibe/investment/modules/trade/infra/messaging/TradeKafkaProducer.java`
+  - Key: `userId.toString()`
+  - Value: `TradeExecutedEvent`
+  - Notes: 정상 체결 이벤트에 사용
 
-### market.batch-price-updated.v1
+- trade.trade-reserved.v1
+  - Event: 예약 주문 거래 체결 정보를 알리는 이벤트
+  - Class: `src/main/java/depth/finvibe/investment/modules/trade/infra/messaging/TradeKafkaProducer.java`
+  - Key: `userId.toString()`
+  - Value: `TradeExecutedEvent`
 
-- Event: 배치 시세 갱신 완료를 알리는 이벤트
-- Class: `src/main/java/depth/finvibe/investment/modules/market/infra/messaging/MarketKafkaProducer.java`
-- Key: 없음 (null)
-- Value: `BatchPriceUpdatedEvent`
+- trade.trade-cancelled.v1
+  - Event: 예약 주문 취소를 알리는 이벤트
+  - Class: `src/main/java/depth/finvibe/investment/modules/trade/infra/messaging/TradeKafkaProducer.java`
+  - Key: `userId.toString()`
+  - Value: `Long` (tradeId)
 
-## Consumers
+### Consumers
 
-### trade.trade-executed.v1
+- market.reservation-satisfied.v1
+  - Event: 예약 주문 체결 조건 충족을 수신해 예약 거래 실행을 트리거하는 이벤트
+  - Group: `trade-group`
+  - Class: `src/main/java/depth/finvibe/investment/modules/trade/infra/messaging/TradeKafkaConsumer.java`
+  - Value type mapping: `spring.json.value.default.type=depth.finvibe.investment.shared.dto.ReservationSatisfiedEvent`
 
-- Event: 체결 완료 거래를 수신해 자산/지갑 상태를 갱신하는 이벤트
-- Group: `asset-group`, `wallet-group`
-- Class: `src/main/java/depth/finvibe/investment/modules/asset/infra/messaging/KafkaConsumer.java`
-- Class: `src/main/java/depth/finvibe/investment/modules/wallet/infra/messaging/WalletKafkaConsumer.java`
-- Value type mapping: `spring.json.value.default.type=depth.finvibe.investment.shared.dto.TradeExecutedEvent`
+### Event Schemas
 
-### user.signup.v1
+- TradeExecutedEvent
+  - Source: `src/main/java/depth/finvibe/investment/shared/dto/TradeExecutedEvent.java`
+  - Description: 체결 완료된 거래 정보를 전달
+  - Fields:
+    - `tradeId: Long`
+    - `userId: String`
+    - `type: String` ("BUY" | "SELL")
+    - `amount: BigDecimal`
+    - `price: Long`
+    - `stockId: Long`
+    - `name: String`
+    - `currency: String` ("KRW" | "USD")
+    - `portfolioId: Long`
 
-- Event: 신규 가입 사용자를 수신해 초기 자산/지갑을 준비하는 이벤트
-- Group: `asset-group`, `wallet-group`
-- Class: `src/main/java/depth/finvibe/investment/modules/asset/infra/messaging/KafkaConsumer.java`
-- Class: `src/main/java/depth/finvibe/investment/modules/wallet/infra/messaging/WalletKafkaConsumer.java`
-- Value type mapping: `spring.json.value.default.type=depth.finvibe.investment.shared.dto.SignUpEvent`
+- ReservationSatisfiedEvent
+  - Source: `src/main/java/depth/finvibe/investment/shared/dto/ReservationSatisfiedEvent.java`
+  - Description: 예약 주문이 체결 조건을 만족했음을 전달
+  - Fields:
+    - `tradeId: Long`
+    - `type: String` ("BUY" | "SELL")
+    - `price: Long`
 
-### market.batch-price-updated.v1
+## Market Module
 
-- Event: 배치 시세 갱신 결과를 수신해 자산 평가에 반영하는 이벤트
-- Group: `asset-group`
-- Class: `src/main/java/depth/finvibe/investment/modules/asset/infra/messaging/KafkaConsumer.java`
-- Value type mapping: `spring.json.value.default.type=depth.finvibe.investment.shared.dto.BatchPriceUpdatedEvent`
+### Topics
 
-### market.reservation-satisfied.v1
+- `market.batch-price-updated.v1` (publish)
+- `market.reservation-satisfied.v1` (publish)
+- `trade.trade-reserved.v1` (subscribe)
+- `trade.trade-cancelled.v1` (subscribe)
 
-- Event: 예약 주문 체결 조건 충족을 수신해 예약 거래 실행을 트리거하는 이벤트
-- Group: `trade-group`
-- Class: `src/main/java/depth/finvibe/investment/modules/trade/infra/messaging/TradeKafkaConsumer.java`
-- Value type mapping: `spring.json.value.default.type=depth.finvibe.investment.shared.dto.ReservationSatisfiedEvent`
+### Producers
 
-## Event Schemas
+- market.batch-price-updated.v1
+  - Event: 배치 시세 갱신 완료를 알리는 이벤트
+  - Class: `src/main/java/depth/finvibe/investment/modules/market/infra/messaging/MarketKafkaProducer.java`
+  - Key: 없음 (null)
+  - Value: `BatchPriceUpdatedEvent`
 
-### TradeExecutedEvent
+- market.reservation-satisfied.v1
+  - Event: 예약 주문 체결 조건 만족을 알리는 이벤트
+  - Class: `src/main/java/depth/finvibe/investment/modules/market/infra/messaging/MarketKafkaProducer.java`
+  - Key: 없음 (null)
+  - Value: `ReservationSatisfiedEvent`
 
-- Source: `src/main/java/depth/finvibe/investment/shared/dto/TradeExecutedEvent.java`
-- Description: 체결 완료된 거래 정보를 전달
-- Fields:
-  - `tradeId: String`
-  - `userId: String`
-  - `type: String` ("BUY" | "SELL")
-  - `amount: BigDecimal`
-  - `price: BigDecimal`
-  - `stockId: Long`
-  - `name: String`
-  - `currency: String` ("KRW" | "USD")
-  - `portfolioId: Long`
+### Consumers
 
-### SignUpEvent
+- trade.trade-reserved.v1
+  - Event: 예약 주문 거래를 수신해 예약 상태를 갱신하는 이벤트
+  - Group: `market-group`
+  - Class: `src/main/java/depth/finvibe/investment/modules/market/infra/messaging/MarketKafkaConsumer.java`
+  - Value type mapping: `spring.json.value.default.type=depth.finvibe.investment.shared.dto.TradeExecutedEvent`
 
-- Source: `src/main/java/depth/finvibe/investment/shared/dto/SignUpEvent.java`
-- Description: 신규 가입 사용자 식별자 전달
-- Fields:
-  - `userId: String`
+- trade.trade-cancelled.v1
+  - Event: 예약 주문 취소를 수신해 예약 상태를 해제하는 이벤트
+  - Group: `market-group`
+  - Class: `src/main/java/depth/finvibe/investment/modules/market/infra/messaging/MarketKafkaConsumer.java`
+  - Value type mapping: 없음 (Long)
 
-### BatchPriceUpdatedEvent
+### Event Schemas
 
-- Source: `src/main/java/depth/finvibe/investment/shared/dto/BatchPriceUpdatedEvent.java`
-- Description: 배치 시세 갱신 결과 요약 전달
-- Fields:
-  - `batchExecutedAt: LocalDateTime`
-  - `totalStockCount: Integer`
-  - `updatedStockIds: List<Long>`
+- BatchPriceUpdatedEvent
+  - Source: `src/main/java/depth/finvibe/investment/shared/dto/BatchPriceUpdatedEvent.java`
+  - Description: 배치 시세 갱신 결과 요약 전달
+  - Fields:
+    - `batchExecutedAt: LocalDateTime`
+    - `totalStockCount: Integer`
+    - `updatedStockIds: List<Long>`
 
-### ReservationSatisfiedEvent
+- ReservationSatisfiedEvent
+  - Source: `src/main/java/depth/finvibe/investment/shared/dto/ReservationSatisfiedEvent.java`
+  - Description: 예약 주문이 체결 조건을 만족했음을 전달
+  - Fields:
+    - `tradeId: Long`
+    - `type: String` ("BUY" | "SELL")
+    - `price: Long`
 
-- Source: `src/main/java/depth/finvibe/investment/shared/dto/ReservationSatisfiedEvent.java`
-- Description: 예약 주문이 체결 조건을 만족했음을 전달
-- Fields:
-  - `tradeId: String`
-  - `userId: String`
-  - `type: String` ("BUY" | "SELL")
-  - `amount: Double`
-  - `price: Long`
+- TradeExecutedEvent
+  - Source: `src/main/java/depth/finvibe/investment/shared/dto/TradeExecutedEvent.java`
+  - Description: 체결 완료된 거래 정보를 전달
+  - Fields:
+    - `tradeId: Long`
+    - `userId: String`
+    - `type: String` ("BUY" | "SELL")
+    - `amount: BigDecimal`
+    - `price: Long`
+    - `stockId: Long`
+    - `name: String`
+    - `currency: String` ("KRW" | "USD")
+    - `portfolioId: Long`
+
+## Asset Module
+
+### Topics
+
+- `trade.trade-executed.v1` (subscribe)
+- `user.signup.v1` (subscribe)
+- `market.batch-price-updated.v1` (subscribe)
+
+### Consumers
+
+- trade.trade-executed.v1
+  - Event: 체결 완료 거래를 수신해 자산 상태를 갱신하는 이벤트
+  - Group: `asset-group`
+  - Class: `src/main/java/depth/finvibe/investment/modules/asset/infra/messaging/KafkaConsumer.java`
+  - Value type mapping: `spring.json.value.default.type=depth.finvibe.investment.shared.dto.TradeExecutedEvent`
+
+- user.signup.v1
+  - Event: 신규 가입 사용자를 수신해 초기 자산을 준비하는 이벤트
+  - Group: `asset-group`
+  - Class: `src/main/java/depth/finvibe/investment/modules/asset/infra/messaging/KafkaConsumer.java`
+  - Value type mapping: `spring.json.value.default.type=depth.finvibe.investment.shared.dto.SignUpEvent`
+
+- market.batch-price-updated.v1
+  - Event: 배치 시세 갱신 결과를 수신해 자산 평가에 반영하는 이벤트
+  - Group: `asset-group`
+  - Class: `src/main/java/depth/finvibe/investment/modules/asset/infra/messaging/KafkaConsumer.java`
+  - Value type mapping: `spring.json.value.default.type=depth.finvibe.investment.shared.dto.BatchPriceUpdatedEvent`
+
+### Event Schemas
+
+- TradeExecutedEvent
+  - Source: `src/main/java/depth/finvibe/investment/shared/dto/TradeExecutedEvent.java`
+  - Description: 체결 완료된 거래 정보를 전달
+  - Fields:
+    - `tradeId: Long`
+    - `userId: String`
+    - `type: String` ("BUY" | "SELL")
+    - `amount: BigDecimal`
+    - `price: Long`
+    - `stockId: Long`
+    - `name: String`
+    - `currency: String` ("KRW" | "USD")
+    - `portfolioId: Long`
+
+- SignUpEvent
+  - Source: `src/main/java/depth/finvibe/investment/shared/dto/SignUpEvent.java`
+  - Description: 신규 가입 사용자 식별자 전달
+  - Fields:
+    - `userId: String`
+
+- BatchPriceUpdatedEvent
+  - Source: `src/main/java/depth/finvibe/investment/shared/dto/BatchPriceUpdatedEvent.java`
+  - Description: 배치 시세 갱신 결과 요약 전달
+  - Fields:
+    - `batchExecutedAt: LocalDateTime`
+    - `totalStockCount: Integer`
+    - `updatedStockIds: List<Long>`
+
+## Wallet Module
+
+### Topics
+
+- `trade.trade-executed.v1` (subscribe)
+- `user.signup.v1` (subscribe)
+
+### Consumers
+
+- trade.trade-executed.v1
+  - Event: 체결 완료 거래를 수신해 지갑 상태를 갱신하는 이벤트
+  - Group: `wallet-group`
+  - Class: `src/main/java/depth/finvibe/investment/modules/wallet/infra/messaging/WalletKafkaConsumer.java`
+  - Value type mapping: `spring.json.value.default.type=depth.finvibe.investment.shared.dto.TradeExecutedEvent`
+
+- user.signup.v1
+  - Event: 신규 가입 사용자를 수신해 초기 지갑을 준비하는 이벤트
+  - Group: `wallet-group`
+  - Class: `src/main/java/depth/finvibe/investment/modules/wallet/infra/messaging/WalletKafkaConsumer.java`
+  - Value type mapping: `spring.json.value.default.type=depth.finvibe.investment.shared.dto.SignUpEvent`
+
+### Event Schemas
+
+- TradeExecutedEvent
+  - Source: `src/main/java/depth/finvibe/investment/shared/dto/TradeExecutedEvent.java`
+  - Description: 체결 완료된 거래 정보를 전달
+  - Fields:
+    - `tradeId: Long`
+    - `userId: String`
+    - `type: String` ("BUY" | "SELL")
+    - `amount: BigDecimal`
+    - `price: Long`
+    - `stockId: Long`
+    - `name: String`
+    - `currency: String` ("KRW" | "USD")
+    - `portfolioId: Long`
+
+- SignUpEvent
+  - Source: `src/main/java/depth/finvibe/investment/shared/dto/SignUpEvent.java`
+  - Description: 신규 가입 사용자 식별자 전달
+  - Fields:
+    - `userId: String`
+
+## User Module (External)
+
+### Topics
+
+- `user.signup.v1` (publish)
+
+### Producers
+
+- user.signup.v1
+  - Event: 신규 가입 사용자 식별자 전달
+  - Producer: 외부 사용자 서비스
+  - Value: `SignUpEvent`
+
+### Event Schemas
+
+- SignUpEvent
+  - Source: `src/main/java/depth/finvibe/investment/shared/dto/SignUpEvent.java`
+  - Description: 신규 가입 사용자 식별자 전달
+  - Fields:
+    - `userId: String`
 
 ## Serialization/Config Notes
 
