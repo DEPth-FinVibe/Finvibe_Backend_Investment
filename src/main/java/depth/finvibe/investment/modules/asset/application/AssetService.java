@@ -17,22 +17,13 @@ import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
 import depth.finvibe.investment.modules.asset.domain.error.AssetErrorCode;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
 import depth.finvibe.investment.shared.application.port.out.GamificationEventProducer;
-import depth.finvibe.investment.shared.dto.Badge;
 import depth.finvibe.investment.shared.dto.MetricEventType;
-import depth.finvibe.investment.shared.dto.RewardBadgeEvent;
 import depth.finvibe.investment.shared.dto.UserMetricUpdatedEvent;
 import depth.finvibe.investment.shared.error.DomainException;
-import depth.finvibe.investment.shared.application.port.out.GamificationEventProducer;
-import depth.finvibe.investment.shared.dto.Badge;
-import depth.finvibe.investment.shared.dto.MetricEventType;
-import depth.finvibe.investment.shared.dto.RewardBadgeEvent;
-import depth.finvibe.investment.shared.dto.UserMetricUpdatedEvent;
 
 @Service
 @RequiredArgsConstructor
 public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
-    private static final int DIVERSIFICATION_BADGE_THRESHOLD = 5;
-
     private final PortfolioGroupRepository portfolioGroupRepository;
     private final GamificationEventProducer gamificationEventProducer;
 
@@ -204,15 +195,6 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
                     .build());
         }
 
-        if (beforeSnapshot.holdingStockCount() < DIVERSIFICATION_BADGE_THRESHOLD
-                && afterSnapshot.holdingStockCount() >= DIVERSIFICATION_BADGE_THRESHOLD) {
-            gamificationEventProducer.publishRewardBadgeEvent(RewardBadgeEvent.builder()
-                    .userId(userId.toString())
-                    .badgeCode(Badge.DIVERSIFICATION_MASTER.name())
-                    .issuedAt(Instant.now())
-                    .reason("보유 종목 " + afterSnapshot.holdingStockCount() + "개 달성")
-                    .build());
-        }
     }
 
     private record HoldingMetricsSnapshot(int holdingStockCount, int portfolioWithStocksCount) {
