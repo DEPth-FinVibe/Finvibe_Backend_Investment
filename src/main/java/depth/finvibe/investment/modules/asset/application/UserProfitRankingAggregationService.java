@@ -2,8 +2,10 @@ package depth.finvibe.investment.modules.asset.application;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,12 +20,16 @@ import depth.finvibe.investment.modules.asset.application.port.out.UserProfitRan
 import depth.finvibe.investment.modules.asset.application.port.out.UserProfitSnapshotRepository;
 import depth.finvibe.investment.modules.asset.domain.UserProfitSnapshotDaily;
 import depth.finvibe.investment.modules.asset.domain.enums.UserProfitRankType;
+import depth.finvibe.investment.shared.application.port.out.GamificationEventProducer;
+import depth.finvibe.investment.shared.dto.Badge;
+import depth.finvibe.investment.shared.dto.RewardBadgeEvent;
 
 @Service
 @RequiredArgsConstructor
 public class UserProfitRankingAggregationService {
   private final UserProfitSnapshotRepository userProfitSnapshotRepository;
   private final UserProfitRankingRepository userProfitRankingRepository;
+  private final GamificationEventProducer gamificationEventProducer;
 
   @Transactional
   public void aggregateWeeklyRankings(LocalDate today) {
@@ -79,6 +85,7 @@ public class UserProfitRankingAggregationService {
     }
 
     userProfitRankingRepository.replaceAllRankings(rankType, rankings);
+    publishTopOnePercentTrainerBadges(rankType, rankings);
   }
 
   private Map<UUID, UserProfitSnapshotDaily> toUserMap(List<UserProfitSnapshotDaily> snapshots) {
@@ -96,5 +103,39 @@ public class UserProfitRankingAggregationService {
     return profitLoss
       .divide(purchaseAmount, 4, RoundingMode.HALF_UP)
       .multiply(BigDecimal.valueOf(100));
+  }
+
+  private void publishTopOnePercentTrainerBadges(UserProfitRankType rankType, List<UserProfitRankingData> rankings) {
+    if (rankType == null || rankings == null || rankings.isEmpty()) {
+      return;
+    }
+
+    int topCount = Math.max(1, (int) Math.ceil(rankings.size() * 0.01d));
+    List<UserProfitRankingData> topRankings = rankings.stream()
+      .sorted(Comparator.comparing(
+        UserProfitRankingData::totalReturnRate,
+        Comparator.nullsLast(BigDecimal::compareTo)
+      ).reversed())
+      .limit(topCount)
+      .toList();
+
+    Instant issuedAt = Instant.now();
+    String reason = buildTopOnePercentReason(rankType);
+    for (UserProfitRankingData ranking : topRankings) {
+      gamificationEventProducer.publishRewardBadgeEvent(RewardBadgeEvent.builder()
+        .userId(ranking.userId().toString())
+        .badgeCode(Badge.TOP_ONE_PERCENT_TRAINER.name())
+        .issuedAt(issuedAt)
+        .reason(reason)
+        .build());
+    }
+  }
+
+  private String buildTopOnePercentReason(UserProfitRankType rankType) {
+    return switch (rankType) {
+      case WEEKLY -> "주간 수익률 상위 1% 선정";
+      case MONTHLY -> "월간 수익률 상위 1% 선정";
+      case DAILY -> "일간 수익률 상위 1% 선정";
+    };
   }
 }

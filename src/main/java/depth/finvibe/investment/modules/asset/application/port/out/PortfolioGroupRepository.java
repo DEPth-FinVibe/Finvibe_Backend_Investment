@@ -15,6 +15,8 @@ public interface PortfolioGroupRepository {
 
     List<PortfolioGroup> findAllByUserId(UUID userId);
 
+    List<PortfolioGroup> findAllByUserIdWithAssets(UUID userId);
+
     List<PortfolioGroup> findAllWithAssets();
 
     Optional<PortfolioGroup> findDefaultByUserId(UUID userId);

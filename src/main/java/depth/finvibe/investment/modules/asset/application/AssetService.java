@@ -1,5 +1,14 @@
 package depth.finvibe.investment.modules.asset.application;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUseCase;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetQueryUseCase;
 import depth.finvibe.investment.modules.asset.application.port.out.PortfolioGroupRepository;
 import depth.finvibe.investment.modules.asset.domain.Asset;
@@ -7,20 +16,25 @@ import depth.finvibe.investment.modules.asset.domain.Money;
 import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
 import depth.finvibe.investment.modules.asset.domain.error.AssetErrorCode;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
+import depth.finvibe.investment.shared.application.port.out.GamificationEventProducer;
+import depth.finvibe.investment.shared.dto.Badge;
+import depth.finvibe.investment.shared.dto.MetricEventType;
+import depth.finvibe.investment.shared.dto.RewardBadgeEvent;
+import depth.finvibe.investment.shared.dto.UserMetricUpdatedEvent;
 import depth.finvibe.investment.shared.error.DomainException;
-import org.springframework.stereotype.Service;
-
-import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUseCase;
-import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.UUID;
+import depth.finvibe.investment.shared.application.port.out.GamificationEventProducer;
+import depth.finvibe.investment.shared.dto.Badge;
+import depth.finvibe.investment.shared.dto.MetricEventType;
+import depth.finvibe.investment.shared.dto.RewardBadgeEvent;
+import depth.finvibe.investment.shared.dto.UserMetricUpdatedEvent;
 
 @Service
 @RequiredArgsConstructor
 public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
+    private static final int DIVERSIFICATION_BADGE_THRESHOLD = 5;
+
     private final PortfolioGroupRepository portfolioGroupRepository;
+    private final GamificationEventProducer gamificationEventProducer;
 
     @Override
     @Transactional(readOnly = true)
@@ -53,16 +67,23 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
     @Override
     @Transactional
     public void registerAsset(Long portfolioId, PortfolioGroupDto.RegisterAssetRequest request, UUID requesterUserId) {
+        HoldingMetricsSnapshot beforeSnapshot = getHoldingMetricsSnapshot(requesterUserId);
+
         PortfolioGroup foundPortfolioGroup = findPortfolioGroupWithAssets(portfolioId);
 
         Asset toRegister = toAssetEntity(request, requesterUserId);
 
         foundPortfolioGroup.register(toRegister, requesterUserId);
+
+        HoldingMetricsSnapshot afterSnapshot = getHoldingMetricsSnapshot(requesterUserId);
+        publishHoldingMetricsIfChanged(requesterUserId, beforeSnapshot, afterSnapshot);
     }
 
     @Override
     @Transactional
     public void unregisterAsset(Long portfolioId, PortfolioGroupDto.UnregisterAssetRequest request, UUID requesterUserId) {
+        HoldingMetricsSnapshot beforeSnapshot = getHoldingMetricsSnapshot(requesterUserId);
+
         PortfolioGroup foundPortfolioGroup = findPortfolioGroupWithAssets(portfolioId);
 
         Money totalPrice = Money.of(request.getStockPrice(), request.getCurrency());
@@ -73,6 +94,9 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
                 totalPrice,
                 requesterUserId
         );
+
+        HoldingMetricsSnapshot afterSnapshot = getHoldingMetricsSnapshot(requesterUserId);
+        publishHoldingMetricsIfChanged(requesterUserId, beforeSnapshot, afterSnapshot);
     }
 
     @Override
@@ -142,5 +166,55 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
                 request.getStockId(),
                 requesterUserId
         );
+    }
+
+    private HoldingMetricsSnapshot getHoldingMetricsSnapshot(UUID userId) {
+        List<PortfolioGroup> portfolios = portfolioGroupRepository.findAllByUserIdWithAssets(userId);
+        int holdingStockCount = (int) portfolios.stream()
+                .flatMap(portfolio -> portfolio.getAssets().stream())
+                .map(Asset::getStockId)
+                .distinct()
+                .count();
+        int portfolioWithStocksCount = (int) portfolios.stream()
+                .filter(portfolio -> portfolio.getAssets() != null && !portfolio.getAssets().isEmpty())
+                .count();
+        return new HoldingMetricsSnapshot(holdingStockCount, portfolioWithStocksCount);
+    }
+
+    private void publishHoldingMetricsIfChanged(
+            UUID userId,
+            HoldingMetricsSnapshot beforeSnapshot,
+            HoldingMetricsSnapshot afterSnapshot
+    ) {
+        if (beforeSnapshot.holdingStockCount() != afterSnapshot.holdingStockCount()) {
+            gamificationEventProducer.publishUserMetricUpdatedEvent(UserMetricUpdatedEvent.builder()
+                    .userId(userId.toString())
+                    .eventType(MetricEventType.HOLDING_STOCK_COUNT_CHANGED)
+                    .delta((double) afterSnapshot.holdingStockCount())
+                    .occurredAt(Instant.now())
+                    .build());
+        }
+
+        if (beforeSnapshot.portfolioWithStocksCount() != afterSnapshot.portfolioWithStocksCount()) {
+            gamificationEventProducer.publishUserMetricUpdatedEvent(UserMetricUpdatedEvent.builder()
+                    .userId(userId.toString())
+                    .eventType(MetricEventType.PORTFOLIO_WITH_STOCKS_COUNT_CHANGED)
+                    .delta((double) afterSnapshot.portfolioWithStocksCount())
+                    .occurredAt(Instant.now())
+                    .build());
+        }
+
+        if (beforeSnapshot.holdingStockCount() < DIVERSIFICATION_BADGE_THRESHOLD
+                && afterSnapshot.holdingStockCount() >= DIVERSIFICATION_BADGE_THRESHOLD) {
+            gamificationEventProducer.publishRewardBadgeEvent(RewardBadgeEvent.builder()
+                    .userId(userId.toString())
+                    .badgeCode(Badge.DIVERSIFICATION_MASTER.name())
+                    .issuedAt(Instant.now())
+                    .reason("보유 종목 " + afterSnapshot.holdingStockCount() + "개 달성")
+                    .build());
+        }
+    }
+
+    private record HoldingMetricsSnapshot(int holdingStockCount, int portfolioWithStocksCount) {
     }
 }

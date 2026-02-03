@@ -2,6 +2,7 @@ package depth.finvibe.investment.modules.asset.application;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,12 +20,16 @@ import depth.finvibe.investment.modules.asset.application.port.out.UserProfitSna
 import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
 import depth.finvibe.investment.modules.asset.domain.UserProfitSnapshotDaily;
 import depth.finvibe.investment.modules.asset.domain.UserProfitSnapshotDailyId;
+import depth.finvibe.investment.shared.application.port.out.GamificationEventProducer;
+import depth.finvibe.investment.shared.dto.Badge;
+import depth.finvibe.investment.shared.dto.RewardBadgeEvent;
 
 @Service
 @RequiredArgsConstructor
 public class UserProfitSnapshotService {
   private final PortfolioGroupRepository portfolioGroupRepository;
   private final UserProfitSnapshotRepository userProfitSnapshotRepository;
+  private final GamificationEventProducer gamificationEventProducer;
 
   @Transactional
   public void saveDailySnapshot(LocalDate snapshotDate) {
@@ -45,6 +50,7 @@ public class UserProfitSnapshotService {
       UserProfitSummary summary = calculateUserProfitSummary(entry.getValue());
       if (summary.hasAssets()) {
         UserProfitSnapshotDailyId id = new UserProfitSnapshotDailyId(entry.getKey(), snapshotDate);
+        publishFirstProfitBadgeIfEligible(entry.getKey(), summary.totalProfitLoss(), snapshotDate);
         snapshots.add(UserProfitSnapshotDaily.create(
           id,
           summary.totalCurrentValue(),
@@ -92,6 +98,30 @@ public class UserProfitSnapshotService {
     return profitLoss
       .divide(purchaseAmount, 4, RoundingMode.HALF_UP)
       .multiply(BigDecimal.valueOf(100));
+  }
+
+  private void publishFirstProfitBadgeIfEligible(UUID userId, BigDecimal totalProfitLoss, LocalDate snapshotDate) {
+    if (userId == null || totalProfitLoss == null || snapshotDate == null) {
+      return;
+    }
+    if (totalProfitLoss.compareTo(BigDecimal.ZERO) <= 0) {
+      return;
+    }
+    boolean hasPositiveBefore = userProfitSnapshotRepository.existsPositiveProfitSnapshot(
+      userId,
+      BigDecimal.ZERO,
+      snapshotDate
+    );
+    if (hasPositiveBefore) {
+      return;
+    }
+
+    gamificationEventProducer.publishRewardBadgeEvent(RewardBadgeEvent.builder()
+      .userId(userId.toString())
+      .badgeCode(Badge.FIRST_PROFIT.name())
+      .issuedAt(Instant.now())
+      .reason("첫 수익 달성")
+      .build());
   }
 
   private record UserProfitSummary(

@@ -2,8 +2,10 @@ package depth.finvibe.investment.modules.asset.application;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -22,7 +24,10 @@ import depth.finvibe.investment.modules.asset.application.port.out.UserProfitRan
 import depth.finvibe.investment.modules.asset.domain.Asset;
 import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
 import depth.finvibe.investment.modules.asset.infra.client.MarketInternalClient;
+import depth.finvibe.investment.shared.application.port.out.GamificationEventProducer;
 import depth.finvibe.investment.shared.dto.BatchPriceSnapshot;
+import depth.finvibe.investment.shared.dto.MetricEventType;
+import depth.finvibe.investment.shared.dto.UserMetricUpdatedEvent;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +35,7 @@ public class ProfitCalculationService implements ProfitCalculationUseCase {
   private final PortfolioGroupRepository portfolioGroupRepository;
   private final MarketInternalClient marketInternalClient;
   private final ApplicationEventPublisher eventPublisher;
+  private final GamificationEventProducer gamificationEventProducer;
 
   @Override
   @Transactional
@@ -85,18 +91,29 @@ public class ProfitCalculationService implements ProfitCalculationUseCase {
     Map<UUID, List<PortfolioGroup>> portfoliosByUser = portfolios.stream()
       .collect(Collectors.groupingBy(PortfolioGroup::getUserId));
 
-    List<UserProfitRankingData> rankings = buildRankings(portfoliosByUser);
+    Map<UUID, UserProfitSummary> summaries = buildUserSummaries(portfoliosByUser);
+    List<UserProfitRankingData> rankings = buildRankings(summaries);
     AllUserProfitRatesUpdatedEvent event = AllUserProfitRatesUpdatedEvent.builder()
       .rankings(rankings)
       .calculatedAt(LocalDateTime.now())
       .build();
     eventPublisher.publishEvent(event);
+
+    publishCurrentReturnRateMetrics(summaries);
   }
 
-  private List<UserProfitRankingData> buildRankings(Map<UUID, List<PortfolioGroup>> portfoliosByUser) {
-    List<UserProfitRankingData> rankings = new ArrayList<>();
+  private Map<UUID, UserProfitSummary> buildUserSummaries(Map<UUID, List<PortfolioGroup>> portfoliosByUser) {
+    Map<UUID, UserProfitSummary> summaries = new HashMap<>();
     for (Map.Entry<UUID, List<PortfolioGroup>> entry : portfoliosByUser.entrySet()) {
-      UserProfitSummary summary = calculateUserProfitSummary(entry.getValue());
+      summaries.put(entry.getKey(), calculateUserProfitSummary(entry.getValue()));
+    }
+    return summaries;
+  }
+
+  private List<UserProfitRankingData> buildRankings(Map<UUID, UserProfitSummary> summaries) {
+    List<UserProfitRankingData> rankings = new ArrayList<>();
+    for (Map.Entry<UUID, UserProfitSummary> entry : summaries.entrySet()) {
+      UserProfitSummary summary = entry.getValue();
       if (summary.hasAssets()) {
         rankings.add(new UserProfitRankingData(
           entry.getKey(),
@@ -106,6 +123,25 @@ public class ProfitCalculationService implements ProfitCalculationUseCase {
       }
     }
     return rankings;
+  }
+
+  private void publishCurrentReturnRateMetrics(Map<UUID, UserProfitSummary> summaries) {
+    if (summaries == null || summaries.isEmpty()) {
+      return;
+    }
+    Instant occurredAt = Instant.now();
+    for (Map.Entry<UUID, UserProfitSummary> entry : summaries.entrySet()) {
+      UserProfitSummary summary = entry.getValue();
+      if (!summary.hasAssets()) {
+        continue;
+      }
+      gamificationEventProducer.publishUserMetricUpdatedEvent(UserMetricUpdatedEvent.builder()
+        .userId(entry.getKey().toString())
+        .eventType(MetricEventType.CURRENT_RETURN_RATE_UPDATED)
+        .delta(summary.totalReturnRate().doubleValue())
+        .occurredAt(occurredAt)
+        .build());
+    }
   }
 
   private UserProfitSummary calculateUserProfitSummary(List<PortfolioGroup> portfolios) {

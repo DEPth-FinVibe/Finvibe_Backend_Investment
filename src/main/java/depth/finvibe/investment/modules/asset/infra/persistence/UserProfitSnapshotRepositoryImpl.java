@@ -1,13 +1,15 @@
 package depth.finvibe.investment.modules.asset.infra.persistence;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import depth.finvibe.investment.modules.asset.application.port.out.UserProfitSnapshotRepository;
 import depth.finvibe.investment.modules.asset.domain.UserProfitSnapshotDaily;
-import lombok.RequiredArgsConstructor;
 
 @Repository
 @RequiredArgsConstructor
@@ -28,5 +30,17 @@ public class UserProfitSnapshotRepositoryImpl implements UserProfitSnapshotRepos
       return List.of();
     }
     return jpaRepository.findByIdSnapshotDate(snapshotDate);
+  }
+
+  @Override
+  public boolean existsPositiveProfitSnapshot(UUID userId, BigDecimal minimumProfit, LocalDate beforeDate) {
+    if (userId == null || minimumProfit == null || beforeDate == null) {
+      return false;
+    }
+    return jpaRepository.existsByIdUserIdAndTotalProfitLossGreaterThanAndIdSnapshotDateLessThan(
+      userId,
+      minimumProfit,
+      beforeDate
+    );
   }
 }

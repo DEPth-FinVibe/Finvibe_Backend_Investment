@@ -46,6 +46,18 @@ public class PortfolioGroupQueryRepository {
                 .fetch();
     }
 
+    public List<PortfolioGroup> findAllByUserIdWithAssets(UUID userId) {
+        if (userId == null) {
+            return List.of();
+        }
+        return queryFactory
+                .selectFrom(portfolioGroup)
+                .leftJoin(portfolioGroup.assets, asset).fetchJoin()
+                .where(portfolioGroup.userId.eq(userId))
+                .distinct()
+                .fetch();
+    }
+
     public List<PortfolioGroup> findAllByStockIdsWithAssets(List<Long> stockIds) {
         return queryFactory
                 .selectFrom(portfolioGroup)

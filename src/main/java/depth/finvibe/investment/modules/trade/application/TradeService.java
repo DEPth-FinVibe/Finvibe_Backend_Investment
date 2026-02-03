@@ -1,28 +1,38 @@
 package depth.finvibe.investment.modules.trade.application;
 
-import depth.finvibe.investment.boot.security.model.Requester;
-import depth.finvibe.investment.boot.security.model.UserRole;
-import depth.finvibe.investment.modules.trade.application.port.in.TradeCommandUseCase;
-import depth.finvibe.investment.modules.trade.application.port.in.TradeQueryUseCase;
-import depth.finvibe.investment.modules.trade.application.port.out.*;
-import depth.finvibe.investment.modules.trade.domain.Trade;
-import depth.finvibe.investment.modules.trade.domain.enums.TradeType;
-import depth.finvibe.investment.modules.trade.domain.error.TradeErrorCode;
-import depth.finvibe.investment.modules.trade.dto.TradeDto;
-import depth.finvibe.investment.shared.error.DomainException;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.UUID;
-
+import depth.finvibe.investment.boot.security.model.Requester;
+import depth.finvibe.investment.boot.security.model.UserRole;
+import depth.finvibe.investment.modules.trade.application.port.in.TradeCommandUseCase;
+import depth.finvibe.investment.modules.trade.application.port.in.TradeQueryUseCase;
+import depth.finvibe.investment.modules.trade.application.port.out.AssetClient;
+import depth.finvibe.investment.modules.trade.application.port.out.MarketClient;
+import depth.finvibe.investment.modules.trade.application.port.out.TradeEventProducer;
+import depth.finvibe.investment.modules.trade.application.port.out.TradeRepository;
+import depth.finvibe.investment.modules.trade.application.port.out.WalletClient;
+import depth.finvibe.investment.modules.trade.domain.Trade;
+import depth.finvibe.investment.modules.trade.domain.enums.TradeType;
+import depth.finvibe.investment.modules.trade.domain.enums.TransactionType;
+import depth.finvibe.investment.modules.trade.domain.error.TradeErrorCode;
+import depth.finvibe.investment.modules.trade.dto.TradeDto;
+import depth.finvibe.investment.shared.application.port.out.GamificationEventProducer;
+import depth.finvibe.investment.shared.dto.MetricEventType;
+import depth.finvibe.investment.shared.dto.UserMetricUpdatedEvent;
+import depth.finvibe.investment.shared.error.DomainException;
 @Service
 @RequiredArgsConstructor
 public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
 
     private final TradeRepository tradeRepository;
     private final TradeEventProducer tradeEventProducer;
+    private final GamificationEventProducer gamificationEventProducer;
     private final AssetClient assetClient;
     private final MarketClient marketClient;
     private final WalletClient walletClient;
@@ -124,6 +134,7 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
         //TODO: 실제 시장 가격 확인 후 체결 시뮬레이션
 
         tradeEventProducer.publishNormalTradeExecutedEvent(trade);
+        publishTradeMetricEvent(trade);
 
         return TradeDto.TradeResponse.from(savedTrade);
     }
@@ -139,6 +150,19 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
                 request.getTransactionType(),
                 request.getTradeType()
         );
+    }
+
+    private void publishTradeMetricEvent(Trade trade) {
+        MetricEventType eventType = trade.getTransactionType() == TransactionType.BUY
+                ? MetricEventType.STOCK_BOUGHT
+                : MetricEventType.STOCK_SOLD;
+
+        gamificationEventProducer.publishUserMetricUpdatedEvent(UserMetricUpdatedEvent.builder()
+                .userId(trade.getUserId().toString())
+                .eventType(eventType)
+                .delta(1.0)
+                .occurredAt(Instant.now())
+                .build());
     }
 
     private TradeDto.TradeResponse processReservedTrade(TradeDto.TransactionRequest request) {
