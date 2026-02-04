@@ -1,13 +1,11 @@
 package depth.finvibe.investment.modules.market.infra.scheduler;
 
-import depth.finvibe.investment.modules.market.application.port.in.CategoryCommandUseCase;
-import depth.finvibe.investment.modules.market.application.port.in.StockCommandUseCase;
-import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
-import depth.finvibe.investment.modules.market.domain.Category;
-import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.core.DefaultLockingTaskExecutor;
@@ -16,11 +14,13 @@ import net.javacrumbs.shedlock.core.LockProvider;
 import net.javacrumbs.shedlock.core.LockingTaskExecutor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
+
+import depth.finvibe.investment.modules.market.application.port.in.CategoryCommandUseCase;
+import depth.finvibe.investment.modules.market.application.port.in.StockCommandUseCase;
+import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
+import depth.finvibe.investment.modules.market.application.port.out.StockThemeRepository;
+import depth.finvibe.investment.modules.market.domain.Category;
 
 @Slf4j
 @Component
@@ -31,13 +31,13 @@ public class InitialMarketDataRunner implements CommandLineRunner {
     private static final String LOCK_NAME = "initial-market-data-runner";
     private static final Duration LOCK_AT_MOST_FOR = Duration.ofMinutes(10);
     private static final Duration LOCK_AT_LEAST_FOR = Duration.ofSeconds(5);
-    private static final String CATEGORY_RESOURCE_PATH = "seed/standard-industry-mid-categories.json";
+    private static final String FALLBACK_CATEGORY_NAME = "기타";
 
     private final LockProvider lockProvider;
     private final CategoryCommandUseCase categoryCommandUseCase;
     private final StockCommandUseCase stockCommandUseCase;
     private final StockRepository stockRepository;
-    private final ObjectMapper objectMapper;
+    private final StockThemeRepository stockThemeRepository;
 
     @Override
     public void run(String... args) {
@@ -48,10 +48,9 @@ public class InitialMarketDataRunner implements CommandLineRunner {
 
     private void initializeMarketData() {
         if (!categoryCommandUseCase.existsAny()) {
-            List<Category> categories = loadCategorySeeds().stream()
-                    .map(seed -> Category.builder()
-                            .code(seed.code())
-                            .name(seed.name())
+            List<Category> categories = loadCategoryThemes().stream()
+                    .map(theme -> Category.builder()
+                            .name(theme)
                             .build())
                     .toList();
             categoryCommandUseCase.bulkInsert(categories);
@@ -67,14 +66,14 @@ public class InitialMarketDataRunner implements CommandLineRunner {
         stockCommandUseCase.renewStockCharts();
     }
 
-    private List<CategorySeed> loadCategorySeeds() {
-        Resource resource = new ClassPathResource(CATEGORY_RESOURCE_PATH);
-        try {
-            return objectMapper.readValue(resource.getInputStream(), new TypeReference<>() {});
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to read category seed resource: " + CATEGORY_RESOURCE_PATH, e);
-        }
+    private List<String> loadCategoryThemes() {
+        Set<String> themes = stockThemeRepository.findSymbolToThemeMap().values().stream()
+                .map(theme -> theme == null ? "" : theme.trim())
+                .filter(theme -> !theme.isBlank())
+                .collect(Collectors.toSet());
+        themes.add(FALLBACK_CATEGORY_NAME);
+        return themes.stream()
+                .sorted()
+                .toList();
     }
-
-    private record CategorySeed(String code, String name) {}
 }

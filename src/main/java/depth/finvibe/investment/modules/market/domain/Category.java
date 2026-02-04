@@ -21,9 +21,6 @@ public class Category {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
-    private String code; // 표준산업분류코드 (중분류)
-
     // 카테고리명 변경
     public void changeName(String name) {
         if (name == null || name.isBlank()) {

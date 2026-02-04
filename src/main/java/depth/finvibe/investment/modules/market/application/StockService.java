@@ -1,37 +1,37 @@
 package depth.finvibe.investment.modules.market.application;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import depth.finvibe.investment.modules.market.application.port.in.StockCommandUseCase;
 import depth.finvibe.investment.modules.market.application.port.out.CategoryRepository;
 import depth.finvibe.investment.modules.market.application.port.out.RealMarketClient;
 import depth.finvibe.investment.modules.market.application.port.out.StockRankingRepository;
 import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
+import depth.finvibe.investment.modules.market.application.port.out.StockThemeRepository;
 import depth.finvibe.investment.modules.market.domain.Category;
 import depth.finvibe.investment.modules.market.domain.Stock;
 import depth.finvibe.investment.modules.market.domain.StockRanking;
 import depth.finvibe.investment.modules.market.domain.enums.RankType;
 import depth.finvibe.investment.modules.market.dto.StockDto;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-
-import java.time.LocalDateTime;
-
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 
 @RequiredArgsConstructor
 @Service
 public class StockService implements StockCommandUseCase {
 
+    private static final String FALLBACK_CATEGORY_NAME = "기타";
+
     private final StockRepository stockRepository;
     private final CategoryRepository categoryRepository;
+    private final StockThemeRepository stockThemeRepository;
     private final RealMarketClient realMarketClient;
     private final StockRankingRepository stockRankingRepository;
-
-    private static final String FALLBACK_CATEGORY_CODE = "0000";
 
     @Override
     @Transactional
@@ -45,10 +45,14 @@ public class StockService implements StockCommandUseCase {
 
     private List<Stock> convertToStocksFrom(List<StockDto.RealMarketStockResponse> stocksInKOSPI) {
         List<Category> allCategories = categoryRepository.findAll();
+        Map<String, Category> categoryByName = allCategories.stream()
+                .collect(Collectors.toMap(Category::getName, category -> category, (existing, replacement) -> existing));
+        Map<String, String> symbolToThemeMap = stockThemeRepository.findSymbolToThemeMap();
 
         return stocksInKOSPI.stream()
                 .map(res -> {
-                    Category category = seekMatchingCategoryBySymbol(allCategories, res.getSymbol());
+                    String theme = symbolToThemeMap.get(res.getSymbol());
+                    Category category = resolveCategory(categoryByName, theme);
                     return createStockFrom(res, category);
                 })
                 .toList();
@@ -63,14 +67,18 @@ public class StockService implements StockCommandUseCase {
                 .build();
     }
 
-    private Category seekMatchingCategoryBySymbol(List<Category> allCategories, String symbol) {
-        return allCategories.stream()
-                .filter(category -> symbol.startsWith(category.getCode()))
-                .findFirst()
-                .orElseGet(() -> allCategories.stream()
-                        .filter(category -> category.getCode().equals(FALLBACK_CATEGORY_CODE))
-                        .findFirst()
-                        .orElseThrow(() -> new IllegalStateException("Fallback category not found")));
+    private Category resolveCategory(Map<String, Category> categoryByName, String theme) {
+        if (theme != null && !theme.isBlank()) {
+            Category matched = categoryByName.get(theme);
+            if (matched != null) {
+                return matched;
+            }
+        }
+        Category fallback = categoryByName.get(FALLBACK_CATEGORY_NAME);
+        if (fallback == null) {
+            throw new IllegalStateException("Fallback category not found");
+        }
+        return fallback;
     }
 
     @Override

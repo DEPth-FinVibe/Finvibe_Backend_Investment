@@ -51,6 +51,7 @@ market:
 security:
   jwt:
     hmac-secret: ${JWT_SECRET}
+
 springdoc:
   swagger-ui:
     path: /doc/investment/swagger-ui.html
