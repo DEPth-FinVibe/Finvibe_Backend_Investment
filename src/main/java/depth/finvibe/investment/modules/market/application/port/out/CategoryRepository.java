@@ -1,11 +1,16 @@
 package depth.finvibe.investment.modules.market.application.port.out;
 
-import depth.finvibe.investment.modules.market.domain.Category;
-
 import java.util.List;
+import java.util.Optional;
+
+import depth.finvibe.investment.modules.market.domain.Category;
 
 public interface CategoryRepository {
     List<Category> findAll();
+
+    Optional<Category> findById(Long categoryId);
+
+    Optional<Category> findByName(String name);
 
     boolean existsAny();
 

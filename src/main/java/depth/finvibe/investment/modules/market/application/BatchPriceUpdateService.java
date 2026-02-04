@@ -16,10 +16,12 @@ import depth.finvibe.investment.modules.market.application.port.out.BatchPriceEv
 import depth.finvibe.investment.modules.market.application.port.out.BatchUpdatePriceRepository;
 import depth.finvibe.investment.modules.market.application.port.out.CurrentPriceRepository;
 import depth.finvibe.investment.modules.market.application.port.out.CurrentStockWatcherRepository;
+import depth.finvibe.investment.modules.market.application.port.out.CategoryRepository;
 import depth.finvibe.investment.modules.market.application.port.out.HoldingStockRepository;
 import depth.finvibe.investment.modules.market.application.port.out.RealMarketClient;
 import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
 import depth.finvibe.investment.modules.market.domain.BatchUpdatePrice;
+import depth.finvibe.investment.modules.market.domain.Category;
 import depth.finvibe.investment.modules.market.domain.CurrentPrice;
 import depth.finvibe.investment.modules.market.domain.Stock;
 import depth.finvibe.investment.modules.market.dto.PriceCandleDto;
@@ -30,8 +32,11 @@ import depth.finvibe.investment.shared.dto.BatchPriceUpdatedEvent;
 @RequiredArgsConstructor
 public class BatchPriceUpdateService {
 
+  private static final String EXCLUDED_CATEGORY_NAME = "기타";
+
   private final HoldingStockRepository holdingStockRepository;
   private final StockRepository stockRepository;
+  private final CategoryRepository categoryRepository;
   private final RealMarketClient realMarketClient;
   private final CurrentPriceRepository currentPriceRepository;
   private final CurrentStockWatcherRepository currentStockWatcherRepository;
@@ -42,15 +47,20 @@ public class BatchPriceUpdateService {
     log.info("Starting batch price update for holding stocks");
 
     List<Long> holdingStockIds = holdingStockRepository.findAllDistinctStockIds();
-    if (holdingStockIds.isEmpty()) {
-      log.info("No holding stocks found. Skipping batch price update.");
+    List<Long> categoryStockIds = findCategoryStockIdsExcludingMisc();
+    List<Long> targetStockIds = mergeStockIds(holdingStockIds, categoryStockIds);
+    if (targetStockIds.isEmpty()) {
+      log.info("No target stocks found. Skipping batch price update.");
       return;
     }
 
-    log.info("Found {} distinct holding stocks", holdingStockIds.size());
+    log.info("Found {} target stocks (holding: {}, category: {})",
+            targetStockIds.size(),
+            holdingStockIds.size(),
+            categoryStockIds.size());
 
-    List<Long> subscribedStockIds = filterSubscribedStockIds(holdingStockIds);
-    List<Long> unsubscribedStockIds = filterUnsubscribedStockIds(holdingStockIds, subscribedStockIds);
+    List<Long> subscribedStockIds = filterSubscribedStockIds(targetStockIds);
+    List<Long> unsubscribedStockIds = filterUnsubscribedStockIds(targetStockIds, subscribedStockIds);
 
     log.info("Subscribed stocks: {}, Unsubscribed stocks: {}",
             subscribedStockIds.size(),
@@ -131,6 +141,13 @@ public class BatchPriceUpdateService {
     Set<Long> merged = new java.util.LinkedHashSet<>(baseIds);
     merged.addAll(newIds);
     return new ArrayList<>(merged);
+  }
+
+  private List<Long> findCategoryStockIdsExcludingMisc() {
+    return categoryRepository.findByName(EXCLUDED_CATEGORY_NAME)
+            .map(Category::getId)
+            .map(stockRepository::findAllCategoryStockIdsExcluding)
+            .orElseGet(stockRepository::findAllCategoryStockIds);
   }
 
   private void bulkFetchPricesFromMarket(List<BatchUpdatePrice> batchPrices, List<Long> stockIds) {

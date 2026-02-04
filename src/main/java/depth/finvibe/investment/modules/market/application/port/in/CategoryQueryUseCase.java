@@ -1,0 +1,13 @@
+package depth.finvibe.investment.modules.market.application.port.in;
+
+import java.util.List;
+
+import depth.finvibe.investment.modules.market.dto.CategoryDto;
+
+public interface CategoryQueryUseCase {
+    List<CategoryDto.Response> getAllCategories();
+
+    CategoryDto.ChangeRateResponse getCategoryChangeRate(Long categoryId);
+
+    CategoryDto.StockListResponse getCategoryStocksByValue(Long categoryId);
+}

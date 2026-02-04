@@ -1,12 +1,12 @@
 package depth.finvibe.investment.modules.market.infra.persistence;
 
-import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
-import depth.finvibe.investment.modules.market.domain.Stock;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
+
+import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
+import depth.finvibe.investment.modules.market.domain.Stock;
 
 @Repository
 @RequiredArgsConstructor
@@ -57,6 +57,26 @@ public class StockRepositoryImpl implements StockRepository {
     @Override
     public List<Stock> findAllById(List<Long> stockIds) {
         return jpaRepository.findAllById(stockIds);
+    }
+
+    @Override
+    public List<Stock> findByCategoryId(Long categoryId) {
+        return jpaRepository.findByCategoryId(categoryId);
+    }
+
+    @Override
+    public int countByCategoryId(Long categoryId) {
+        return jpaRepository.countByCategoryId(categoryId);
+    }
+
+    @Override
+    public List<Long> findAllCategoryStockIds() {
+        return jpaRepository.findAllCategoryStockIds();
+    }
+
+    @Override
+    public List<Long> findAllCategoryStockIdsExcluding(Long excludedCategoryId) {
+        return jpaRepository.findAllCategoryStockIdsExcluding(excludedCategoryId);
     }
 
     @Override

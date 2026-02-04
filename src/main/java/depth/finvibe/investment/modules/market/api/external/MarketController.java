@@ -14,13 +14,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import depth.finvibe.investment.modules.market.application.port.in.CategoryQueryUseCase;
 import depth.finvibe.investment.modules.market.application.port.in.MarketQueryUseCase;
 import depth.finvibe.investment.modules.market.application.port.in.MarketStatusQueryUseCase;
 import depth.finvibe.investment.modules.market.domain.enums.MarketSearchType;
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
 import depth.finvibe.investment.modules.market.domain.error.MarketErrorCode;
+import depth.finvibe.investment.modules.market.dto.CategoryDto;
 import depth.finvibe.investment.modules.market.dto.ClosingPriceDto;
-import depth.finvibe.investment.modules.market.dto.CurrentPriceDto;
 import depth.finvibe.investment.modules.market.dto.MarketStatusDto;
 import depth.finvibe.investment.modules.market.dto.PriceCandleDto;
 import depth.finvibe.investment.modules.market.dto.StockDto;
@@ -33,6 +34,7 @@ public class MarketController {
 
     private final MarketQueryUseCase marketQueryUseCase;
     private final MarketStatusQueryUseCase marketStatusQueryUseCase;
+    private final CategoryQueryUseCase categoryQueryUseCase;
 
     @GetMapping("/stocks/{stockId}/candles")
     @Operation(summary = "종목 캔들 조회", description = "종목의 캔들 데이터를 조회합니다.")
@@ -118,5 +120,27 @@ public class MarketController {
     @Operation(summary = "장 상태 조회", description = "시장 장 상태를 조회합니다.")
     public ResponseEntity<MarketStatusDto.Response> getMarketStatus() {
         return ResponseEntity.ok(marketStatusQueryUseCase.getMarketStatus());
+    }
+
+    @GetMapping("/categories")
+    @Operation(summary = "카테고리 목록 조회", description = "전체 카테고리 목록을 조회합니다.")
+    public ResponseEntity<List<CategoryDto.Response>> getCategories() {
+        return ResponseEntity.ok(categoryQueryUseCase.getAllCategories());
+    }
+
+    @GetMapping("/categories/{categoryId}/change-rate")
+    @Operation(summary = "카테고리 등락률 조회", description = "카테고리별 평균 등락률을 조회합니다.")
+    public ResponseEntity<CategoryDto.ChangeRateResponse> getCategoryChangeRate(
+            @Parameter(description = "카테고리 ID", example = "1") @PathVariable Long categoryId
+    ) {
+        return ResponseEntity.ok(categoryQueryUseCase.getCategoryChangeRate(categoryId));
+    }
+
+    @GetMapping("/categories/{categoryId}/stocks")
+    @Operation(summary = "카테고리 종목 거래대금순 조회", description = "카테고리별 종목을 거래대금순으로 조회합니다.")
+    public ResponseEntity<CategoryDto.StockListResponse> getCategoryStocksByValue(
+            @Parameter(description = "카테고리 ID", example = "1") @PathVariable Long categoryId
+    ) {
+        return ResponseEntity.ok(categoryQueryUseCase.getCategoryStocksByValue(categoryId));
     }
 }

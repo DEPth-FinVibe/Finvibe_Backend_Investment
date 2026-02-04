@@ -24,5 +24,13 @@ public interface StockRepository {
 
     List<Stock> findAllById(List<Long> stockIds);
 
+    List<Stock> findByCategoryId(Long categoryId);
+
+    int countByCategoryId(Long categoryId);
+
+    List<Long> findAllCategoryStockIds();
+
+    List<Long> findAllCategoryStockIdsExcluding(Long excludedCategoryId);
+
     List<Stock> searchByNameOrSymbol(String query);
 }
