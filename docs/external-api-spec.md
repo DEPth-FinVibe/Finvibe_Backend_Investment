@@ -227,6 +227,40 @@
 #### 응답 (204 No Content)
 - 본문 없음
 
+### 개인 보유 종목 TOP100 조회
+`GET /assets/top-100`
+
+**설명**: 로그인한 사용자의 보유 수량 기준 TOP100 종목을 조회합니다.  
+**인증**: 필요
+
+#### 응답 (200 OK)
+| 필드명 | 타입 | 설명 |
+| :--- | :--- | :--- |
+| `totalElements` | Number | 전체 요소 수 |
+| `items` | Array | 보유 종목 목록 |
+| `items[].stockId` | Number | 종목 식별자 |
+| `items[].name` | String | 종목명 |
+| `items[].totalAmount` | Number | 총 보유 수량 |
+
+**응답 예시**:
+```json
+{
+  "totalElements": 2,
+  "items": [
+    {
+      "stockId": 101,
+      "name": "애플",
+      "totalAmount": 12.5
+    },
+    {
+      "stockId": 202,
+      "name": "테슬라",
+      "totalAmount": 8
+    }
+  ]
+}
+```
+
 ---
 
 ## 4. 거래 (Trade)

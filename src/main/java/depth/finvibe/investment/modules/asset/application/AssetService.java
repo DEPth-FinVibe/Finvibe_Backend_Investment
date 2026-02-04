@@ -1,7 +1,11 @@
 package depth.finvibe.investment.modules.asset.application;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
@@ -11,11 +15,13 @@ import org.springframework.transaction.annotation.Transactional;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUseCase;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetQueryUseCase;
 import depth.finvibe.investment.modules.asset.application.port.out.PortfolioGroupRepository;
+import depth.finvibe.investment.modules.asset.application.port.out.TopHoldingStockCacheRepository;
 import depth.finvibe.investment.modules.asset.domain.Asset;
 import depth.finvibe.investment.modules.asset.domain.Money;
 import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
 import depth.finvibe.investment.modules.asset.domain.error.AssetErrorCode;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
+import depth.finvibe.investment.modules.asset.dto.TopHoldingStockDto;
 import depth.finvibe.investment.shared.application.port.out.GamificationEventProducer;
 import depth.finvibe.investment.shared.dto.MetricEventType;
 import depth.finvibe.investment.shared.dto.UserMetricUpdatedEvent;
@@ -26,6 +32,7 @@ import depth.finvibe.investment.shared.error.DomainException;
 public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
     private final PortfolioGroupRepository portfolioGroupRepository;
     private final GamificationEventProducer gamificationEventProducer;
+    private final TopHoldingStockCacheRepository topHoldingStockCacheRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -56,6 +63,54 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public TopHoldingStockDto.TopHoldingStockListResponse getTopHoldingStocks(UUID userId) {
+        if (userId == null) {
+            return TopHoldingStockDto.TopHoldingStockListResponse.builder()
+                    .totalElements(0)
+                    .items(List.of())
+                    .build();
+        }
+        return topHoldingStockCacheRepository.find(userId)
+                .orElseGet(() -> getTopHoldingStocksFromSource(userId));
+    }
+
+    private TopHoldingStockDto.TopHoldingStockListResponse getTopHoldingStocksFromSource(UUID userId) {
+        List<PortfolioGroup> portfolios = portfolioGroupRepository.findAllByUserIdWithAssets(userId);
+        Map<Long, HoldingSummary> summaryByStockId = new HashMap<>();
+
+        for (PortfolioGroup portfolio : portfolios) {
+            for (Asset asset : portfolio.getAssets()) {
+                HoldingSummary existing = summaryByStockId.get(asset.getStockId());
+                if (existing == null) {
+                    summaryByStockId.put(asset.getStockId(), new HoldingSummary(asset.getName(), asset.getAmount()));
+                } else {
+                    existing.addAmount(asset.getAmount());
+                }
+            }
+        }
+
+        List<TopHoldingStockDto.TopHoldingStockResponse> items = summaryByStockId.entrySet().stream()
+                .map(entry -> TopHoldingStockDto.TopHoldingStockResponse.builder()
+                        .stockId(entry.getKey())
+                        .name(entry.getValue().name())
+                        .totalAmount(entry.getValue().totalAmount())
+                        .build())
+                .sorted(Comparator.comparing(TopHoldingStockDto.TopHoldingStockResponse::getTotalAmount)
+                        .reversed()
+                        .thenComparing(TopHoldingStockDto.TopHoldingStockResponse::getStockId))
+                .limit(100)
+                .toList();
+
+        TopHoldingStockDto.TopHoldingStockListResponse response = TopHoldingStockDto.TopHoldingStockListResponse.builder()
+                .totalElements(items.size())
+                .items(items)
+                .build();
+        topHoldingStockCacheRepository.save(userId, response);
+        return response;
+    }
+
+    @Override
     @Transactional
     public void registerAsset(Long portfolioId, PortfolioGroupDto.RegisterAssetRequest request, UUID requesterUserId) {
         HoldingMetricsSnapshot beforeSnapshot = getHoldingMetricsSnapshot(requesterUserId);
@@ -68,6 +123,7 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
 
         HoldingMetricsSnapshot afterSnapshot = getHoldingMetricsSnapshot(requesterUserId);
         publishHoldingMetricsIfChanged(requesterUserId, beforeSnapshot, afterSnapshot);
+        topHoldingStockCacheRepository.evictByUserId(requesterUserId);
     }
 
     @Override
@@ -88,6 +144,7 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
 
         HoldingMetricsSnapshot afterSnapshot = getHoldingMetricsSnapshot(requesterUserId);
         publishHoldingMetricsIfChanged(requesterUserId, beforeSnapshot, afterSnapshot);
+        topHoldingStockCacheRepository.evictByUserId(requesterUserId);
     }
 
     @Override
@@ -198,5 +255,28 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
     }
 
     private record HoldingMetricsSnapshot(int holdingStockCount, int portfolioWithStocksCount) {
+    }
+
+
+    private static class HoldingSummary {
+        private final String name;
+        private BigDecimal totalAmount;
+
+        private HoldingSummary(String name, BigDecimal totalAmount) {
+            this.name = name;
+            this.totalAmount = totalAmount;
+        }
+
+        private String name() {
+            return name;
+        }
+
+        private BigDecimal totalAmount() {
+            return totalAmount;
+        }
+
+        private void addAmount(BigDecimal amount) {
+            this.totalAmount = this.totalAmount.add(amount);
+        }
     }
 }

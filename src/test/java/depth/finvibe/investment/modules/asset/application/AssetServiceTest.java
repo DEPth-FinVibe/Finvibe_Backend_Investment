@@ -22,12 +22,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import depth.finvibe.investment.modules.asset.application.port.out.PortfolioGroupRepository;
+import depth.finvibe.investment.modules.asset.application.port.out.TopHoldingStockCacheRepository;
 import depth.finvibe.investment.modules.asset.domain.Asset;
 import depth.finvibe.investment.modules.asset.domain.Currency;
 import depth.finvibe.investment.modules.asset.domain.Money;
 import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
 import depth.finvibe.investment.modules.asset.domain.error.AssetErrorCode;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
+import depth.finvibe.investment.shared.application.port.out.GamificationEventProducer;
 import depth.finvibe.investment.shared.error.DomainException;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,6 +37,12 @@ class AssetServiceTest {
 
   @Mock
   PortfolioGroupRepository portfolioGroupRepository;
+
+  @Mock
+  GamificationEventProducer gamificationEventProducer;
+
+  @Mock
+  TopHoldingStockCacheRepository topHoldingStockCacheRepository;
 
   @InjectMocks
   AssetService assetService;
@@ -51,6 +59,7 @@ class AssetServiceTest {
         .assets(new ArrayList<>())
         .build();
     when(portfolioGroupRepository.findByIdWithAssets(1L)).thenReturn(Optional.of(existing));
+    when(portfolioGroupRepository.findAllByUserIdWithAssets(userId)).thenReturn(List.of(existing));
 
     PortfolioGroupDto.RegisterAssetRequest request = PortfolioGroupDto.RegisterAssetRequest.builder()
         .stockId(10L)
@@ -76,7 +85,9 @@ class AssetServiceTest {
   @DisplayName("없는 포트폴리오에 등록 시 예외를 던진다.")
   void registerAsset_notFound_fail() {
     // given
+    UUID userId = UUID.randomUUID();
     when(portfolioGroupRepository.findByIdWithAssets(99L)).thenReturn(Optional.empty());
+    when(portfolioGroupRepository.findAllByUserIdWithAssets(userId)).thenReturn(List.of());
 
     PortfolioGroupDto.RegisterAssetRequest request = PortfolioGroupDto.RegisterAssetRequest.builder()
         .stockId(10L)
@@ -87,7 +98,7 @@ class AssetServiceTest {
         .build();
 
     // when / then
-    assertThatThrownBy(() -> assetService.registerAsset(99L, request, UUID.randomUUID()))
+    assertThatThrownBy(() -> assetService.registerAsset(99L, request, userId))
         .isInstanceOf(DomainException.class)
         .satisfies(ex -> assertThat(((DomainException) ex).getErrorCode()).isEqualTo(AssetErrorCode.PORTFOLIO_GROUP_NOT_FOUND));
   }
@@ -99,6 +110,7 @@ class AssetServiceTest {
     UUID userId = UUID.randomUUID();
     PortfolioGroup portfolioGroup = org.mockito.Mockito.mock(PortfolioGroup.class);
     when(portfolioGroupRepository.findByIdWithAssets(1L)).thenReturn(Optional.of(portfolioGroup));
+    when(portfolioGroupRepository.findAllByUserIdWithAssets(userId)).thenReturn(List.of());
 
     PortfolioGroupDto.UnregisterAssetRequest request = PortfolioGroupDto.UnregisterAssetRequest.builder()
         .stockId(5L)
@@ -123,7 +135,9 @@ class AssetServiceTest {
   @DisplayName("없는 포트폴리오에서 자산 해제 시 예외를 던진다.")
   void unregisterAsset_notFound_fail() {
     // given
+    UUID userId = UUID.randomUUID();
     when(portfolioGroupRepository.findByIdWithAssets(99L)).thenReturn(Optional.empty());
+    when(portfolioGroupRepository.findAllByUserIdWithAssets(userId)).thenReturn(List.of());
 
     PortfolioGroupDto.UnregisterAssetRequest request = PortfolioGroupDto.UnregisterAssetRequest.builder()
         .stockId(10L)
@@ -133,7 +147,7 @@ class AssetServiceTest {
         .build();
 
     // when / then
-    assertThatThrownBy(() -> assetService.unregisterAsset(99L, request, UUID.randomUUID()))
+    assertThatThrownBy(() -> assetService.unregisterAsset(99L, request, userId))
         .isInstanceOf(DomainException.class)
         .satisfies(ex -> assertThat(((DomainException) ex).getErrorCode()).isEqualTo(AssetErrorCode.PORTFOLIO_GROUP_NOT_FOUND));
   }
