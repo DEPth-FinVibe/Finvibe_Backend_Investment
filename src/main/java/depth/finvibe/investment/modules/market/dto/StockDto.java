@@ -8,7 +8,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import depth.finvibe.investment.modules.market.domain.Stock;
-import depth.finvibe.investment.modules.market.domain.enums.MarketType;
 import depth.finvibe.investment.modules.market.domain.enums.RankType;
 
 public class StockDto {
@@ -63,8 +62,6 @@ public class StockDto {
         private String symbol;
         @Schema(description = "종목명", example = "삼성전자")
         private String name;
-        @Schema(description = "시장 구분", example = "DOMESTIC")
-        private MarketType marketType;
         @Schema(description = "표준산업분류 중분류 코드", example = "10")
         private String typeCode; // 표준산업분류코드 (중분류)
     }

@@ -62,7 +62,6 @@ public class StockService implements StockCommandUseCase {
         return Stock.builder()
                 .symbol(res.getSymbol())
                 .name(res.getName())
-                .marketType(res.getMarketType())
                 .categoryId(category.getId())
                 .build();
     }

@@ -1,6 +1,5 @@
 package depth.finvibe.investment.modules.trade.domain;
 
-import depth.finvibe.investment.modules.trade.domain.enums.MarketType;
 import depth.finvibe.investment.modules.trade.domain.enums.TradeType;
 import depth.finvibe.investment.modules.trade.domain.enums.TransactionType;
 import depth.finvibe.investment.modules.trade.domain.error.TradeErrorCode;
@@ -14,8 +13,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
-import org.apache.kafka.common.protocol.types.Field;
-
 import java.util.UUID;
 
 @Entity
@@ -27,8 +24,6 @@ public class Trade extends TimeStampedBaseEntity{
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    private MarketType marketType;
 
     private Long stockId;
 
@@ -46,11 +41,9 @@ public class Trade extends TimeStampedBaseEntity{
 
     private TradeType tradeType;
 
-    public static Trade create(MarketType marketType, Long stockId, Double amount, Long price,
-                               Long portfolioId, UUID userId, TransactionType transactionType,
-                               TradeType tradeType) {
+    public static Trade create(Long stockId, Double amount, Long price, Long portfolioId, UUID userId,
+                               TransactionType transactionType, TradeType tradeType) {
         return Trade.builder()
-                .marketType(marketType)
                 .stockId(stockId)
                 .amount(amount)
                 .price(price)

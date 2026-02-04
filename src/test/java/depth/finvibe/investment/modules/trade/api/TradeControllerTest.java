@@ -6,10 +6,10 @@ import depth.finvibe.investment.boot.security.resolver.JwtArgumentResolver;
 import depth.finvibe.investment.modules.trade.api.external.TradeController;
 import depth.finvibe.investment.modules.trade.application.port.in.TradeCommandUseCase;
 import depth.finvibe.investment.modules.trade.application.port.in.TradeQueryUseCase;
-import depth.finvibe.investment.modules.trade.domain.enums.MarketType;
 import depth.finvibe.investment.modules.trade.domain.enums.TradeType;
 import depth.finvibe.investment.modules.trade.domain.enums.TransactionType;
 import depth.finvibe.investment.modules.trade.dto.TradeDto;
+import depth.finvibe.investment.modules.trade.dto.TradeOrderType;
 import depth.finvibe.investment.boot.security.model.Requester;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -65,7 +65,6 @@ class TradeControllerTest {
                 .price(50000L)
                 .portfolioId(1L)
                 .userId(userId)
-                .marketType(MarketType.DOMESTIC)
                 .tradeType(TradeType.NORMAL)
                 .transactionType(TransactionType.BUY)
                 .build();
@@ -90,13 +89,11 @@ class TradeControllerTest {
         UUID userId = UUID.randomUUID();
 
         TradeDto.TransactionRequest request = TradeDto.TransactionRequest.builder()
-                .marketType(MarketType.DOMESTIC)
                 .stockId(100L)
                 .amount(5.0)
                 .price(50000L)
                 .portfolioId(10L)
-                .userId(userId)
-                .tradeType(TradeType.NORMAL)
+                .tradeType(TradeOrderType.NORMAL)
                 .transactionType(TransactionType.BUY)
                 .build();
 

@@ -8,11 +8,11 @@ import depth.finvibe.investment.modules.trade.application.port.out.TradeEventPro
 import depth.finvibe.investment.modules.trade.application.port.out.TradeRepository;
 import depth.finvibe.investment.modules.trade.application.port.out.WalletClient;
 import depth.finvibe.investment.modules.trade.domain.Trade;
-import depth.finvibe.investment.modules.trade.domain.enums.MarketType;
 import depth.finvibe.investment.modules.trade.domain.enums.TradeType;
 import depth.finvibe.investment.modules.trade.domain.enums.TransactionType;
 import depth.finvibe.investment.modules.trade.domain.error.TradeErrorCode;
 import depth.finvibe.investment.modules.trade.dto.TradeDto;
+import depth.finvibe.investment.modules.trade.dto.TradeOrderType;
 import depth.finvibe.investment.shared.application.port.out.GamificationEventProducer;
 import depth.finvibe.investment.shared.error.DomainException;
 import org.junit.jupiter.api.BeforeEach;
@@ -74,29 +74,24 @@ class TradeServiceTest {
                 .build();
 
         normalBuyRequest = TradeDto.TransactionRequest.builder()
-                .marketType(MarketType.DOMESTIC)
                 .stockId(5930L)
                 .amount(10.0)
                 .price(70000L)
                 .portfolioId(1L)
-                .userId(userId)
                 .transactionType(TransactionType.BUY)
-                .tradeType(TradeType.NORMAL)
+                .tradeType(TradeOrderType.NORMAL)
                 .build();
 
         reservedBuyRequest = TradeDto.TransactionRequest.builder()
-                .marketType(MarketType.DOMESTIC)
                 .stockId(5930L)
                 .amount(10.0)
                 .price(70000L)
                 .portfolioId(1L)
-                .userId(userId)
                 .transactionType(TransactionType.BUY)
-                .tradeType(TradeType.RESERVED)
+                .tradeType(TradeOrderType.RESERVED)
                 .build();
 
         normalTrade = Trade.create(
-                MarketType.DOMESTIC,
                 5930L,
                 10.0,
                 70000L,
@@ -107,7 +102,6 @@ class TradeServiceTest {
         );
 
         reservedTrade = Trade.create(
-                MarketType.DOMESTIC,
                 5930L,
                 10.0,
                 70000L,
@@ -184,18 +178,15 @@ class TradeServiceTest {
         // given
         stubTradeContexts();
         TradeDto.TransactionRequest sellRequest = TradeDto.TransactionRequest.builder()
-                .marketType(MarketType.DOMESTIC)
                 .stockId(5930L)
                 .amount(5.0)
                 .price(75000L)
                 .portfolioId(1L)
-                .userId(userId)
                 .transactionType(TransactionType.SELL)
-                .tradeType(TradeType.NORMAL)
+                .tradeType(TradeOrderType.NORMAL)
                 .build();
 
         Trade sellTrade = Trade.create(
-                MarketType.DOMESTIC,
                 5930L,
                 5.0,
                 75000L,
@@ -222,12 +213,10 @@ class TradeServiceTest {
         // given
         stubTradeContexts();
         TradeDto.TransactionRequest invalidRequest = TradeDto.TransactionRequest.builder()
-                .marketType(MarketType.DOMESTIC)
                 .stockId(5930L)
                 .amount(10.0)
                 .price(70000L)
                 .portfolioId(1L)
-                .userId(userId)
                 .transactionType(TransactionType.BUY)
                 .tradeType(null)
                 .build();

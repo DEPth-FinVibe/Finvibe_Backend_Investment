@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.RestController;
 import depth.finvibe.investment.modules.market.application.port.in.CategoryQueryUseCase;
 import depth.finvibe.investment.modules.market.application.port.in.MarketQueryUseCase;
 import depth.finvibe.investment.modules.market.application.port.in.MarketStatusQueryUseCase;
-import depth.finvibe.investment.modules.market.domain.enums.MarketSearchType;
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
 import depth.finvibe.investment.modules.market.domain.error.MarketErrorCode;
 import depth.finvibe.investment.modules.market.dto.CategoryDto;
@@ -107,12 +106,11 @@ public class MarketController {
     }
 
     @GetMapping("/stocks/search")
-    @Operation(summary = "종목 검색", description = "검색어와 시장 구분으로 종목을 조회합니다.")
+    @Operation(summary = "종목 검색", description = "검색어로 종목을 조회합니다.")
     public ResponseEntity<List<StockDto.Response>> searchStocks(
-            @Parameter(description = "검색어", example = "삼성") @RequestParam(defaultValue = "") String query,
-            @Parameter(description = "시장 구분", example = "ALL") @RequestParam(defaultValue = "ALL") MarketSearchType marketType
+            @Parameter(description = "검색어", example = "삼성") @RequestParam(defaultValue = "") String query
     ) {
-        List<StockDto.Response> stocks = marketQueryUseCase.searchStocks(query, marketType);
+        List<StockDto.Response> stocks = marketQueryUseCase.searchStocks(query);
         return ResponseEntity.ok(stocks);
     }
 

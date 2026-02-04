@@ -2,7 +2,6 @@ package depth.finvibe.investment.modules.trade.infra.messaging;
 
 import depth.finvibe.investment.modules.trade.application.port.out.TradeEventProducer;
 import depth.finvibe.investment.modules.trade.domain.Trade;
-import depth.finvibe.investment.modules.trade.domain.enums.MarketType;
 import depth.finvibe.investment.shared.dto.TradeExecutedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,7 +49,7 @@ public class TradeKafkaProducer implements TradeEventProducer {
                 .price(trade.getPrice())
                 .stockId(trade.getStockId())
                 .name("Unknown") //TODO: 종목명도 Trade 엔티티에서 저장하도록 수정
-                .currency(trade.getMarketType() == MarketType.DOMESTIC ? "KRW" : "USD")
+                .currency("KRW")
                 .portfolioId(trade.getPortfolioId())
                 .build();
     }

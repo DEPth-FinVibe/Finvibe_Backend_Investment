@@ -22,6 +22,7 @@ import depth.finvibe.investment.modules.trade.domain.enums.TradeType;
 import depth.finvibe.investment.modules.trade.domain.enums.TransactionType;
 import depth.finvibe.investment.modules.trade.domain.error.TradeErrorCode;
 import depth.finvibe.investment.modules.trade.dto.TradeDto;
+import depth.finvibe.investment.modules.trade.dto.TradeOrderType;
 import depth.finvibe.investment.shared.application.port.out.GamificationEventProducer;
 import depth.finvibe.investment.shared.dto.MetricEventType;
 import depth.finvibe.investment.shared.dto.UserMetricUpdatedEvent;
@@ -54,10 +55,15 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
     public TradeDto.TradeResponse createTrade(TradeDto.TransactionRequest request, Requester requester) {
         validateTradeContexts(request, requester);
 
-        if (request.getTradeType() == TradeType.NORMAL) {
-            return processNormalTrade(request);
-        } else if (request.getTradeType() == TradeType.RESERVED) {
-            return processReservedTrade(request);
+        TradeOrderType orderType = request.getTradeType();
+        if (orderType == null) {
+            throw new DomainException(TradeErrorCode.INVALID_TRADE_TYPE);
+        }
+
+        if (orderType == TradeOrderType.NORMAL) {
+            return processNormalTrade(request, requester.getUuid());
+        } else if (orderType == TradeOrderType.RESERVED) {
+            return processReservedTrade(request, requester.getUuid());
         }
 
         throw new DomainException(TradeErrorCode.INVALID_TRADE_TYPE);
@@ -127,8 +133,8 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
         }
     }
 
-    private TradeDto.TradeResponse processNormalTrade(TradeDto.TransactionRequest request) {
-        Trade trade = createTradeFrom(request);
+    private TradeDto.TradeResponse processNormalTrade(TradeDto.TransactionRequest request, UUID userId) {
+        Trade trade = createTradeFrom(request, userId);
         Trade savedTrade = tradeRepository.save(trade);
 
         //TODO: 실제 시장 가격과 다르면 오류 발생
@@ -139,16 +145,15 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
         return TradeDto.TradeResponse.from(savedTrade);
     }
 
-    private static Trade createTradeFrom(TradeDto.TransactionRequest request) {
+    private static Trade createTradeFrom(TradeDto.TransactionRequest request, UUID userId) {
         return Trade.create(
-                request.getMarketType(),
                 request.getStockId(),
                 request.getAmount(),
                 request.getPrice(),
                 request.getPortfolioId(),
-                request.getUserId(),
+                userId,
                 request.getTransactionType(),
-                request.getTradeType()
+                request.getTradeType().toTradeType()
         );
     }
 
@@ -165,8 +170,8 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
                 .build());
     }
 
-    private TradeDto.TradeResponse processReservedTrade(TradeDto.TransactionRequest request) {
-        Trade trade = createTradeFrom(request);
+    private TradeDto.TradeResponse processReservedTrade(TradeDto.TransactionRequest request, UUID userId) {
+        Trade trade = createTradeFrom(request, userId);
         Trade savedTrade = tradeRepository.save(trade);
 
         return TradeDto.TradeResponse.from(savedTrade);

@@ -3,8 +3,6 @@ package depth.finvibe.investment.modules.market.domain;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import depth.finvibe.investment.modules.market.domain.enums.MarketType;
-
 import static org.assertj.core.api.Assertions.*;
 
 class StockTest {
@@ -16,7 +14,6 @@ class StockTest {
         Stock stock = Stock.builder()
                 .name("삼성전자")
                 .symbol("005930")
-                .marketType(MarketType.DOMESTIC)
                 .categoryId(1L)
                 .build();
 
@@ -33,12 +30,11 @@ class StockTest {
         Stock stock = Stock.builder()
                 .name("삼성전자")
                 .symbol("005930")
-                .marketType(MarketType.DOMESTIC)
                 .categoryId(1L)
                 .build();
 
         // when
-        stock.updateInfo("삼성전자 우선주", "005935", MarketType.DOMESTIC, 2L);
+        stock.updateInfo("삼성전자 우선주", "005935", 2L);
 
         // then
         assertThat(stock.getName()).isEqualTo("삼성전자 우선주");
@@ -53,7 +49,6 @@ class StockTest {
         Stock stock = Stock.builder()
                 .name("삼성전자")
                 .symbol("005930")
-                .marketType(MarketType.DOMESTIC)
                 .categoryId(1L)
                 .build();
 

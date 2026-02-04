@@ -9,7 +9,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import depth.finvibe.investment.modules.trade.domain.Trade;
-import depth.finvibe.investment.modules.trade.domain.enums.MarketType;
 import depth.finvibe.investment.modules.trade.domain.enums.TradeType;
 import depth.finvibe.investment.modules.trade.domain.enums.TransactionType;
 
@@ -21,8 +20,6 @@ public class TradeDto {
     @Builder
     @Schema(name = "TransactionRequest", description = "거래 생성 요청")
     public static class TransactionRequest {
-        @Schema(description = "시장 구분", example = "DOMESTIC")
-        private MarketType marketType;
         @Schema(description = "종목 ID", example = "10")
         private Long stockId;
         @Schema(description = "주문 수량", example = "5")
@@ -31,10 +28,8 @@ public class TradeDto {
         private Long price;
         @Schema(description = "포트폴리오 ID", example = "1")
         private Long portfolioId;
-        @Schema(description = "사용자 ID", example = "00000000-0000-0000-0000-000000000000")
-        private UUID userId;
         @Schema(description = "거래 유형", example = "NORMAL")
-        private TradeType tradeType;
+        private TradeOrderType tradeType;
         @Schema(description = "매수/매도 구분", example = "BUY")
         private TransactionType transactionType;
     }
@@ -47,8 +42,6 @@ public class TradeDto {
     public static class TradeResponse {
         @Schema(description = "거래 ID", example = "123")
         private Long tradeId;
-        @Schema(description = "시장 구분", example = "DOMESTIC")
-        private MarketType marketType;
         @Schema(description = "종목 ID", example = "10")
         private Long stockId;
         @Schema(description = "주문 수량", example = "5")
@@ -67,7 +60,6 @@ public class TradeDto {
         public static TradeResponse from(Trade trade) {
             return TradeResponse.builder()
                     .tradeId(trade.getId())
-                    .marketType(trade.getMarketType())
                     .stockId(trade.getStockId())
                     .amount(trade.getAmount())
                     .price(trade.getPrice())
