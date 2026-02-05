@@ -17,7 +17,8 @@ public enum TradeErrorCode implements DomainErrorCode {
     PORTFOLIO_NOT_FOUND("PORTFOLIO_NOT_FOUND", "포트폴리오를 찾을 수 없습니다."),
     MARKET_CLOSED("MARKET_CLOSED", "시장이 닫혀 있어 거래를 처리할 수 없습니다."),
     INSUFFICIENT_BALANCE("INSUFFICIENT_BALANCE", "잔액이 부족하여 거래를 처리할 수 없습니다."),
-    CANNOT_CANCEL_BY_OTHER_USER("CANNOT_CANCEL_BY_OTHER_USER", "다른 사용자가 거래를 취소할 수 없습니다.");
+    CANNOT_CANCEL_BY_OTHER_USER("CANNOT_CANCEL_BY_OTHER_USER", "다른 사용자가 거래를 취소할 수 없습니다."),
+    MARKET_PRICE_MISMATCH("MARKET_PRICE_MISMATCH", "시장가와 주문 가격이 일치하지 않습니다.");
 
 
     private final String code;

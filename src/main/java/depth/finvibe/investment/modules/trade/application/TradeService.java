@@ -134,15 +134,21 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
     }
 
     private TradeDto.TradeResponse processNormalTrade(TradeDto.TransactionRequest request, UUID userId) {
+        validateMarketPrice(request);
         Trade trade = createTradeFrom(request, userId);
         Trade savedTrade = tradeRepository.save(trade);
-
-        //TODO: 실제 시장 가격과 다르면 오류 발생
 
         tradeEventProducer.publishNormalTradeExecutedEvent(trade);
         publishTradeMetricEvent(trade);
 
         return TradeDto.TradeResponse.from(savedTrade);
+    }
+
+    private void validateMarketPrice(TradeDto.TransactionRequest request) {
+        Long currentPrice = marketClient.getCurrentPrice(request.getStockId());
+        if (!request.getPrice().equals(currentPrice)) {
+            throw new DomainException(TradeErrorCode.MARKET_PRICE_MISMATCH);
+        }
     }
 
     private static Trade createTradeFrom(TradeDto.TransactionRequest request, UUID userId) {
