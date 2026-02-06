@@ -86,6 +86,33 @@ public class KisRateLimiter {
     return result.get(0) != null && result.get(0) == 1L;
   }
 
+  /**
+   * 특정 AppKey를 레이트 리미트 초과 상태로 즉시 설정합니다.
+   * <p>
+   * KIS API 응답에서 "EGW00201" 에러 코드를 받은 경우 호출하여
+   * 해당 AppKey의 카운터를 한도 이상으로 설정합니다.
+   * </p>
+   *
+   * @param key AppKey
+   */
+  public void markAsExceeded(String key) {
+    String secondKey = keyPrefix + ":second:" + key;
+    // 한도를 초과하도록 카운터를 설정 (한도 + 1)
+    redisTemplate.opsForValue().set(
+        secondKey,
+        String.valueOf(secondLimit + 1),
+        java.time.Duration.ofMillis(SECOND_WINDOW_MILLIS)
+    );
+    log.warn("KIS rate limit exceeded - AppKey marked as rate limited: {}", maskAppKey(key));
+  }
+
+  private String maskAppKey(String appKey) {
+    if (appKey == null || appKey.length() < 8) {
+      return "***";
+    }
+    return appKey.substring(0, 4) + "****" + appKey.substring(appKey.length() - 4);
+  }
+
   private RateResult increment(String key, long windowMillis) {
     List<Long> result = (List<Long>) redisTemplate.execute(
         RATE_LIMIT_SCRIPT,

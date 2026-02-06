@@ -158,5 +158,4 @@ public class KisApiClient {
         private final int seq;
     }
 
-
 }

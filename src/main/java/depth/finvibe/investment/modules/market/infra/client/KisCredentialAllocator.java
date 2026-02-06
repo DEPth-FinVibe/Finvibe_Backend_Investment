@@ -18,6 +18,7 @@ import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 
+import depth.finvibe.investment.modules.market.domain.error.KisRateLimitExceededException;
 import depth.finvibe.investment.modules.market.infra.config.KisCredentialsProperties;
 import depth.finvibe.investment.modules.market.infra.config.KisCredentialsProperties.Credential;
 import depth.finvibe.investment.modules.market.infra.lock.ActiveNodeRegistry;
@@ -163,12 +164,13 @@ public class KisCredentialAllocator {
    * API 요청에 사용할 Credential을 선택합니다.
    * <p>
    * Rate Limit을 고려하여 가용한 Credential을 라운드로빈 방식으로 선택합니다.
-   * 모든 Credential이 Rate Limit에 도달한 경우, 대기 후 첫 번째 Credential을 반환합니다.
+   * 모든 Credential이 Rate Limit에 도달한 경우, 예외를 발생시킵니다.
    * </p>
    *
    * @param rateLimiter Rate Limit 체크를 위한 KisRateLimiter
    * @return 선택된 Credential
    * @throws IllegalStateException 할당된 Credential이 없는 경우
+   * @throws depth.finvibe.investment.modules.market.domain.error.KisRateLimitExceededException 모든 Credential이 Rate Limit에 도달한 경우
    */
   public Credential selectCredentialForRequest(KisRateLimiter rateLimiter) {
         List<Credential> candidates = getAllocatedCredentials();
@@ -186,9 +188,10 @@ public class KisCredentialAllocator {
             }
         }
 
-        Credential fallback = candidates.get(start);
-        rateLimiter.acquire(fallback.appKey());
-        return fallback;
+        log.warn("모든 KIS credential이 레이트 리미트에 도달했습니다. 할당된 credential 수: {}", size);
+        throw new KisRateLimitExceededException(
+                "모든 KIS API 키가 레이트 리미트에 도달했습니다. 잠시 후 다시 시도해주세요."
+        );
     }
 
     /**
