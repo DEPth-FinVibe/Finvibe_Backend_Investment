@@ -68,7 +68,7 @@ public class RestClientConfig {
 
   /**
    * 응답 본문을 캐싱하여 여러 번 읽을 수 있도록 하는 래퍼 클래스
-   * msg_cd를 확인하여 레이트 리미트 에러를 감지합니다.
+   * msg_cd를 확인하여 레이트 리미트 에러를 감지하고, rt_cd를 확인하여 API 성공/실패를 검증합니다.
    */
   private static class CachedBodyClientHttpResponse implements ClientHttpResponse {
     private final ClientHttpResponse response;
@@ -83,16 +83,27 @@ public class RestClientConfig {
       this.response = response;
       this.cachedBody = response.getBody().readAllBytes();
 
-      // msg_cd 확인하여 레이트 리미트 에러 처리
+      // JSON 응답 검증
       try {
         JsonNode root = objectMapper.readTree(cachedBody);
-        JsonNode msgCdNode = root.get("msg_cd");
 
+        // 1. msg_cd 확인 (레이트 리미트 에러)
+        JsonNode msgCdNode = root.get("msg_cd");
         if (msgCdNode != null && "EGW00201".equals(msgCdNode.asText())) {
           rateLimiter.markAsExceeded(appKey);
         }
+
+        // 2. rt_cd 확인 (API 성공/실패)
+        JsonNode rtCdNode = root.get("rt_cd");
+        if (rtCdNode != null && !"0".equals(rtCdNode.asText())) {
+          String rtCd = rtCdNode.asText();
+          String msg1 = root.has("msg1") ? root.get("msg1").asText() : "Unknown error";
+          throw new IOException("KIS API 호출 실패 - rt_cd: " + rtCd + ", message: " + msg1);
+        }
+      } catch (IOException e) {
+        throw e;
       } catch (Exception e) {
-        // 파싱 실패 시 무시 (JSON이 아니거나 msg_cd가 없는 경우)
+        // 파싱 실패 시 무시 (JSON이 아니거나 필드가 없는 경우)
       }
     }
 
