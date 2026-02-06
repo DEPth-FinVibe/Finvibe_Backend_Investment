@@ -145,6 +145,7 @@ class TradeServiceTest {
         // given
         stubTradeContexts();
         given(tradeRepository.save(any(Trade.class))).willReturn(normalTrade);
+        given(marketClient.getCurrentPrice(eq(5930L))).willReturn(70000L);
 
         // when
         TradeDto.TradeResponse response = tradeService.createTrade(normalBuyRequest, requester);
@@ -197,6 +198,7 @@ class TradeServiceTest {
         );
 
         given(tradeRepository.save(any(Trade.class))).willReturn(sellTrade);
+        given(marketClient.getCurrentPrice(eq(5930L))).willReturn(75000L);
 
         // when
         TradeDto.TradeResponse response = tradeService.createTrade(sellRequest, requester);
