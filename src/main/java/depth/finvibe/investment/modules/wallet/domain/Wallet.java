@@ -13,6 +13,8 @@ import java.util.UUID;
 @NoArgsConstructor
 @Getter
 public class Wallet extends TimeStampedBaseEntity {
+  private static final Long WALLET_INITIAL_BALANCE = 10000000L; // 1000만원
+
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
@@ -32,6 +34,6 @@ public class Wallet extends TimeStampedBaseEntity {
   }
 
   public static Wallet create(UUID userId) {
-    return new Wallet(null, userId, new Money(1000000L));
+    return new Wallet(null, userId, new Money(WALLET_INITIAL_BALANCE));
   }
 }
