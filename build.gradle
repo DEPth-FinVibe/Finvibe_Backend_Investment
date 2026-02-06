@@ -67,6 +67,11 @@ dependencies {
 
     // Redisson for distributed lock
     implementation 'org.redisson:redisson-spring-boot-starter:4.1.0'
+
+    // Resilience4j for Circuit Breaker (AOP 포함)
+    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.3.0'
+    implementation 'org.springframework:spring-aop'
+    implementation 'org.aspectj:aspectjweaver'
 }
 
 tasks.named('test') {

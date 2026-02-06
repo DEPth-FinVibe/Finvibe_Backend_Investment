@@ -10,3 +10,34 @@ springdoc:
     enabled: true
   swagger-ui:
     enabled: true
+
+# Resilience4j Circuit Breaker 설정
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 30s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+        recordExceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+          - org.springframework.web.client.RestClientException
+    instances:
+      kisStockSearch:
+        baseConfig: default
+        waitDurationInOpenState: 60s
+        failureRateThreshold: 50
+      kisChartData:
+        baseConfig: default
+        waitDurationInOpenState: 45s
+        failureRateThreshold: 50
+      kisRealtimePrice:
+        baseConfig: default
+        waitDurationInOpenState: 30s
+        failureRateThreshold: 40

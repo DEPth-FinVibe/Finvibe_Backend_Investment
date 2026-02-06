@@ -15,6 +15,7 @@ public enum GlobalErrorCode implements DomainErrorCode {
   NOT_FOUND("NOT_FOUND", "요청한 리소스를 찾을 수 없습니다."),
   AUTHENTICATION_FAILED("UNAUTHORIZED", "인증에 실패했습니다."),
   ACCESS_DENIED("FORBIDDEN", "접근 권한이 없습니다."),
+  CIRCUIT_BREAKER_OPEN("CIRCUIT_BREAKER_OPEN", "외부 API 서비스가 일시적으로 사용 불가능합니다."),
   INTERNAL_SERVER_ERROR("INTERNAL_SERVER_ERROR", "서버 내부 오류가 발생했습니다.");
 
   private final String code;
