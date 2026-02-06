@@ -1,6 +1,7 @@
 package depth.finvibe.investment.modules.market.infra.websocket.kis.model;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,8 +11,18 @@ import org.apache.kafka.common.protocol.types.Field;
 public class KisMessage {
 
     public enum TransactionType {
-        Subscribe,
-        Unsubscribe
+        Subscribe("1"),
+        Unsubscribe("2");
+
+        private final String code;
+
+        TransactionType(String code) {
+            this.code = code;
+        }
+
+        public String getCode() {
+            return code;
+        }
     }
 
     @AllArgsConstructor(staticName = "of")
@@ -25,7 +36,7 @@ public class KisMessage {
         public RawTransactionRequest toRawRequest(String approvalKey) {
             return RawTransactionRequest.create(
                     approvalKey,
-                    type.name(),
+                    type.getCode(),
                     stockKey
             );
         }
@@ -37,9 +48,11 @@ public class KisMessage {
     @Builder
     public static class RawTransactionRequest {
         @JsonAlias("header")
+        @JsonProperty("header")
         public RawTransactionRequestHeader header;
 
         @JsonAlias("body")
+        @JsonProperty("body")
         public RawTransactionRequestBody body;
 
         public static RawTransactionRequest of(
@@ -65,15 +78,19 @@ public class KisMessage {
 
     public static class RawTransactionRequestHeader {
         @JsonAlias("approval_key")
+        @JsonProperty("approval_key")
         public String approvalKey;
 
-        @JsonAlias("customer_type")
+        @JsonAlias("custtype")
+        @JsonProperty("custtype")
         public String customerType;
 
         @JsonAlias("tr_type")
+        @JsonProperty("tr_type")
         public String transactionType;
 
-        @JsonAlias("content_type")
+        @JsonAlias("content-type")
+        @JsonProperty("content-type")
         public String contentType;
 
         public static RawTransactionRequestHeader of(
@@ -100,21 +117,39 @@ public class KisMessage {
     @Data
     @Builder
     public static class RawTransactionRequestBody {
-        @JsonAlias("tr_id")
-        public String transactionId;
-
-        @JsonAlias("tr_key")
-        public String transactionKey;
+        @JsonAlias("input")
+        @JsonProperty("input")
+        public RawTransactionRequestInput input;
 
         public static RawTransactionRequestBody of(String transactionId, String transactionKey) {
             return RawTransactionRequestBody.builder()
-                    .transactionId(transactionId)
-                    .transactionKey(transactionKey)
+                    .input(RawTransactionRequestInput.of(transactionId, transactionKey))
                     .build();
         }
 
         public static RawTransactionRequestBody withDefaults(String tranctionKey) {
             return of("H0STCNT0", tranctionKey);
+        }
+    }
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Data
+    @Builder
+    public static class RawTransactionRequestInput {
+        @JsonAlias("tr_id")
+        @JsonProperty("tr_id")
+        public String transactionId;
+
+        @JsonAlias("tr_key")
+        @JsonProperty("tr_key")
+        public String transactionKey;
+
+        public static RawTransactionRequestInput of(String transactionId, String transactionKey) {
+            return RawTransactionRequestInput.builder()
+                    .transactionId(transactionId)
+                    .transactionKey(transactionKey)
+                    .build();
         }
     }
 

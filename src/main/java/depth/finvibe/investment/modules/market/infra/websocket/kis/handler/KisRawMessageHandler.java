@@ -1,14 +1,18 @@
 package depth.finvibe.investment.modules.market.infra.websocket.kis.handler;
 
-import depth.finvibe.investment.modules.market.infra.websocket.kis.handler.parser.KisDataMessageParser;
-import depth.finvibe.investment.modules.market.infra.websocket.kis.handler.parser.KisJsonMessageParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 import tools.jackson.databind.ObjectMapper;
 
+import depth.finvibe.investment.modules.market.infra.websocket.kis.handler.parser.KisDataMessageParser;
+import depth.finvibe.investment.modules.market.infra.websocket.kis.handler.parser.KisJsonMessageParser;
+
 public class KisRawMessageHandler extends TextWebSocketHandler {
+    private static final Logger log = LoggerFactory.getLogger(KisRawMessageHandler.class);
     private final KisMessageHandler kisMessageHandler;
     private final KisEncryptionKeyStore encryptionKeyStore = new KisEncryptionKeyStore();
     private final KisJsonMessageParser jsonMessageHandler;
@@ -27,6 +31,7 @@ public class KisRawMessageHandler extends TextWebSocketHandler {
             if (payload == null || payload.isBlank()) {
                 return;
             }
+            log.info("KIS RAW <= {}", payload);
             String trimmed = payload.trim();
             if (trimmed.startsWith("{")) {
                 jsonMessageHandler.handle(session, message, trimmed);
