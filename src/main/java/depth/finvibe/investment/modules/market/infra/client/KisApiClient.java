@@ -147,6 +147,72 @@ public class KisApiClient {
         ).getOutput();
     }
 
+    /**
+     * <a href="https://apiportal.koreainvestment.com/apiservice-apiservice?/uapi/domestic-stock/v1/quotations/inquire-index-price">국내업종 현재지수 API</a>
+     * 코스피/코스닥 등 업종 지수의 현재 시세를 조회합니다.
+     */
+    public KisDto.IndexPriceResponse fetchIndexPrice(IndexCode indexCode) {
+        return Objects.requireNonNull(
+                restClient.get()
+                        .uri("/uapi/domestic-stock/v1/quotations/inquire-index-price" +
+                                "?FID_COND_MRKT_DIV_CODE=U" +
+                                "&FID_INPUT_ISCD=" + indexCode.getCode())
+                        .headers(h -> h.set("tr_id", "FHPUP02100000"))
+                        .retrieve()
+                        .body(KisDto.IndexPriceResponse.class)
+        );
+    }
+
+    /**
+     * <a href="https://apiportal.koreainvestment.com/apiservice-apiservice?/uapi/domestic-stock/v1/quotations/inquire-time-indexchartprice">업종 분봉조회 API</a>
+     * 코스피/코스닥 등 업종 지수의 분봉 데이터를 조회합니다.
+     */
+    public KisDto.TimeIndexChartPriceResponse fetchTimeIndexChartPrice(
+            IndexCode indexCode,
+            String intervalSec,
+            String includePastData
+    ) {
+        String normalizedInterval = intervalSec == null ? "60" : intervalSec;
+        String normalizedPastData = includePastData == null ? "Y" : includePastData;
+
+        return Objects.requireNonNull(
+                restClient.get()
+                        .uri("/uapi/domestic-stock/v1/quotations/inquire-time-indexchartprice" +
+                                "?FID_COND_MRKT_DIV_CODE=U" +
+                                "&FID_ETC_CLS_CODE=0" +
+                                "&FID_INPUT_ISCD=" + indexCode.getCode() +
+                                "&FID_INPUT_HOUR_1=" + normalizedInterval +
+                                "&FID_PW_DATA_INCU_YN=" + normalizedPastData)
+                        .headers(h -> h.set("tr_id", "FHKUP03500200"))
+                        .retrieve()
+                        .body(KisDto.TimeIndexChartPriceResponse.class)
+        );
+    }
+
+    /**
+     * <a href="https://apiportal.koreainvestment.com/apiservice-apiservice?/uapi/domestic-stock/v1/quotations/inquire-daily-indexchartprice">국내주식업종기간별시세 API</a>
+     * 코스피/코스닥 등 업종 지수의 일/주/월/년 시세를 조회합니다.
+     */
+    public KisDto.DailyIndexChartPriceResponse fetchDailyIndexChartPrice(
+            IndexCode indexCode,
+            String startDate,
+            String endDate,
+            String periodCode
+    ) {
+        return Objects.requireNonNull(
+                restClient.get()
+                        .uri("/uapi/domestic-stock/v1/quotations/inquire-daily-indexchartprice" +
+                                "?FID_COND_MRKT_DIV_CODE=U" +
+                                "&FID_INPUT_ISCD=" + indexCode.getCode() +
+                                "&FID_INPUT_DATE_1=" + startDate +
+                                "&FID_INPUT_DATE_2=" + endDate +
+                                "&FID_PERIOD_DIV_CODE=" + periodCode)
+                        .headers(h -> h.set("tr_id", "FHKUP03500100"))
+                        .retrieve()
+                        .body(KisDto.DailyIndexChartPriceResponse.class)
+        );
+    }
+
     @RequiredArgsConstructor
     @Getter
     public enum ConditionSeq {
@@ -156,6 +222,23 @@ public class KisApiClient {
         FALL_RATE(3);  // 하락율
 
         private final int seq;
+    }
+
+    @RequiredArgsConstructor
+    @Getter
+    public enum IndexCode {
+        KOSPI("0001"),
+        KOSDAQ("1001");
+
+        private final String code;
+
+        public static IndexCode fromCode(String code) {
+            return switch (code) {
+                case "0001" -> KOSPI;
+                case "1001" -> KOSDAQ;
+                default -> throw new IllegalArgumentException("Unsupported index code: " + code);
+            };
+        }
     }
 
 

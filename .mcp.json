@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "kis-code-assistant": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@KISOpenAPI/kis-code-assistant-mcp",
+        "--config",
+        "{}"
+      ]
+    }
+  }
+}

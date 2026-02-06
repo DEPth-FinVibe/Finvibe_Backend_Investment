@@ -9,8 +9,10 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
@@ -37,6 +39,8 @@ import depth.finvibe.investment.shared.error.DomainException;
 @RequiredArgsConstructor
 public class RealMarketClientImpl implements RealMarketClient {
 
+    private static final Set<String> SUPPORTED_INDEX_SYMBOLS = Set.of("0001", "1001");
+
     private final KisApiClient kisApiClient;
     private final List<KisFileClient> kisFileClient;
     private final StockRepository stockRepository;
@@ -50,10 +54,21 @@ public class RealMarketClientImpl implements RealMarketClient {
         Stock stock = stockRepository.findById(stockId)
                 .orElseThrow(() -> new DomainException(MarketErrorCode.STOCK_NOT_FOUND));
 
+        if (isIndexSymbol(stock.getSymbol())) {
+            return switch (timeframe) {
+                case MINUTE -> fetchIndexIntradayCandles(stock.getSymbol(), stockId, startTime, endTime);
+                case DAY, WEEK, MONTH, YEAR -> fetchIndexDailyCandles(stock.getSymbol(), stockId, startTime, endTime, timeframe);
+            };
+        }
+
         return switch (timeframe) {
             case MINUTE -> fetchIntradayCandles(stock.getSymbol(), stockId, startTime, endTime);
             case DAY, WEEK, MONTH, YEAR -> fetchDailyCandles(stock.getSymbol(), stockId, startTime, endTime, timeframe);
         };
+    }
+
+    private boolean isIndexSymbol(String symbol) {
+        return symbol != null && SUPPORTED_INDEX_SYMBOLS.contains(symbol);
     }
 
     @Override
@@ -237,6 +252,109 @@ public class RealMarketClientImpl implements RealMarketClient {
         return new ArrayList<>(results.values());
     }
 
+    private List<PriceCandleDto.Response> fetchIndexIntradayCandles(
+            String symbol,
+            Long stockId,
+            LocalDateTime startTime,
+            LocalDateTime endTime
+    ) {
+        KisDto.TimeIndexChartPriceResponse response = fetchWithRetry(() ->
+                kisApiClient.fetchTimeIndexChartPrice(
+                        KisApiClient.IndexCode.fromCode(symbol),
+                        "60",
+                        "Y"
+                )
+        );
+
+        if (response == null || response.getOutput2() == null) {
+            return List.of();
+        }
+
+        LocalDateTime normalizedStart = startTime.withSecond(0).withNano(0);
+        LocalDateTime normalizedEnd = endTime.withSecond(0).withNano(0);
+        Set<LocalDateTime> seen = new HashSet<>();
+
+        List<PriceCandleDto.Response> results = new ArrayList<>();
+        for (KisDto.TimeIndexChartPriceOutput2 item : response.getOutput2()) {
+            LocalDateTime candleAt = parseDateTime(item.getStck_bsop_date(), item.getStck_cntg_hour());
+            LocalDateTime normalizedAt = normalizeIntradayAt(candleAt);
+            if (normalizedAt.isBefore(normalizedStart) || normalizedAt.isAfter(normalizedEnd)) {
+                continue;
+            }
+            if (!seen.add(normalizedAt)) {
+                continue;
+            }
+
+            results.add(PriceCandleDto.Response.builder()
+                    .open(toBigDecimal(item.getBstp_nmix_oprc()))
+                    .close(toBigDecimal(item.getBstp_nmix_prpr()))
+                    .high(toBigDecimal(item.getBstp_nmix_hgpr()))
+                    .low(toBigDecimal(item.getBstp_nmix_lwpr()))
+                    .volume(toBigDecimal(item.getCntg_vol()))
+                    .value(toBigDecimal(item.getAcml_tr_pbmn()))
+                    .stockId(stockId)
+                    .timeframe(Timeframe.MINUTE)
+                    .at(normalizedAt)
+                    .prevDayChangePct(BigDecimal.ZERO)
+                    .build());
+        }
+
+        return results.stream()
+                .sorted((left, right) -> left.getAt().compareTo(right.getAt()))
+                .toList();
+    }
+
+    private List<PriceCandleDto.Response> fetchIndexDailyCandles(
+            String symbol,
+            Long stockId,
+            LocalDateTime startTime,
+            LocalDateTime endTime,
+            Timeframe timeframe
+    ) {
+        String periodCode = switch (timeframe) {
+            case DAY -> "D";
+            case WEEK -> "W";
+            case MONTH -> "M";
+            case YEAR -> "Y";
+            default -> throw new IllegalArgumentException("Unsupported timeframe: " + timeframe);
+        };
+
+        KisDto.DailyIndexChartPriceResponse response = kisApiClient.fetchDailyIndexChartPrice(
+                KisApiClient.IndexCode.fromCode(symbol),
+                startTime.toLocalDate().format(DateTimeFormatter.BASIC_ISO_DATE),
+                endTime.toLocalDate().format(DateTimeFormatter.BASIC_ISO_DATE),
+                periodCode
+        );
+
+        if (response == null || response.getOutput2() == null) {
+            return List.of();
+        }
+
+        Map<LocalDateTime, PriceCandleDto.Response> results = new HashMap<>();
+        for (KisDto.DailyIndexChartPriceOutput2 item : response.getOutput2()) {
+            LocalDateTime candleAt = parseDateTime(item.getStck_bsop_date(), null);
+            LocalDateTime normalizedAt = normalizeDateAt(candleAt, timeframe);
+            if (normalizedAt.isBefore(startTime) || normalizedAt.isAfter(endTime)) {
+                continue;
+            }
+
+            results.put(normalizedAt, PriceCandleDto.Response.builder()
+                    .open(toBigDecimal(item.getBstp_nmix_oprc()))
+                    .close(toBigDecimal(item.getBstp_nmix_prpr()))
+                    .high(toBigDecimal(item.getBstp_nmix_hgpr()))
+                    .low(toBigDecimal(item.getBstp_nmix_lwpr()))
+                    .volume(toBigDecimal(item.getAcml_vol()))
+                    .value(toBigDecimal(item.getAcml_tr_pbmn()))
+                    .stockId(stockId)
+                    .timeframe(timeframe)
+                    .at(normalizedAt)
+                    .prevDayChangePct(toBigDecimal(item.getBstp_nmix_prdy_ctrt()))
+                    .build());
+        }
+
+        return new ArrayList<>(results.values());
+    }
+
     private LocalDateTime normalizeIntradayAt(LocalDateTime at) {
         return at.withSecond(0).withNano(0);
     }
@@ -318,7 +436,7 @@ public class RealMarketClientImpl implements RealMarketClient {
         return queryTimes;
     }
 
-    private KisDto.TimeDailyChartPriceResponse fetchWithRetry(Supplier<KisDto.TimeDailyChartPriceResponse> requestSupplier) {
+    private <T> T fetchWithRetry(Supplier<T> requestSupplier) {
         int maxAttempts = 3;
         long delayMillis = 200L;
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
