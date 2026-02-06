@@ -27,6 +27,7 @@ import depth.finvibe.investment.modules.asset.domain.Asset;
 import depth.finvibe.investment.modules.asset.domain.Currency;
 import depth.finvibe.investment.modules.asset.domain.Money;
 import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
+import depth.finvibe.investment.modules.asset.domain.PortfolioValuation;
 import depth.finvibe.investment.modules.asset.domain.error.AssetErrorCode;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
 import depth.finvibe.investment.shared.application.port.out.GamificationEventProducer;
@@ -265,11 +266,19 @@ class AssetServiceTest {
   }
 
   @Test
-  @DisplayName("사용자의 포트폴리오 목록을 조회한다.")
+  @DisplayName("사용자의 포트폴리오 목록을 조회하면 투자원금, 현재가, 수익률이 포함된다.")
   void getPortfoliosByUser_success() {
     // given
     UUID userId = UUID.randomUUID();
-    PortfolioGroup group = PortfolioGroup.builder().id(1L).name("그룹1").iconCode("ICON1").userId(userId).build();
+    PortfolioValuation valuation = PortfolioValuation.builder()
+        .totalCurrentValue(BigDecimal.valueOf(1_100_000))
+        .totalProfitLoss(BigDecimal.valueOf(100_000))
+        .totalReturnRate(BigDecimal.valueOf(10.00))
+        .build();
+    PortfolioGroup group = PortfolioGroup.builder()
+        .id(1L).name("그룹1").iconCode("ICON1").userId(userId)
+        .valuation(valuation)
+        .build();
     when(portfolioGroupRepository.findAllByUserId(userId)).thenReturn(List.of(group));
 
     // when
@@ -279,6 +288,29 @@ class AssetServiceTest {
     assertThat(results).hasSize(1);
     assertThat(results.get(0).getName()).isEqualTo("그룹1");
     assertThat(results.get(0).getIconCode()).isEqualTo("ICON1");
+    assertThat(results.get(0).getTotalCurrentValue()).isEqualByComparingTo(BigDecimal.valueOf(1_100_000));
+    assertThat(results.get(0).getTotalPurchaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1_000_000));
+    assertThat(results.get(0).getTotalReturnRate()).isEqualByComparingTo(BigDecimal.valueOf(10.00));
+  }
+
+  @Test
+  @DisplayName("포트폴리오의 valuation이 null이면 투자원금, 현재가, 수익률이 0으로 반환된다.")
+  void getPortfoliosByUser_nullValuation_returnsZeros() {
+    // given
+    UUID userId = UUID.randomUUID();
+    PortfolioGroup group = PortfolioGroup.builder()
+        .id(1L).name("빈 그룹").iconCode("ICON1").userId(userId)
+        .build();
+    when(portfolioGroupRepository.findAllByUserId(userId)).thenReturn(List.of(group));
+
+    // when
+    List<PortfolioGroupDto.PortfolioGroupResponse> results = assetService.getPortfoliosByUser(userId);
+
+    // then
+    assertThat(results).hasSize(1);
+    assertThat(results.get(0).getTotalCurrentValue()).isEqualByComparingTo(BigDecimal.ZERO);
+    assertThat(results.get(0).getTotalPurchaseAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+    assertThat(results.get(0).getTotalReturnRate()).isEqualByComparingTo(BigDecimal.ZERO);
   }
 
   @Test

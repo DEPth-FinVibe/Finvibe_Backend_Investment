@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 import depth.finvibe.investment.modules.asset.domain.Asset;
 import depth.finvibe.investment.modules.asset.domain.Currency;
 import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
+import depth.finvibe.investment.modules.asset.domain.PortfolioValuation;
 
 public class PortfolioGroupDto {
 
@@ -27,12 +28,32 @@ public class PortfolioGroupDto {
         private String name;
         @Schema(description = "아이콘 코드", example = "ICON_01")
         private String iconCode;
+        @Schema(description = "투자원금", example = "1000000")
+        private BigDecimal totalPurchaseAmount;
+        @Schema(description = "현재 평가금액", example = "1100000")
+        private BigDecimal totalCurrentValue;
+        @Schema(description = "수익률(%)", example = "10.00")
+        private BigDecimal totalReturnRate;
 
         public static PortfolioGroupResponse from(PortfolioGroup portfolioGroup) {
+            PortfolioValuation valuation = portfolioGroup.getValuation();
+            BigDecimal currentValue = BigDecimal.ZERO;
+            BigDecimal purchaseAmount = BigDecimal.ZERO;
+            BigDecimal returnRate = BigDecimal.ZERO;
+
+            if (valuation != null) {
+                currentValue = valuation.getTotalCurrentValue();
+                purchaseAmount = currentValue.subtract(valuation.getTotalProfitLoss());
+                returnRate = valuation.getTotalReturnRate();
+            }
+
             return PortfolioGroupResponse.builder()
                     .id(portfolioGroup.getId())
                     .name(portfolioGroup.getName())
                     .iconCode(portfolioGroup.getIconCode())
+                    .totalPurchaseAmount(purchaseAmount)
+                    .totalCurrentValue(currentValue)
+                    .totalReturnRate(returnRate)
                     .build();
         }
     }
