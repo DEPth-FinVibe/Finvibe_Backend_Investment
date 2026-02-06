@@ -38,3 +38,6 @@ out/
 /.github/git-commit-instructions.md
 
 .env
+
+### macOS ###
+.DS_Store
