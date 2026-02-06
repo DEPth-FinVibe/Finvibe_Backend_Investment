@@ -13,27 +13,27 @@ import java.util.UUID;
 @NoArgsConstructor
 @Getter
 public class Wallet extends TimeStampedBaseEntity {
-  private static final Long WALLET_INITIAL_BALANCE = 10000000L; // 1000만원
+    private static final Long WALLET_INITIAL_BALANCE = 10000000L; // 1000만원
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-  @Column(nullable = false)
-  private UUID userId;
+    @Column(nullable = false)
+    private UUID userId;
 
-  @Embedded
-  private Money balance;
+    @Embedded
+    private Money balance;
 
-  public void deposit(Money amount) {
-    this.balance = this.balance.plus(amount);
-  }
+    public void deposit(Money amount) {
+        this.balance = this.balance.plus(amount);
+    }
 
-  public void withdraw(Money amount) {
-    this.balance = this.balance.minus(amount);
-  }
+    public void withdraw(Money amount) {
+        this.balance = this.balance.minus(amount);
+    }
 
-  public static Wallet create(UUID userId) {
-    return new Wallet(null, userId, new Money(WALLET_INITIAL_BALANCE));
-  }
+    public static Wallet create(UUID userId) {
+        return new Wallet(null, userId, new Money(WALLET_INITIAL_BALANCE));
+    }
 }
