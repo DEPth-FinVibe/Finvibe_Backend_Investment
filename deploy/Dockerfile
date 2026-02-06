@@ -5,6 +5,10 @@ FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
+# 타임존 설정
+RUN apk add --no-cache tzdata
+ENV TZ=Asia/Seoul
+
 # CI 환경(./build/libs/)에서 빌드된 JAR를 복사
 # build.gradle의 rootProject.name 또는 jar 이름에 따라 수정이 필요할 수 있으나, 일반적으로 *.jar로 매칭 가능
 COPY build/libs/*.jar app.jar
@@ -17,6 +21,6 @@ ARG PROFILE=local
 ENV SPRING_PROFILES_ACTIVE=${PROFILE}
 
 # JVM 옵션 (필요하면 조정)
-ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Duser.timezone=Asia/Seoul"
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -Dspring.profiles.active=$SPRING_PROFILES_ACTIVE -jar /app/app.jar"]
