@@ -9,8 +9,8 @@ import depth.finvibe.investment.modules.market.dto.MarketStatusDto;
 @Service
 public class MarketStatusService implements MarketStatusQueryUseCase {
 
-  @Override
-  public MarketStatusDto.Response getMarketStatus() {
-    return MarketStatusDto.Response.from(MarketHours.getCurrentStatus());
-  }
+    @Override
+    public MarketStatusDto.Response getMarketStatus() {
+        return MarketStatusDto.Response.from(MarketHours.getCurrentStatus());
+    }
 }
