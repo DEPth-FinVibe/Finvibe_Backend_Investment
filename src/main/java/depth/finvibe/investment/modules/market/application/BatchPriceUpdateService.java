@@ -32,7 +32,7 @@ import depth.finvibe.investment.shared.dto.BatchPriceUpdatedEvent;
 @RequiredArgsConstructor
 public class BatchPriceUpdateService {
 
-  private static final Set<String> EXCLUDED_CATEGORY_NAMES = Set.of("기타", "지수");
+  private static final String EXCLUDED_CATEGORY_NAME = "기타";
 
   private final HoldingStockRepository holdingStockRepository;
   private final StockRepository stockRepository;
@@ -144,29 +144,10 @@ public class BatchPriceUpdateService {
   }
 
   private List<Long> findCategoryStockIdsExcludingMisc() {
-    List<Long> allCategoryStockIds = stockRepository.findAllCategoryStockIds();
-    if (allCategoryStockIds.isEmpty()) {
-      return List.of();
-    }
-
-    Set<Long> excludedCategoryIds = categoryRepository.findAll().stream()
-            .filter(category -> EXCLUDED_CATEGORY_NAMES.contains(category.getName()))
+    return categoryRepository.findByName(EXCLUDED_CATEGORY_NAME)
             .map(Category::getId)
-            .collect(Collectors.toSet());
-
-    if (excludedCategoryIds.isEmpty()) {
-      return allCategoryStockIds;
-    }
-
-    Set<Long> excludedStockIds = excludedCategoryIds.stream()
-            .map(stockRepository::findByCategoryId)
-            .flatMap(List::stream)
-            .map(Stock::getId)
-            .collect(Collectors.toSet());
-
-    return allCategoryStockIds.stream()
-            .filter(stockId -> !excludedStockIds.contains(stockId))
-            .toList();
+            .map(stockRepository::findAllCategoryStockIdsExcluding)
+            .orElseGet(stockRepository::findAllCategoryStockIds);
   }
 
   private void bulkFetchPricesFromMarket(List<BatchUpdatePrice> batchPrices, List<Long> stockIds) {

@@ -2,12 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(./gradlew test:*)",
-      "Bash(./gradlew build:*)",
-      "WebFetch(domain:smithery.ai)"
+      "Bash(./gradlew build:*)"
     ]
-  },
-  "enabledMcpjsonServers": [
-    "kis-openapi"
-  ],
-  "enableAllProjectMcpServers": true
+  }
 }
