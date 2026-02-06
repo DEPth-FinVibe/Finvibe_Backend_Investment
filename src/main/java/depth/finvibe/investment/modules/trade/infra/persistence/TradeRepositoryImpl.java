@@ -6,6 +6,7 @@ import depth.finvibe.investment.modules.trade.domain.enums.TradeType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,5 +30,10 @@ public class TradeRepositoryImpl implements TradeRepository {
     @Override
     public List<Long> findDistinctStockIdsByUserIdAndTradeType(UUID userId, TradeType tradeType) {
         return jpaRepository.findDistinctStockIdsByUserIdAndTradeType(userId, tradeType);
+    }
+
+    @Override
+    public List<Trade> findByUserIdAndCreatedAtBetween(UUID userId, LocalDateTime start, LocalDateTime end) {
+        return jpaRepository.findByUserIdAndCreatedAtBetweenOrderByCreatedAtDesc(userId, start, end);
     }
 }

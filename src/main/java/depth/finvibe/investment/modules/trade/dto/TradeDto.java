@@ -1,5 +1,6 @@
 package depth.finvibe.investment.modules.trade.dto;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -67,6 +68,43 @@ public class TradeDto {
                     .userId(trade.getUserId())
                     .tradeType(trade.getTradeType())
                     .transactionType(trade.getTransactionType())
+                    .build();
+        }
+    }
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Schema(name = "TradeHistoryResponse", description = "거래 기록 응답")
+    public static class TradeHistoryResponse {
+        @Schema(description = "거래 ID", example = "123")
+        private Long tradeId;
+        @Schema(description = "종목 ID", example = "10")
+        private Long stockId;
+        @Schema(description = "주문 수량", example = "5")
+        private Double amount;
+        @Schema(description = "주문 가격", example = "60000")
+        private Long price;
+        @Schema(description = "포트폴리오 ID", example = "1")
+        private Long portfolioId;
+        @Schema(description = "매수/매도 구분", example = "BUY")
+        private TransactionType transactionType;
+        @Schema(description = "거래 유형", example = "NORMAL")
+        private TradeType tradeType;
+        @Schema(description = "거래 생성일시")
+        private LocalDateTime createdAt;
+
+        public static TradeHistoryResponse from(Trade trade) {
+            return TradeHistoryResponse.builder()
+                    .tradeId(trade.getId())
+                    .stockId(trade.getStockId())
+                    .amount(trade.getAmount())
+                    .price(trade.getPrice())
+                    .portfolioId(trade.getPortfolioId())
+                    .transactionType(trade.getTransactionType())
+                    .tradeType(trade.getTradeType())
+                    .createdAt(trade.getCreatedAt())
                     .build();
         }
     }

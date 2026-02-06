@@ -9,4 +9,6 @@ public interface TradeQueryUseCase {
     TradeDto.TradeResponse findTrade(Long tradeId);
 
     List<Long> findReservedStockIds(UUID userId);
+
+    List<TradeDto.TradeHistoryResponse> findTradesByMonth(UUID userId, int year, int month);
 }

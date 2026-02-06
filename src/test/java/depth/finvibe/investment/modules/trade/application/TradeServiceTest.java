@@ -23,6 +23,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -314,5 +316,40 @@ class TradeServiceTest {
         assertThatThrownBy(() -> tradeService.executeReservedTrade(1L))
                 .isInstanceOf(DomainException.class)
                 .hasFieldOrPropertyWithValue("errorCode", TradeErrorCode.INVALID_TRADE_TYPE);
+    }
+
+    @Test
+    @DisplayName("월별 거래 기록 조회 성공")
+    void findTradesByMonth_success() {
+        // given
+        LocalDateTime start = LocalDateTime.of(2026, 1, 1, 0, 0);
+        LocalDateTime end = LocalDateTime.of(2026, 2, 1, 0, 0);
+        given(tradeRepository.findByUserIdAndCreatedAtBetween(userId, start, end))
+                .willReturn(List.of(normalTrade, reservedTrade));
+
+        // when
+        List<TradeDto.TradeHistoryResponse> result = tradeService.findTradesByMonth(userId, 2026, 1);
+
+        // then
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getStockId()).isEqualTo(5930L);
+        verify(tradeRepository, times(1)).findByUserIdAndCreatedAtBetween(userId, start, end);
+    }
+
+    @Test
+    @DisplayName("월별 거래 기록 조회 - 결과 없음")
+    void findTradesByMonth_empty() {
+        // given
+        LocalDateTime start = LocalDateTime.of(2026, 3, 1, 0, 0);
+        LocalDateTime end = LocalDateTime.of(2026, 4, 1, 0, 0);
+        given(tradeRepository.findByUserIdAndCreatedAtBetween(userId, start, end))
+                .willReturn(List.of());
+
+        // when
+        List<TradeDto.TradeHistoryResponse> result = tradeService.findTradesByMonth(userId, 2026, 3);
+
+        // then
+        assertThat(result).isEmpty();
+        verify(tradeRepository, times(1)).findByUserIdAndCreatedAtBetween(userId, start, end);
     }
 }
