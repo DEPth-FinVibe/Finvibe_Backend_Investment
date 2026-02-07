@@ -37,6 +37,9 @@ import depth.finvibe.investment.shared.error.DomainException;
 @RequiredArgsConstructor
 public class RealMarketClientImpl implements RealMarketClient {
 
+    private static final int DAILY_CHART_BATCH_LIMIT = 100;
+    private static final int DAILY_CHART_MAX_CALL_COUNT = 50;
+
     private final KisApiClient kisApiClient;
     private final List<KisFileClient> kisFileClient;
     private final StockRepository stockRepository;
@@ -196,45 +199,75 @@ public class RealMarketClientImpl implements RealMarketClient {
             default -> throw new IllegalArgumentException("Unsupported timeframe: " + timeframe);
         };
 
-        // API는 최대 100개씩만 가져올 수 있으므로, 시작~종료 범위를 한번에 요청
-        // (API가 내부적으로 100개 제한을 처리하는 것으로 가정)
-        KisDto.DailyItemChartPriceResponse response = kisApiClient.fetchDailyItemChartPrice(
-                "J",
-                symbol,
-                startTime.toLocalDate().format(DateTimeFormatter.BASIC_ISO_DATE),
-                endTime.toLocalDate().format(DateTimeFormatter.BASIC_ISO_DATE),
-                periodCode,
-                "1"
-        );
+        LocalDate startDate = startTime.toLocalDate();
+        LocalDate cursorEndDate = endTime.toLocalDate();
+        int callCount = 0;
 
-        if (response == null || response.getOutput2() == null) {
-            return List.of();
-        }
+        while (!cursorEndDate.isBefore(startDate) && callCount < DAILY_CHART_MAX_CALL_COUNT) {
+            callCount++;
 
-        for (KisDto.DailyItemChartPriceOutput2 item : response.getOutput2()) {
-            LocalDateTime candleAt = parseDateTime(item.getStck_bsop_date(), null);
-            LocalDateTime normalizedAt = normalizeDateAt(candleAt, timeframe);
-            
-            // 시간 범위 체크
-            if (normalizedAt.isBefore(startTime) || normalizedAt.isAfter(endTime)) {
-                continue;
+            KisDto.DailyItemChartPriceResponse response = kisApiClient.fetchDailyItemChartPrice(
+                    "J",
+                    symbol,
+                    startDate.format(DateTimeFormatter.BASIC_ISO_DATE),
+                    cursorEndDate.format(DateTimeFormatter.BASIC_ISO_DATE),
+                    periodCode,
+                    "1"
+            );
+
+            if (response == null || response.getOutput2() == null || response.getOutput2().isEmpty()) {
+                break;
             }
 
-            results.put(normalizedAt, PriceCandleDto.Response.builder()
-                    .open(toBigDecimal(item.getStck_oprc()))
-                    .close(toBigDecimal(item.getStck_clpr()))
-                    .high(toBigDecimal(item.getStck_hgpr()))
-                    .low(toBigDecimal(item.getStck_lwpr()))
-                    .volume(toBigDecimal(item.getAcml_vol()))
-                    .value(toBigDecimal(item.getAcml_tr_pbmn()))
-                    .stockId(stockId)
-                    .timeframe(timeframe)
-                    .at(normalizedAt)
-                    .prevDayChangePct(BigDecimal.ZERO)
-                    .build());
+            List<KisDto.DailyItemChartPriceOutput2> items = response.getOutput2();
+            LocalDate oldestDateInBatch = cursorEndDate;
+
+            for (KisDto.DailyItemChartPriceOutput2 item : items) {
+                LocalDateTime candleAt = parseDateTime(item.getStck_bsop_date(), null);
+                LocalDateTime normalizedAt = normalizeDateAt(candleAt, timeframe);
+
+                if (normalizedAt.isBefore(startTime) || normalizedAt.isAfter(endTime)) {
+                    continue;
+                }
+
+                results.putIfAbsent(normalizedAt, PriceCandleDto.Response.builder()
+                        .open(toBigDecimal(item.getStck_oprc()))
+                        .close(toBigDecimal(item.getStck_clpr()))
+                        .high(toBigDecimal(item.getStck_hgpr()))
+                        .low(toBigDecimal(item.getStck_lwpr()))
+                        .volume(toBigDecimal(item.getAcml_vol()))
+                        .value(toBigDecimal(item.getAcml_tr_pbmn()))
+                        .stockId(stockId)
+                        .timeframe(timeframe)
+                        .at(normalizedAt)
+                        .prevDayChangePct(BigDecimal.ZERO)
+                        .build());
+
+                LocalDate candleDate = candleAt.toLocalDate();
+                if (candleDate.isBefore(oldestDateInBatch)) {
+                    oldestDateInBatch = candleDate;
+                }
+            }
+
+            if (items.size() < DAILY_CHART_BATCH_LIMIT) {
+                break;
+            }
+
+            LocalDate nextCursorEndDate = oldestDateInBatch.minusDays(1);
+            if (!nextCursorEndDate.isBefore(cursorEndDate)) {
+                break;
+            }
+            cursorEndDate = nextCursorEndDate;
         }
 
-        return new ArrayList<>(results.values());
+        if (callCount >= DAILY_CHART_MAX_CALL_COUNT) {
+            log.warn("Daily candle fetch call limit reached. symbol={}, timeframe={}, startTime={}, endTime={}",
+                    symbol, timeframe, startTime, endTime);
+        }
+
+        return results.values().stream()
+                .sorted((left, right) -> left.getAt().compareTo(right.getAt()))
+                .collect(Collectors.toList());
     }
 
     private LocalDateTime normalizeIntradayAt(LocalDateTime at) {

@@ -50,8 +50,10 @@ public class MarketController {
         }
         
         // 종료 시각이 완료된 캔들 범위 내에 있는지 검증
+        // DAY/WEEK/MONTH/YEAR는 캔들 시작 시각 기준으로 검증해야 한다.
+        LocalDateTime normalizedEndTime = timeframe.normalizeStart(endTime);
         LocalDateTime lastCompletedCandleTime = getLastCompletedCandleTime(timeframe);
-        if (endTime.isAfter(lastCompletedCandleTime)) {
+        if (normalizedEndTime.isAfter(lastCompletedCandleTime)) {
             throw new DomainException(MarketErrorCode.INVALID_TIME_RANGE);
         }
         
