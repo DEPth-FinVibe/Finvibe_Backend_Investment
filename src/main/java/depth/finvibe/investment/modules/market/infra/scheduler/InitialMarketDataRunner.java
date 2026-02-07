@@ -18,9 +18,12 @@ import org.springframework.stereotype.Component;
 
 import depth.finvibe.investment.modules.market.application.port.in.CategoryCommandUseCase;
 import depth.finvibe.investment.modules.market.application.port.in.StockCommandUseCase;
+import depth.finvibe.investment.modules.market.application.BatchPriceUpdateService;
 import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
 import depth.finvibe.investment.modules.market.application.port.out.StockThemeRepository;
 import depth.finvibe.investment.modules.market.domain.Category;
+import depth.finvibe.investment.modules.market.domain.MarketHours;
+import depth.finvibe.investment.modules.market.domain.enums.MarketStatus;
 
 @Slf4j
 @Component
@@ -36,6 +39,7 @@ public class InitialMarketDataRunner implements CommandLineRunner {
     private final LockProvider lockProvider;
     private final CategoryCommandUseCase categoryCommandUseCase;
     private final StockCommandUseCase stockCommandUseCase;
+    private final BatchPriceUpdateService batchPriceUpdateService;
     private final StockRepository stockRepository;
     private final StockThemeRepository stockThemeRepository;
 
@@ -56,14 +60,29 @@ public class InitialMarketDataRunner implements CommandLineRunner {
             categoryCommandUseCase.bulkInsert(categories);
         }
 
-        if (stockRepository.existsAny()) {
+        if (!stockRepository.existsAny()) {
+            log.info("어플리케이션 초기화 작업을 위해 주식 데이터를 최초로 적재합니다.");
+
+            stockCommandUseCase.bulkUpsertStocks();
+            stockCommandUseCase.renewStockCharts();
+        }
+
+        runBatchPriceUpdateIfClosedAndMissing();
+    }
+
+    private void runBatchPriceUpdateIfClosedAndMissing() {
+        if (MarketHours.getCurrentStatus() == MarketStatus.OPEN) {
+            log.info("장이 열려 있어 시작 시 배치 시세 보정은 건너뜁니다.");
             return;
         }
 
-        log.info("어플리케이션 초기화 작업을 위해 주식 데이터를 최초로 적재합니다.");
+        if (!batchPriceUpdateService.hasMissingBatchPricesByKey()) {
+            log.info("장이 닫혀 있고 누락된 배치 시세 키가 없어 시작 시 보정을 건너뜁니다.");
+            return;
+        }
 
-        stockCommandUseCase.bulkUpsertStocks();
-        stockCommandUseCase.renewStockCharts();
+        log.info("장이 닫혀 있고 누락된 배치 시세 키가 있어 시작 시 배치 시세 보정을 실행합니다.");
+        batchPriceUpdateService.updateHoldingStockPrices();
     }
 
     private List<String> loadCategoryThemes() {

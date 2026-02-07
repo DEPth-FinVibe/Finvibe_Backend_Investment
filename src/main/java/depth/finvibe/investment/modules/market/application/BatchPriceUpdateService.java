@@ -1,5 +1,4 @@
 package depth.finvibe.investment.modules.market.application;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +41,22 @@ public class BatchPriceUpdateService {
   private final CurrentStockWatcherRepository currentStockWatcherRepository;
   private final BatchUpdatePriceRepository batchUpdatePriceRepository;
   private final BatchPriceEventProducer batchPriceEventProducer;
+
+  public boolean hasMissingBatchPricesByKey() {
+    List<Long> targetStockIds = findTargetStockIds();
+    if (targetStockIds.isEmpty()) {
+      return false;
+    }
+
+    int cachedCount = batchUpdatePriceRepository.findByStockIds(targetStockIds).size();
+    boolean hasMissing = cachedCount < targetStockIds.size();
+
+    if (hasMissing) {
+      log.info("Detected missing batch price keys. target: {}, cached: {}", targetStockIds.size(), cachedCount);
+    }
+
+    return hasMissing;
+  }
 
   public void updateHoldingStockPrices() {
     log.info("Starting batch price update for holding stocks");
@@ -141,6 +156,12 @@ public class BatchPriceUpdateService {
     Set<Long> merged = new java.util.LinkedHashSet<>(baseIds);
     merged.addAll(newIds);
     return new ArrayList<>(merged);
+  }
+
+  private List<Long> findTargetStockIds() {
+    List<Long> holdingStockIds = holdingStockRepository.findAllDistinctStockIds();
+    List<Long> categoryStockIds = findCategoryStockIdsExcludingMisc();
+    return mergeStockIds(holdingStockIds, categoryStockIds);
   }
 
   private List<Long> findCategoryStockIdsExcludingMisc() {
