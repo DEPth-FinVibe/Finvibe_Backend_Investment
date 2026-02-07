@@ -42,8 +42,9 @@ out/
 ### macOS ###
 .DS_Store
 
-### Claude ###
+### AI Tools ###
 .claude/
+.opencode/
 
 ### MCP Settings ###
 .mcp.json
