@@ -11,6 +11,7 @@ import depth.finvibe.investment.modules.market.domain.CurrentPrice;
 import depth.finvibe.investment.modules.market.domain.PriceCandle;
 import depth.finvibe.investment.modules.market.domain.Stock;
 import depth.finvibe.investment.modules.market.domain.StockRanking;
+import depth.finvibe.investment.modules.market.domain.enums.MarketIndexType;
 import depth.finvibe.investment.modules.market.domain.enums.RankType;
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
 import depth.finvibe.investment.modules.market.domain.error.MarketErrorCode;
@@ -60,6 +61,26 @@ public class MarketQueryService implements MarketQueryUseCase {
                 Duration.ofSeconds(60),
                 () -> fetchStockCandlesWithLock(stockId, startTime, endTime, timeframe)
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PriceCandleDto.Response> getIndexCandles(
+            MarketIndexType indexType,
+            LocalDateTime startTime,
+            LocalDateTime endTime
+    ) {
+        LocalDateTime normalizedStart = Timeframe.MINUTE.normalizeStart(startTime);
+        LocalDateTime normalizedEnd = Timeframe.MINUTE.normalizeStart(endTime);
+
+        Stock indexStock = stockRepository.findBySymbol(indexType.getSymbol())
+                .orElseThrow(() -> new DomainException(MarketErrorCode.STOCK_NOT_FOUND));
+
+        return priceCandleRepository.findExisting(indexStock.getId(), normalizedStart, normalizedEnd, Timeframe.MINUTE)
+                .stream()
+                .filter(candle -> !candle.getIsMissing())
+                .map(PriceCandleDto.Response::from)
+                .toList();
     }
 
     /**

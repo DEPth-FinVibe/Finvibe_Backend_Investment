@@ -126,6 +126,41 @@ public class KisDto {
     }
 
     /**
+     * 국내업종 시간별지수(분) 응답 DTO
+     */
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Data
+    @Builder
+    public static class IndexTimePriceResponse {
+        private String rt_cd;
+        private String msg_cd;
+        private String msg1;
+        private List<IndexTimePriceOutput> output;
+    }
+
+    /**
+     * 국내업종 시간별지수(분) 응답 상세 항목 DTO
+     */
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Data
+    @Builder
+    public static class IndexTimePriceOutput {
+        private String bsop_hour;
+        private String bstp_nmix_prpr;
+        private String bstp_nmix_prdy_vrss;
+        private String prdy_vrss_sign;
+        private String bstp_nmix_prdy_ctrt;
+        private String acml_tr_pbmn;
+        private String acml_vol;
+        private String cntg_vol;
+        private String bstp_nmix_oprc;
+        private String bstp_nmix_hgpr;
+        private String bstp_nmix_lwpr;
+    }
+
+    /**
      * 국내주식기간별시세(일/주/월/년) 응답 DTO
      */
     @AllArgsConstructor

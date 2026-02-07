@@ -126,6 +126,31 @@ public class KisApiClient {
 
     /**
      * <a href=
+     * "https://apiportal.koreainvestment.com/apiservice-apiservice?/uapi/domestic-stock/v1/quotations/inquire-index-timeprice">국내업종
+     * 시간별지수(분) API</a>
+     * 코스피/코스닥 등 국내 업종 지수를 분 단위로 조회합니다.
+     */
+    @CircuitBreaker(name = "kisChartData", fallbackMethod = "fallbackKisApi")
+    public List<KisDto.IndexTimePriceOutput> fetchIndexTimePrice(
+            IndexCode indexCode,
+            String intervalSec
+    ) {
+        String resolvedIntervalSec = intervalSec == null || intervalSec.isBlank() ? "60" : intervalSec;
+
+        return Objects.requireNonNull(
+                restClient.get()
+                        .uri("/uapi/domestic-stock/v1/quotations/inquire-index-timeprice" +
+                                "?FID_INPUT_HOUR_1=" + resolvedIntervalSec +
+                                "&FID_INPUT_ISCD=" + indexCode.getCode() +
+                                "&FID_COND_MRKT_DIV_CODE=U")
+                        .headers(h -> h.set("tr_id", "FHPUP02110200"))
+                        .retrieve()
+                        .body(KisDto.IndexTimePriceResponse.class))
+                .getOutput();
+    }
+
+    /**
+     * <a href=
      * "https://apiportal.koreainvestment.com/apiservice-apiservice?/uapi/domestic-stock/v1/quotations/intstock-multprice">관심종목(멀티종목)
      * 시세조회 API [국내주식-205]</a>
      * 한 번의 API 호출로 최대 30개 종목의 실시간 시세 정보를 동시에 조회합니다.
@@ -176,6 +201,15 @@ public class KisApiClient {
         FALL_RATE(3);
 
         private final int seq;
+    }
+
+    @RequiredArgsConstructor
+    @Getter
+    public enum IndexCode {
+        KOSPI("0001"),
+        KOSDAQ("1001");
+
+        private final String code;
     }
 
     // ===== Fallback Method =====

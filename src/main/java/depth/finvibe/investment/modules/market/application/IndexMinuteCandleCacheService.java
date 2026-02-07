@@ -1,0 +1,147 @@
+package depth.finvibe.investment.modules.market.application;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import depth.finvibe.investment.modules.market.application.port.out.PriceCandleRepository;
+import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
+import depth.finvibe.investment.modules.market.domain.PriceCandle;
+import depth.finvibe.investment.modules.market.domain.Stock;
+import depth.finvibe.investment.modules.market.domain.enums.MarketIndexType;
+import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
+import depth.finvibe.investment.modules.market.infra.client.KisApiClient;
+import depth.finvibe.investment.modules.market.infra.client.dto.KisDto;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class IndexMinuteCandleCacheService {
+
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HHmmss");
+
+    private final KisApiClient kisApiClient;
+    private final StockRepository stockRepository;
+    private final PriceCandleRepository priceCandleRepository;
+
+    @Transactional
+    public void cacheLatestMinuteCandles() {
+        for (MarketIndexType indexType : MarketIndexType.values()) {
+            cacheIndexMinuteCandles(indexType);
+        }
+    }
+
+    private void cacheIndexMinuteCandles(MarketIndexType indexType) {
+        Stock indexStock = getOrCreateIndexStock(indexType);
+
+        List<KisDto.IndexTimePriceOutput> outputs = kisApiClient.fetchIndexTimePrice(
+                toIndexCode(indexType),
+                "60"
+        );
+
+        if (outputs == null || outputs.isEmpty()) {
+            log.debug("No index minute candles received. indexType={}", indexType);
+            return;
+        }
+
+        List<PriceCandle> candles = outputs.stream()
+                .map(output -> toPriceCandle(indexStock.getId(), output))
+                .filter(candle -> candle != null)
+                .toList();
+
+        if (candles.isEmpty()) {
+            log.debug("No valid index minute candles to save. indexType={}", indexType);
+            return;
+        }
+
+        List<LocalDateTime> times = candles.stream()
+                .map(PriceCandle::getAt)
+                .toList();
+
+        Set<LocalDateTime> existingTimes = priceCandleRepository
+                .findByStockIdAndTimeframeAndAtIn(indexStock.getId(), Timeframe.MINUTE, times)
+                .stream()
+                .map(PriceCandle::getAt)
+                .collect(Collectors.toSet());
+
+        List<PriceCandle> newCandles = candles.stream()
+                .filter(candle -> !existingTimes.contains(candle.getAt()))
+                .toList();
+
+        if (newCandles.isEmpty()) {
+            log.debug("All index minute candles already cached. indexType={}", indexType);
+            return;
+        }
+
+        priceCandleRepository.saveAll(newCandles);
+        log.info("Cached {} index minute candles. indexType={}", newCandles.size(), indexType);
+    }
+
+    private PriceCandle toPriceCandle(Long stockId, KisDto.IndexTimePriceOutput output) {
+        LocalDateTime at = parseAt(output.getBsop_hour());
+        if (at == null) {
+            return null;
+        }
+
+        return PriceCandle.create(
+                stockId,
+                Timeframe.MINUTE,
+                at,
+                toBigDecimal(output.getBstp_nmix_oprc()),
+                toBigDecimal(output.getBstp_nmix_hgpr()),
+                toBigDecimal(output.getBstp_nmix_lwpr()),
+                toBigDecimal(output.getBstp_nmix_prpr()),
+                toBigDecimal(output.getBstp_nmix_prdy_ctrt()),
+                toBigDecimal(output.getCntg_vol()),
+                toBigDecimal(output.getAcml_tr_pbmn())
+        );
+    }
+
+    private LocalDateTime parseAt(String bsopHour) {
+        if (bsopHour == null || bsopHour.isBlank()) {
+            return null;
+        }
+
+        String normalizedTime = bsopHour.length() == 4 ? bsopHour + "00" : bsopHour;
+        try {
+            LocalTime time = LocalTime.parse(normalizedTime, TIME_FORMATTER);
+            return LocalDateTime.of(LocalDate.now(), time).withSecond(0).withNano(0);
+        } catch (Exception ex) {
+            log.debug("Failed to parse bsopHour: {}", bsopHour, ex);
+            return null;
+        }
+    }
+
+    private BigDecimal toBigDecimal(String value) {
+        if (value == null || value.isBlank()) {
+            return BigDecimal.ZERO;
+        }
+        return new BigDecimal(value);
+    }
+
+    private Stock getOrCreateIndexStock(MarketIndexType indexType) {
+        return stockRepository.findBySymbol(indexType.getSymbol())
+                .orElseGet(() -> {
+                    Stock stock = Stock.create(indexType.getDisplayName(), indexType.getSymbol(), null);
+                    stockRepository.save(stock);
+                    return stock;
+                });
+    }
+
+    private KisApiClient.IndexCode toIndexCode(MarketIndexType indexType) {
+        return switch (indexType) {
+            case KOSPI -> KisApiClient.IndexCode.KOSPI;
+            case KOSDAQ -> KisApiClient.IndexCode.KOSDAQ;
+        };
+    }
+}

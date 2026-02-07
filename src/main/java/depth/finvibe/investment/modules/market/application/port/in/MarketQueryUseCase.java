@@ -1,6 +1,7 @@
 package depth.finvibe.investment.modules.market.application.port.in;
 
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
+import depth.finvibe.investment.modules.market.domain.enums.MarketIndexType;
 import depth.finvibe.investment.modules.market.dto.ClosingPriceDto;
 import depth.finvibe.investment.modules.market.dto.CurrentPriceDto;
 import depth.finvibe.investment.modules.market.dto.PriceCandleDto;
@@ -16,6 +17,12 @@ public interface MarketQueryUseCase {
             LocalDateTime startTime,
             LocalDateTime endTime,
             Timeframe timeframe
+    );
+
+    List<PriceCandleDto.Response> getIndexCandles(
+            MarketIndexType indexType,
+            LocalDateTime startTime,
+            LocalDateTime endTime
     );
 
     List<CurrentPriceDto.Response> getCurrentPrices(List<Long> stockIds);

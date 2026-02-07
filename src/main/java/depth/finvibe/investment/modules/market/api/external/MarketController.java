@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import depth.finvibe.investment.modules.market.application.port.in.CategoryQueryUseCase;
 import depth.finvibe.investment.modules.market.application.port.in.MarketQueryUseCase;
 import depth.finvibe.investment.modules.market.application.port.in.MarketStatusQueryUseCase;
+import depth.finvibe.investment.modules.market.domain.enums.MarketIndexType;
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
 import depth.finvibe.investment.modules.market.domain.error.MarketErrorCode;
 import depth.finvibe.investment.modules.market.dto.CategoryDto;
@@ -57,6 +58,26 @@ public class MarketController {
         List<PriceCandleDto.Response> candles = marketQueryUseCase.getStockCandles(
                 stockId, startTime, endTime, timeframe
         );
+        return ResponseEntity.ok(candles);
+    }
+
+    @GetMapping("/indexes/{indexType}/candles")
+    @Operation(summary = "지수 캔들 조회", description = "코스피/코스닥 지수 캔들 데이터를 캐시에서 조회합니다.")
+    public ResponseEntity<List<PriceCandleDto.Response>> getIndexCandles(
+            @Parameter(description = "지수 타입", example = "KOSPI") @PathVariable MarketIndexType indexType,
+            @Parameter(description = "시작 시각", example = "2024-01-01T09:00:00") @RequestParam LocalDateTime startTime,
+            @Parameter(description = "종료 시각", example = "2024-01-01T15:30:00") @RequestParam LocalDateTime endTime
+    ) {
+        if (startTime.isAfter(endTime)) {
+            throw new DomainException(MarketErrorCode.INVALID_START_END_TIME);
+        }
+
+        LocalDateTime lastCompletedMinute = Timeframe.MINUTE.lastCompletedTime(LocalDateTime.now());
+        if (endTime.isAfter(lastCompletedMinute)) {
+            throw new DomainException(MarketErrorCode.INVALID_TIME_RANGE);
+        }
+
+        List<PriceCandleDto.Response> candles = marketQueryUseCase.getIndexCandles(indexType, startTime, endTime);
         return ResponseEntity.ok(candles);
     }
     
