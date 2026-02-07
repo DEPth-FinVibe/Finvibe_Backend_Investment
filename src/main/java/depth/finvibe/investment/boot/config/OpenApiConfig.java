@@ -32,7 +32,7 @@ public class OpenApiConfig {
     public GroupedOpenApi assetApi() {
         return GroupedOpenApi.builder()
                 .group("asset")
-                .pathsToMatch("/portfolios/**")
+                .pathsToMatch("/portfolios/**", "/assets/**", "/rankings/**")
                 .pathsToExclude("/internal/**")
                 .addOpenApiCustomizer(prefixPaths("/api/asset"))
                 .build();
