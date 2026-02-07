@@ -42,7 +42,7 @@ public class KisApiClient {
      * @param condition 조건 번호
      * @return 조건에 해당하는 종목 리스트
      */
-    @CircuitBreaker(name = "kisStockSearch", fallbackMethod = "fallbackKisApi")
+    @CircuitBreaker(name = "kisStockSearch", fallbackMethod = "fallbackConditionalStockSearch")
     public List<KisDto.ConditionalStockSearchResponseItem> fetchConditionalStockSearch(ConditionSeq condition) {
         return Objects.requireNonNull(
                 restClient.get()
@@ -71,7 +71,7 @@ public class KisApiClient {
      * @param includePastData 과거 데이터 포함 여부
      * @param includeFakeTick 모의 틱 포함 여부
      */
-    @CircuitBreaker(name = "kisChartData", fallbackMethod = "fallbackKisApi")
+    @CircuitBreaker(name = "kisChartData", fallbackMethod = "fallbackTimeDailyChartPrice")
     public KisDto.TimeDailyChartPriceResponse fetchTimeDailyChartPrice(
             String marketCode,
             String stockCode,
@@ -102,7 +102,7 @@ public class KisApiClient {
      * API</a>
      * 일/주/월/년 단위로 특정 기간 동안의 주가 차트 데이터를 조회합니다.
      */
-    @CircuitBreaker(name = "kisChartData", fallbackMethod = "fallbackKisApi")
+    @CircuitBreaker(name = "kisChartData", fallbackMethod = "fallbackDailyItemChartPrice")
     public KisDto.DailyItemChartPriceResponse fetchDailyItemChartPrice(
             String marketCode,
             String stockCode,
@@ -130,7 +130,7 @@ public class KisApiClient {
      * 시간별지수(분) API</a>
      * 코스피/코스닥 등 국내 업종 지수를 분 단위로 조회합니다.
      */
-    @CircuitBreaker(name = "kisChartData", fallbackMethod = "fallbackKisApi")
+    @CircuitBreaker(name = "kisChartData", fallbackMethod = "fallbackIndexTimePrice")
     public List<KisDto.IndexTimePriceOutput> fetchIndexTimePrice(
             IndexCode indexCode,
             String intervalSec
@@ -158,7 +158,7 @@ public class KisApiClient {
      * @param stocks 종목 정보 리스트 (최대 30개)
      * @return 관심종목 시세 리스트
      */
-    @CircuitBreaker(name = "kisRealtimePrice", fallbackMethod = "fallbackKisApi")
+    @CircuitBreaker(name = "kisRealtimePrice", fallbackMethod = "fallbackIntstockMultprice")
     public List<KisDto.IntstockMultpriceResponseItem> fetchIntstockMultprice(List<KisDto.StockInfo> stocks) {
         if (stocks == null || stocks.isEmpty()) {
             return List.of();
@@ -219,7 +219,82 @@ public class KisApiClient {
      * Circuit Breaker가 열리면 이 메서드가 호출되어 503 에러를 반환합니다.
      */
     @SuppressWarnings("unused")
-    private <T> T fallbackKisApi(Throwable throwable) {
+    private List<KisDto.ConditionalStockSearchResponseItem> fallbackConditionalStockSearch(
+            ConditionSeq condition,
+            Throwable throwable
+    ) {
+        log.error("KIS API Circuit Breaker 작동 - fetchConditionalStockSearch, condition={}", condition, throwable);
+        throw new DomainException(GlobalErrorCode.CIRCUIT_BREAKER_OPEN);
+    }
+
+    @SuppressWarnings("unused")
+    private KisDto.TimeDailyChartPriceResponse fallbackTimeDailyChartPrice(
+            String marketCode,
+            String stockCode,
+            String time,
+            String date,
+            String includePastData,
+            String includeFakeTick,
+            Throwable throwable
+    ) {
+        log.error(
+                "KIS API Circuit Breaker 작동 - fetchTimeDailyChartPrice, marketCode={}, stockCode={}, time={}, date={}",
+                marketCode,
+                stockCode,
+                time,
+                date,
+                throwable
+        );
+        throw new DomainException(GlobalErrorCode.CIRCUIT_BREAKER_OPEN);
+    }
+
+    @SuppressWarnings("unused")
+    private KisDto.DailyItemChartPriceResponse fallbackDailyItemChartPrice(
+            String marketCode,
+            String stockCode,
+            String startDate,
+            String endDate,
+            String periodCode,
+            String originalAdjustedPriceFlag,
+            Throwable throwable
+    ) {
+        log.error(
+                "KIS API Circuit Breaker 작동 - fetchDailyItemChartPrice, marketCode={}, stockCode={}, startDate={}, endDate={}, periodCode={}",
+                marketCode,
+                stockCode,
+                startDate,
+                endDate,
+                periodCode,
+                throwable
+        );
+        throw new DomainException(GlobalErrorCode.CIRCUIT_BREAKER_OPEN);
+    }
+
+    @SuppressWarnings("unused")
+    private List<KisDto.IndexTimePriceOutput> fallbackIndexTimePrice(
+            IndexCode indexCode,
+            String intervalSec,
+            Throwable throwable
+    ) {
+        log.error(
+                "KIS API Circuit Breaker 작동 - fetchIndexTimePrice, indexCode={}, intervalSec={}",
+                indexCode,
+                intervalSec,
+                throwable
+        );
+        throw new DomainException(GlobalErrorCode.CIRCUIT_BREAKER_OPEN);
+    }
+
+    @SuppressWarnings("unused")
+    private List<KisDto.IntstockMultpriceResponseItem> fallbackIntstockMultprice(
+            List<KisDto.StockInfo> stocks,
+            Throwable throwable
+    ) {
+        log.error(
+                "KIS API Circuit Breaker 작동 - fetchIntstockMultprice, stocksCount={}",
+                stocks == null ? 0 : stocks.size(),
+                throwable
+        );
         log.error("KIS API Circuit Breaker 작동: {}", throwable.getMessage(), throwable);
         throw new DomainException(GlobalErrorCode.CIRCUIT_BREAKER_OPEN);
     }
