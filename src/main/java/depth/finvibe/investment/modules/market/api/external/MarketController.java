@@ -49,16 +49,21 @@ public class MarketController {
             throw new DomainException(MarketErrorCode.INVALID_START_END_TIME);
         }
         
-        // 종료 시각이 완료된 캔들 범위 내에 있는지 검증
-        // DAY/WEEK/MONTH/YEAR는 캔들 시작 시각 기준으로 검증해야 한다.
+        // 종료 시각이 완료된 마지막 캔들을 넘어가면 마지막 완료 캔들 시각으로 보정한다.
+        // DAY/WEEK/MONTH/YEAR는 캔들 시작 시각 기준으로 보정해야 한다.
         LocalDateTime normalizedEndTime = timeframe.normalizeStart(endTime);
         LocalDateTime lastCompletedCandleTime = getLastCompletedCandleTime(timeframe);
-        if (normalizedEndTime.isAfter(lastCompletedCandleTime)) {
+        LocalDateTime effectiveEndTime = normalizedEndTime.isAfter(lastCompletedCandleTime)
+                ? lastCompletedCandleTime
+                : normalizedEndTime;
+
+        LocalDateTime normalizedStartTime = timeframe.normalizeStart(startTime);
+        if (normalizedStartTime.isAfter(effectiveEndTime)) {
             throw new DomainException(MarketErrorCode.INVALID_TIME_RANGE);
         }
         
         List<PriceCandleDto.Response> candles = marketQueryUseCase.getStockCandles(
-                stockId, startTime, endTime, timeframe
+                stockId, startTime, effectiveEndTime, timeframe
         );
         return ResponseEntity.ok(candles);
     }
@@ -75,11 +80,15 @@ public class MarketController {
         }
 
         LocalDateTime lastCompletedMinute = Timeframe.MINUTE.lastCompletedTime(LocalDateTime.now());
-        if (endTime.isAfter(lastCompletedMinute)) {
+        LocalDateTime effectiveEndTime = endTime.isAfter(lastCompletedMinute)
+                ? lastCompletedMinute
+                : endTime;
+
+        if (startTime.isAfter(effectiveEndTime)) {
             throw new DomainException(MarketErrorCode.INVALID_TIME_RANGE);
         }
 
-        List<PriceCandleDto.Response> candles = marketQueryUseCase.getIndexCandles(indexType, startTime, endTime);
+        List<PriceCandleDto.Response> candles = marketQueryUseCase.getIndexCandles(indexType, startTime, effectiveEndTime);
         return ResponseEntity.ok(candles);
     }
     
