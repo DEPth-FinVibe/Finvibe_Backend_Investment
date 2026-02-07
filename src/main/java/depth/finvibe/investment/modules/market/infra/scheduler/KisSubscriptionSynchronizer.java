@@ -40,6 +40,7 @@ import depth.finvibe.investment.shared.lock.LockAcquisitionException;
 @RequiredArgsConstructor
 public class KisSubscriptionSynchronizer {
     private static final int MAX_SUBSCRIPTIONS_PER_SESSION = 41;
+    private static final int UNCHANGED_SYNC_DEBUG_INTERVAL = 12;
     private static final Duration SUBSCRIPTION_LOCK_WAIT = Duration.ofMillis(0);
     private static final Duration SUBSCRIPTION_LOCK_LEASE = Duration.ofSeconds(3);
 
@@ -53,6 +54,11 @@ public class KisSubscriptionSynchronizer {
 
     // FIFO 방식으로 구독 순서를 추적 (LinkedHashSet)
     private final LinkedHashSet<Long> subscriptionOrder = new LinkedHashSet<>();
+
+    private MarketStatus lastMarketStatus;
+    private boolean sessionsUnavailable;
+    private SyncLogSnapshot lastSyncLogSnapshot;
+    private int unchangedSyncCycleCount;
 
     private record SubscriptionResult(int successCount, int skipCount, int releasedCount) {
     }
@@ -71,6 +77,16 @@ public class KisSubscriptionSynchronizer {
         }
     }
 
+    private record SyncLogSnapshot(
+            int successCount,
+            int skipCount,
+            int releasedCount,
+            int totalCount,
+            int maxSubscriptions,
+            int currentSubscriptions
+    ) {
+    }
+
     @Scheduled(fixedDelayString = "${market.kis.websocket.sync-interval-ms:5000}")
     public void syncRealtimeSubscriptions() {
         try {
@@ -79,10 +95,13 @@ public class KisSubscriptionSynchronizer {
             // Heartbeat 기록
             activeNodeRegistry.recordHeartbeat();
 
-        if (MarketHours.getStatusAt(now()) != MarketStatus.OPEN) {
-            handleMarketClosed(nodeId);
-            return;
-        }
+            MarketStatus marketStatus = MarketHours.getStatusAt(now());
+            logMarketStatusTransition(marketStatus);
+
+            if (marketStatus != MarketStatus.OPEN) {
+                handleMarketClosed(nodeId);
+                return;
+            }
 
             ensureSessionsReady();
 
@@ -121,7 +140,6 @@ public class KisSubscriptionSynchronizer {
     }
 
     private void handleMarketClosed(String nodeId) {
-        log.debug("장이 닫혀 KIS WebSocket 세션을 종료하고 구독 동기화를 중단합니다.");
         kisConnectionPool.closeAllSessions();
         releaseAllSubscriptions(nodeId);
     }
@@ -129,9 +147,20 @@ public class KisSubscriptionSynchronizer {
     private void ensureSessionsReady() {
         kisConnectionPool.synchronizeSessions();
         if (kisConnectionPool.getAvailableSessionCount() == 0) {
-            log.info("KIS WebSocket 세션이 없어 재초기화를 시도합니다.");
+            log.debug("KIS WebSocket 세션이 없어 재초기화를 시도합니다.");
             kisConnectionPool.initializeSessions();
         }
+
+        int availableSessionCount = kisConnectionPool.getAvailableSessionCount();
+        boolean currentlyUnavailable = availableSessionCount == 0;
+        if (currentlyUnavailable != sessionsUnavailable) {
+            if (currentlyUnavailable) {
+                log.info("KIS WebSocket 세션이 모두 비가용 상태로 전환되었습니다.");
+            } else {
+                log.info("KIS WebSocket 세션이 가용 상태로 복구되었습니다. 세션 수: {}", availableSessionCount);
+            }
+        }
+        sessionsUnavailable = currentlyUnavailable;
     }
 
     private void reconcileSubscriptionOrder() {
@@ -157,7 +186,7 @@ public class KisSubscriptionSynchronizer {
         int availableSessionCount = kisConnectionPool.getAvailableSessionCount();
 
         if (availableSessionCount == 0) {
-            log.warn("사용 가능한 KIS 세션이 없습니다. 구독을 중단합니다.");
+            log.debug("사용 가능한 KIS 세션이 없습니다. 구독을 중단합니다.");
             return 0;
         }
 
@@ -469,9 +498,41 @@ public class KisSubscriptionSynchronizer {
     }
 
     private void logSyncComplete(SubscriptionResult result, int totalCount, int maxSubscriptions) {
-        log.info("KIS WebSocket 구독 동기화 완료 - 성공: {}, 스킵(다른 노드): {}, 해제(FIFO): {}, 전체: {}, 최대: {}, 현재: {}",
-                result.successCount(), result.skipCount(), result.releasedCount(),
-                totalCount, maxSubscriptions, subscriptionOrder.size());
+        SyncLogSnapshot currentSnapshot = new SyncLogSnapshot(
+                result.successCount(),
+                result.skipCount(),
+                result.releasedCount(),
+                totalCount,
+                maxSubscriptions,
+                subscriptionOrder.size()
+        );
+
+        if (!currentSnapshot.equals(lastSyncLogSnapshot)) {
+            log.info("KIS WebSocket 구독 상태 변경 - 성공: {}, 스킵(다른 노드): {}, 해제(FIFO): {}, 전체: {}, 최대: {}, 현재: {}",
+                    result.successCount(), result.skipCount(), result.releasedCount(),
+                    totalCount, maxSubscriptions, subscriptionOrder.size());
+            lastSyncLogSnapshot = currentSnapshot;
+            unchangedSyncCycleCount = 0;
+            return;
+        }
+
+        unchangedSyncCycleCount++;
+        if (unchangedSyncCycleCount % UNCHANGED_SYNC_DEBUG_INTERVAL == 0) {
+            log.debug("KIS WebSocket 구독 동기화 상태 동일 - {}회 연속 변화 없음", unchangedSyncCycleCount);
+        }
+    }
+
+    private void logMarketStatusTransition(MarketStatus currentStatus) {
+        if (currentStatus == lastMarketStatus) {
+            return;
+        }
+
+        if (currentStatus == MarketStatus.OPEN) {
+            log.info("장 상태가 OPEN으로 전환되어 KIS WebSocket 구독 동기화를 재개합니다.");
+        } else {
+            log.info("장 상태가 OPEN이 아니어서 KIS WebSocket 구독 동기화를 중단합니다. 상태: {}", currentStatus);
+        }
+        lastMarketStatus = currentStatus;
     }
 
     /**

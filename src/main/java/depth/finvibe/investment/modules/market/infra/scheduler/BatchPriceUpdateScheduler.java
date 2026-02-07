@@ -16,6 +16,7 @@ import depth.finvibe.investment.modules.market.domain.enums.MarketStatus;
 public class BatchPriceUpdateScheduler {
 
   private final BatchPriceUpdateService batchPriceUpdateService;
+  private MarketStatus lastMarketStatus;
 
   @Scheduled(cron = "0 0 * * * *")
   @SchedulerLock(
@@ -24,18 +25,33 @@ public class BatchPriceUpdateScheduler {
           lockAtLeastFor = "PT1M"
   )
   public void executeBatchPriceUpdate() {
-    if (MarketHours.getCurrentStatus() != MarketStatus.OPEN) {
-      log.debug("Skipping batch price update - outside market hours");
+    MarketStatus marketStatus = MarketHours.getCurrentStatus();
+    logMarketStatusTransition(marketStatus);
+
+    if (marketStatus != MarketStatus.OPEN) {
       return;
     }
 
-    log.info("Starting scheduled batch price update");
+    log.debug("Starting scheduled batch price update");
     try {
       batchPriceUpdateService.updateHoldingStockPrices();
-      log.info("Completed scheduled batch price update");
+      log.debug("Completed scheduled batch price update");
     } catch (Exception e) {
       log.error("Failed to execute batch price update", e);
     }
+  }
+
+  private void logMarketStatusTransition(MarketStatus currentStatus) {
+    if (currentStatus == lastMarketStatus) {
+      return;
+    }
+
+    if (currentStatus == MarketStatus.OPEN) {
+      log.info("장 상태가 OPEN으로 전환되어 시세 배치 업데이트를 재개합니다.");
+    } else {
+      log.info("장 상태가 OPEN이 아니어서 시세 배치 업데이트를 대기합니다. 상태: {}", currentStatus);
+    }
+    lastMarketStatus = currentStatus;
   }
 
 }

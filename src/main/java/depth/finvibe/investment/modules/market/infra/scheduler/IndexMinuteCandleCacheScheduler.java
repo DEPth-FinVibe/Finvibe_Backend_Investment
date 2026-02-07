@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 public class IndexMinuteCandleCacheScheduler {
 
     private final IndexMinuteCandleCacheService indexMinuteCandleCacheService;
+    private MarketStatus lastMarketStatus;
 
     @Scheduled(cron = "${market.index-cache.cron:0 * * * * *}")
     @SchedulerLock(
@@ -23,8 +24,10 @@ public class IndexMinuteCandleCacheScheduler {
             lockAtLeastFor = "PT5S"
     )
     public void cacheIndexMinuteCandles() {
-        if (MarketHours.getCurrentStatus() != MarketStatus.OPEN) {
-            log.debug("Skipping index minute candle cache - outside market hours");
+        MarketStatus marketStatus = MarketHours.getCurrentStatus();
+        logMarketStatusTransition(marketStatus);
+
+        if (marketStatus != MarketStatus.OPEN) {
             return;
         }
 
@@ -33,5 +36,18 @@ public class IndexMinuteCandleCacheScheduler {
         } catch (Exception e) {
             log.error("Failed to cache index minute candles", e);
         }
+    }
+
+    private void logMarketStatusTransition(MarketStatus currentStatus) {
+        if (currentStatus == lastMarketStatus) {
+            return;
+        }
+
+        if (currentStatus == MarketStatus.OPEN) {
+            log.info("장 상태가 OPEN으로 전환되어 분봉 캐시를 재개합니다.");
+        } else {
+            log.info("장 상태가 OPEN이 아니어서 분봉 캐시를 대기합니다. 상태: {}", currentStatus);
+        }
+        lastMarketStatus = currentStatus;
     }
 }
