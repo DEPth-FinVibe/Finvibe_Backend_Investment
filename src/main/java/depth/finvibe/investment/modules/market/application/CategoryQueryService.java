@@ -17,11 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 import depth.finvibe.investment.modules.market.application.port.in.CategoryQueryUseCase;
 import depth.finvibe.investment.modules.market.application.port.out.BatchUpdatePriceRepository;
 import depth.finvibe.investment.modules.market.application.port.out.CategoryRepository;
-import depth.finvibe.investment.modules.market.application.port.out.CurrentPriceRepository;
 import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
 import depth.finvibe.investment.modules.market.domain.BatchUpdatePrice;
 import depth.finvibe.investment.modules.market.domain.Category;
-import depth.finvibe.investment.modules.market.domain.CurrentPrice;
 import depth.finvibe.investment.modules.market.domain.Stock;
 import depth.finvibe.investment.modules.market.domain.error.MarketErrorCode;
 import depth.finvibe.investment.modules.market.dto.CategoryDto;
@@ -33,7 +31,6 @@ public class CategoryQueryService implements CategoryQueryUseCase {
 
     private final CategoryRepository categoryRepository;
     private final StockRepository stockRepository;
-    private final CurrentPriceRepository currentPriceRepository;
     private final BatchUpdatePriceRepository batchUpdatePriceRepository;
 
     @Override
@@ -118,17 +115,17 @@ public class CategoryQueryService implements CategoryQueryUseCase {
         }
 
         List<Long> stockIds = stocks.stream().map(Stock::getId).toList();
-        List<CurrentPrice> currentPrices = currentPriceRepository.findByStockIds(stockIds);
-        if (currentPrices.isEmpty()) {
+        List<BatchUpdatePrice> batchPrices = batchUpdatePriceRepository.findByStockIds(stockIds);
+        if (batchPrices.isEmpty()) {
             throw new DomainException(MarketErrorCode.NO_PRICE_DATA_AVAILABLE);
         }
 
-        Map<Long, CurrentPrice> priceByStockId = currentPrices.stream()
-                .collect(Collectors.toMap(CurrentPrice::getStockId, price -> price, (first, second) -> first));
+        Map<Long, BatchUpdatePrice> priceByStockId = batchPrices.stream()
+                .collect(Collectors.toMap(BatchUpdatePrice::getStockId, price -> price, (first, second) -> first));
 
         List<StockWithPrice> stockWithPrices = stocks.stream()
                 .map(stock -> new StockWithPrice(stock, priceByStockId.get(stock.getId())))
-                .filter(item -> item.currentPrice() != null)
+                .filter(item -> item.batchUpdatePrice() != null)
                 .toList();
 
         if (stockWithPrices.isEmpty()) {
@@ -143,7 +140,7 @@ public class CategoryQueryService implements CategoryQueryUseCase {
         int rank = 1;
         List<CategoryDto.StockValueResponse> responses = new ArrayList<>();
         for (StockWithPrice item : sorted) {
-            responses.add(CategoryDto.StockValueResponse.of(item.stock(), item.currentPrice(), rank++));
+            responses.add(CategoryDto.StockValueResponse.of(item.stock(), item.batchUpdatePrice(), rank++));
         }
 
         return CategoryDto.StockListResponse.builder()
@@ -153,12 +150,12 @@ public class CategoryQueryService implements CategoryQueryUseCase {
                 .build();
     }
 
-    private record StockWithPrice(Stock stock, CurrentPrice currentPrice) {
+    private record StockWithPrice(Stock stock, BatchUpdatePrice batchUpdatePrice) {
         private BigDecimal value() {
-            if (currentPrice == null || currentPrice.getValue() == null) {
+            if (batchUpdatePrice == null || batchUpdatePrice.getValue() == null) {
                 return BigDecimal.ZERO;
             }
-            return currentPrice.getValue();
+            return batchUpdatePrice.getValue();
         }
     }
 }

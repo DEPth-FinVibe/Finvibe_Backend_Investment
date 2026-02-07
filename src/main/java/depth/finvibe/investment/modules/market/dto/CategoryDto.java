@@ -10,8 +10,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import depth.finvibe.investment.modules.market.domain.BatchUpdatePrice;
 import depth.finvibe.investment.modules.market.domain.Category;
-import depth.finvibe.investment.modules.market.domain.CurrentPrice;
 import depth.finvibe.investment.modules.market.domain.Stock;
 
 public class CategoryDto {
@@ -83,15 +83,15 @@ public class CategoryDto {
         @Schema(description = "거래대금 순위", example = "1")
         private Integer rank;
 
-        public static StockValueResponse of(Stock stock, CurrentPrice currentPrice, int rank) {
+        public static StockValueResponse of(Stock stock, BatchUpdatePrice batchUpdatePrice, int rank) {
             return StockValueResponse.builder()
                     .stockId(stock.getId())
                     .symbol(stock.getSymbol())
                     .name(stock.getName())
-                    .currentPrice(currentPrice.getPrice())
-                    .prevDayChangePct(currentPrice.getPrevDayChangePct())
-                    .volume(currentPrice.getVolume())
-                    .value(currentPrice.getValue())
+                    .currentPrice(batchUpdatePrice.getPrice())
+                    .prevDayChangePct(batchUpdatePrice.getPrevDayChangePct())
+                    .volume(batchUpdatePrice.getVolume())
+                    .value(batchUpdatePrice.getValue())
                     .rank(rank)
                     .build();
         }
