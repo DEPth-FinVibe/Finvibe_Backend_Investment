@@ -6,81 +6,81 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Repository;
-import tools.jackson.core.exc.JacksonIOException;
-import tools.jackson.databind.ObjectMapper;
 
 import depth.finvibe.investment.modules.market.application.port.out.BatchUpdatePriceRepository;
 import depth.finvibe.investment.modules.market.domain.BatchUpdatePrice;
+import lombok.RequiredArgsConstructor;
+import tools.jackson.core.exc.JacksonIOException;
+import tools.jackson.databind.ObjectMapper;
 
 @Repository
 @RequiredArgsConstructor
 public class BatchUpdatePriceRepositoryImpl implements BatchUpdatePriceRepository {
 
-  private static final String KEY_PREFIX = "market:batch-price:";
-  private static final Duration BATCH_PRICE_TTL = Duration.ofHours(2);
+    private static final String KEY_PREFIX = "market:batch-price:";
+    private static final Duration BATCH_PRICE_TTL = Duration.ofHours(24);
 
-  private final StringRedisTemplate redisTemplate;
-  private final ObjectMapper objectMapper;
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
 
-  @Override
-  public void saveAll(List<BatchUpdatePrice> prices) {
-    if (prices == null || prices.isEmpty()) {
-      return;
+    @Override
+    public void saveAll(List<BatchUpdatePrice> prices) {
+        if (prices == null || prices.isEmpty()) {
+            return;
+        }
+
+        prices.forEach(price -> {
+            try {
+                String value = objectMapper.writeValueAsString(price);
+                redisTemplate.opsForValue().set(keyForStock(price.getStockId()), value, BATCH_PRICE_TTL);
+            } catch (JacksonIOException ex) {
+                throw new IllegalStateException("Failed to serialize batch update price", ex);
+            }
+        });
     }
 
-    prices.forEach(price -> {
-      try {
-        String value = objectMapper.writeValueAsString(price);
-        redisTemplate.opsForValue().set(keyForStock(price.getStockId()), value, BATCH_PRICE_TTL);
-      } catch (JacksonIOException ex) {
-        throw new IllegalStateException("Failed to serialize batch update price", ex);
-      }
-    });
-  }
+    @Override
+    public Optional<BatchUpdatePrice> findByStockId(Long stockId) {
+        String value = redisTemplate.opsForValue().get(keyForStock(stockId));
+        if (value == null) {
+            return Optional.empty();
+        }
 
-  @Override
-  public Optional<BatchUpdatePrice> findByStockId(Long stockId) {
-    String value = redisTemplate.opsForValue().get(keyForStock(stockId));
-    if (value == null) {
-      return Optional.empty();
+        try {
+            return Optional.of(objectMapper.readValue(value, BatchUpdatePrice.class));
+        } catch (JacksonIOException ex) {
+            throw new IllegalStateException("Failed to deserialize batch update price", ex);
+        }
     }
 
-    try {
-      return Optional.of(objectMapper.readValue(value, BatchUpdatePrice.class));
-    } catch (JacksonIOException ex) {
-      throw new IllegalStateException("Failed to deserialize batch update price", ex);
+    @Override
+    public List<BatchUpdatePrice> findByStockIds(List<Long> stockIds) {
+        List<String> keys = stockIds.stream()
+                .map(this::keyForStock)
+                .toList();
+
+        List<String> values = redisTemplate.opsForValue().multiGet(keys);
+        if (values == null || values.isEmpty()) {
+            return List.of();
+        }
+
+        return values.stream()
+                .filter(Objects::nonNull)
+                .flatMap(this::deserializeSafely)
+                .toList();
     }
-  }
 
-  @Override
-  public List<BatchUpdatePrice> findByStockIds(List<Long> stockIds) {
-    List<String> keys = stockIds.stream()
-            .map(this::keyForStock)
-            .toList();
-
-    List<String> values = redisTemplate.opsForValue().multiGet(keys);
-    if (values == null || values.isEmpty()) {
-      return List.of();
+    private String keyForStock(Long stockId) {
+        return KEY_PREFIX + stockId;
     }
 
-    return values.stream()
-            .filter(Objects::nonNull)
-            .flatMap(this::deserializeSafely)
-            .toList();
-  }
-
-  private String keyForStock(Long stockId) {
-    return KEY_PREFIX + stockId;
-  }
-
-  private Stream<BatchUpdatePrice> deserializeSafely(String value) {
-    try {
-      return Stream.of(objectMapper.readValue(value, BatchUpdatePrice.class));
-    } catch (JacksonIOException ex) {
-      throw new IllegalStateException("Failed to deserialize batch update price", ex);
+    private Stream<BatchUpdatePrice> deserializeSafely(String value) {
+        try {
+            return Stream.of(objectMapper.readValue(value, BatchUpdatePrice.class));
+        } catch (JacksonIOException ex) {
+            throw new IllegalStateException("Failed to deserialize batch update price", ex);
+        }
     }
-  }
 }
