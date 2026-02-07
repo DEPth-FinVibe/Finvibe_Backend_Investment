@@ -44,3 +44,7 @@ out/
 
 ### Claude ###
 .claude/
+
+### MCP Settings ###
+.mcp.json
+opencode.json
