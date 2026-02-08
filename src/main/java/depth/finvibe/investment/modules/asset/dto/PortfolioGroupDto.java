@@ -150,6 +150,48 @@ public class PortfolioGroupDto {
     @NoArgsConstructor
     @Data
     @Builder
+    @Schema(name = "PortfolioComparisonResponse", description = "포트폴리오 비교 응답")
+    public static class PortfolioComparisonResponse {
+        @Schema(description = "포트폴리오 이름", example = "성장형")
+        private String name;
+        @Schema(description = "총 자산 금액(현재 평가금액)", example = "1250000")
+        private BigDecimal totalAssetAmount;
+        @Schema(description = "수익률(%)", example = "12.50")
+        private BigDecimal returnRate;
+        @Schema(description = "실현 수익(현재 구현: valuation.totalProfitLoss)", example = "140000")
+        private BigDecimal realizedProfit;
+
+        public static PortfolioComparisonResponse from(PortfolioGroup portfolioGroup) {
+            PortfolioValuation valuation = portfolioGroup.getValuation();
+            BigDecimal totalAssetAmount = BigDecimal.ZERO;
+            BigDecimal returnRate = BigDecimal.ZERO;
+            BigDecimal realizedProfit = BigDecimal.ZERO;
+
+            if (valuation != null) {
+                totalAssetAmount = valuation.getTotalCurrentValue() != null
+                        ? valuation.getTotalCurrentValue()
+                        : BigDecimal.ZERO;
+                returnRate = valuation.getTotalReturnRate() != null
+                        ? valuation.getTotalReturnRate()
+                        : BigDecimal.ZERO;
+                realizedProfit = valuation.getTotalProfitLoss() != null
+                        ? valuation.getTotalProfitLoss()
+                        : BigDecimal.ZERO;
+            }
+
+            return PortfolioComparisonResponse.builder()
+                    .name(portfolioGroup.getName())
+                    .totalAssetAmount(totalAssetAmount)
+                    .returnRate(returnRate)
+                    .realizedProfit(realizedProfit)
+                    .build();
+        }
+    }
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Data
+    @Builder
     @Schema(name = "AssetResponse", description = "자산 응답")
     public static class AssetResponse {
         @Schema(description = "자산 ID", example = "1")

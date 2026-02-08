@@ -33,6 +33,14 @@ public class AssetController {
         return ResponseEntity.ok(queryUseCase.getAssetsByPortfolio(portfolioId, requester.getUuid()));
     }
 
+    @GetMapping("/portfolios/comparison")
+    @Operation(summary = "포트폴리오별 수익 비교 조회", description = "포트폴리오별 총 자산 금액, 수익률, 실현 수익을 조회합니다.")
+    public ResponseEntity<List<PortfolioGroupDto.PortfolioComparisonResponse>> getPortfolioComparisons(
+            @Parameter(hidden = true) @AuthenticatedUser Requester requester
+    ) {
+        return ResponseEntity.ok(queryUseCase.getPortfolioComparisons(requester.getUuid()));
+    }
+
     @GetMapping("/assets/allocation")
     @Operation(summary = "전체 자산 배분 조회", description = "사용자의 전체 자산 배분(현금/주식)과 기준금액 대비 증감 정보를 조회합니다.")
     public ResponseEntity<PortfolioGroupDto.AssetAllocationResponse> getAssetAllocation(

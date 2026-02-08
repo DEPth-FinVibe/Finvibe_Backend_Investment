@@ -121,6 +121,39 @@ public class AssetControllerTest {
                 .andExpect(jsonPath("$.changeRate").value(8.0000));
     }
 
+    @Test
+    @DisplayName("포트폴리오별 수익 비교 조회 API")
+    void getPortfolioComparisons() throws Exception {
+        UUID userId = UUID.randomUUID();
+        List<PortfolioGroupDto.PortfolioComparisonResponse> response = List.of(
+                PortfolioGroupDto.PortfolioComparisonResponse.builder()
+                        .name("공격형")
+                        .totalAssetAmount(new BigDecimal("1500000"))
+                        .returnRate(new BigDecimal("12.5000"))
+                        .realizedProfit(new BigDecimal("180000"))
+                        .build(),
+                PortfolioGroupDto.PortfolioComparisonResponse.builder()
+                        .name("안정형")
+                        .totalAssetAmount(new BigDecimal("900000"))
+                        .returnRate(new BigDecimal("4.2000"))
+                        .realizedProfit(new BigDecimal("36000"))
+                        .build()
+        );
+
+        given(assetQueryUseCase.getPortfolioComparisons(userId)).willReturn(response);
+
+        mockMvc.perform(get("/portfolios/comparison")
+                        .header("Authorization", bearerToken(userId))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].name").value("공격형"))
+                .andExpect(jsonPath("$[0].totalAssetAmount").value(1500000))
+                .andExpect(jsonPath("$[0].returnRate").value(12.5000))
+                .andExpect(jsonPath("$[0].realizedProfit").value(180000));
+    }
+
     private String bearerToken(UUID userId) throws Exception {
         String header = Base64.getUrlEncoder().withoutPadding()
                 .encodeToString("{}".getBytes(StandardCharsets.UTF_8));

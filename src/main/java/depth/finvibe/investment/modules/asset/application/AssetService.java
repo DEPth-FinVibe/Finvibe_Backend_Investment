@@ -63,6 +63,14 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
 
     @Override
     @Transactional(readOnly = true)
+    public List<PortfolioGroupDto.PortfolioComparisonResponse> getPortfolioComparisons(UUID userId) {
+        return portfolioGroupRepository.findAllByUserId(userId).stream()
+                .map(PortfolioGroupDto.PortfolioComparisonResponse::from)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public boolean isExistPortfolio(Long portfolioId, UUID userId) {
         return portfolioGroupRepository.existsByIdAndUserId(portfolioId, userId);
     }

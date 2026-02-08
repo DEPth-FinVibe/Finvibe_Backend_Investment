@@ -9,6 +9,7 @@ import depth.finvibe.investment.modules.asset.dto.TopHoldingStockDto;
 public interface AssetQueryUseCase {
     List<PortfolioGroupDto.AssetResponse> getAssetsByPortfolio(Long portfolioId, UUID requesterUserId);
     List<PortfolioGroupDto.PortfolioGroupResponse> getPortfoliosByUser(UUID userId);
+    List<PortfolioGroupDto.PortfolioComparisonResponse> getPortfolioComparisons(UUID userId);
     boolean isExistPortfolio(Long portfolioId, UUID userId);
     TopHoldingStockDto.TopHoldingStockListResponse getTopHoldingStocks(UUID userId);
     PortfolioGroupDto.AssetAllocationResponse getAssetAllocation(UUID requesterUserId);

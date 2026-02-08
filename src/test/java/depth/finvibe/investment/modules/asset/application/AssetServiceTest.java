@@ -319,6 +319,43 @@ class AssetServiceTest {
   }
 
   @Test
+  @DisplayName("포트폴리오별 수익 비교 조회 시 이름, 총자산, 수익률, 실현 수익을 반환한다.")
+  void getPortfolioComparisons_success() {
+    UUID userId = UUID.randomUUID();
+    PortfolioValuation valuation = PortfolioValuation.builder()
+        .totalCurrentValue(BigDecimal.valueOf(1_500_000))
+        .totalProfitLoss(BigDecimal.valueOf(180_000))
+        .totalReturnRate(BigDecimal.valueOf(12.5))
+        .build();
+    PortfolioGroup valuedGroup = PortfolioGroup.builder()
+        .id(1L)
+        .name("공격형")
+        .iconCode("ICON1")
+        .userId(userId)
+        .valuation(valuation)
+        .build();
+    PortfolioGroup emptyGroup = PortfolioGroup.builder()
+        .id(2L)
+        .name("안정형")
+        .iconCode("ICON2")
+        .userId(userId)
+        .build();
+    when(portfolioGroupRepository.findAllByUserId(userId)).thenReturn(List.of(valuedGroup, emptyGroup));
+
+    List<PortfolioGroupDto.PortfolioComparisonResponse> results = assetService.getPortfolioComparisons(userId);
+
+    assertThat(results).hasSize(2);
+    assertThat(results.get(0).getName()).isEqualTo("공격형");
+    assertThat(results.get(0).getTotalAssetAmount()).isEqualByComparingTo(BigDecimal.valueOf(1_500_000));
+    assertThat(results.get(0).getReturnRate()).isEqualByComparingTo(BigDecimal.valueOf(12.5));
+    assertThat(results.get(0).getRealizedProfit()).isEqualByComparingTo(BigDecimal.valueOf(180_000));
+    assertThat(results.get(1).getName()).isEqualTo("안정형");
+    assertThat(results.get(1).getTotalAssetAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+    assertThat(results.get(1).getReturnRate()).isEqualByComparingTo(BigDecimal.ZERO);
+    assertThat(results.get(1).getRealizedProfit()).isEqualByComparingTo(BigDecimal.ZERO);
+  }
+
+  @Test
   @DisplayName("전체 자산 배분 조회 시 현금/주식/총합/증감 정보가 계산된다.")
   void getAssetAllocation_success() {
     UUID userId = UUID.randomUUID();
