@@ -1,6 +1,7 @@
 package depth.finvibe.investment.modules.market.application;
 
 import depth.finvibe.investment.modules.market.application.port.in.MarketQueryUseCase;
+import depth.finvibe.investment.modules.market.application.HolidayCalendarService;
 import depth.finvibe.investment.modules.market.application.port.out.CurrentPriceRepository;
 import depth.finvibe.investment.modules.market.application.port.out.PriceCandleRepository;
 import depth.finvibe.investment.modules.market.application.port.out.RealMarketClient;
@@ -28,7 +29,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -46,6 +49,7 @@ public class MarketQueryService implements MarketQueryUseCase {
     private final StockRankingRepository stockRankingRepository;
     private final StockRepository stockRepository;
     private final DistributedLockManager distributedLockManager;
+    private final HolidayCalendarService holidayCalendarService;
 
     @Override
     @Transactional
@@ -275,7 +279,12 @@ public class MarketQueryService implements MarketQueryUseCase {
             log.warn("Some stockIds are missing in DB. stockIds={}", missingStockIds);
         }
 
-        List<PriceCandle> candles = priceCandleRepository.findLatestByStockIdsAndTimeframe(stockIds, Timeframe.DAY);
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        LocalDate lastTradingDay = holidayCalendarService.getLastTradingDayOnOrBefore(today)
+                .orElse(Timeframe.DAY.lastCompletedTime(LocalDateTime.now()).toLocalDate());
+        LocalDateTime at = lastTradingDay.atStartOfDay();
+
+        List<PriceCandle> candles = priceCandleRepository.findByStockIdsAndTimeframeAndAt(stockIds, Timeframe.DAY, at);
         Set<Long> fetchedStockIds = candles.stream()
                 .map(PriceCandle::getStockId)
                 .collect(Collectors.toSet());
@@ -286,8 +295,8 @@ public class MarketQueryService implements MarketQueryUseCase {
                 .toList();
 
         if (!missingStockIds.isEmpty()) {
-            fetchLatestDailyCandles(missingStockIds);
-            candles = priceCandleRepository.findLatestByStockIdsAndTimeframe(stockIds, Timeframe.DAY);
+            fetchDailyCandlesForDate(missingStockIds, lastTradingDay);
+            candles = priceCandleRepository.findByStockIdsAndTimeframeAndAt(stockIds, Timeframe.DAY, at);
         }
 
         return candles.stream()
@@ -308,6 +317,19 @@ public class MarketQueryService implements MarketQueryUseCase {
                     Duration.ofSeconds(10),
                     Duration.ofSeconds(60),
                     () -> fetchStockCandlesWithLock(stockId, startTime, endTime, Timeframe.DAY)
+            );
+        }
+    }
+
+    private void fetchDailyCandlesForDate(List<Long> stockIds, LocalDate date) {
+        LocalDateTime at = date.atStartOfDay();
+        for (Long stockId : stockIds) {
+            String lockKey = String.format("stock:candle:%d:%s", stockId, Timeframe.DAY);
+            distributedLockManager.executeWithLock(
+                    lockKey,
+                    Duration.ofSeconds(10),
+                    Duration.ofSeconds(60),
+                    () -> fetchStockCandlesWithLock(stockId, at, at, Timeframe.DAY)
             );
         }
     }

@@ -1,11 +1,13 @@
 package depth.finvibe.investment.modules.market.infra.client.dto;
 
+import java.util.List;
+
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.List;
 
 /**
  * 한국투자증권 Open API 응답 및 요청 DTO 모음 클래스
@@ -302,5 +304,38 @@ public class KisDto {
     public static class StockInfo {
         private String marketCode;
         private String stockCode;
+    }
+
+    /**
+     * 국내휴장일조회 응답 DTO
+     * KIS API는 output을 단일 객체 또는 배열로 반환할 수 있어, 역직렬화 시 리스트로 통일합니다.
+     */
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Data
+    @Builder
+    public static class ChkHolidayResponse {
+        private String rt_cd;
+        private String msg_cd;
+        private String msg1;
+        @JsonDeserialize(using = ChkHolidayOutputListDeserializer.class)
+        private List<ChkHolidayOutput> output;
+    }
+
+    /**
+     * 국내휴장일조회 응답 상세 항목 DTO
+     * 기준일자의 영업일/거래일/개장일/결제일 여부를 담습니다.
+     */
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Data
+    @Builder
+    public static class ChkHolidayOutput {
+        private String bass_dt;       // 기준일자 (YYYYMMDD)
+        private String wday_dvsn_cd;  // 요일구분코드
+        private String bzdy_yn;       // 영업일여부
+        private String tr_day_yn;     // 거래일여부
+        private String opnd_yn;       // 개장일여부 (주문 가능 여부 판단 시 사용)
+        private String sttl_day_yn;  // 결제일여부
     }
 }

@@ -2,6 +2,7 @@ package depth.finvibe.investment.modules.market.infra.scheduler;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Component;
 import depth.finvibe.investment.modules.market.application.port.in.CategoryCommandUseCase;
 import depth.finvibe.investment.modules.market.application.port.in.StockCommandUseCase;
 import depth.finvibe.investment.modules.market.application.BatchPriceUpdateService;
+import depth.finvibe.investment.modules.market.application.HolidayCalendarService;
 import depth.finvibe.investment.modules.market.application.IndexMinuteCandleCacheService;
 import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
 import depth.finvibe.investment.modules.market.application.port.out.StockThemeRepository;
@@ -45,6 +47,7 @@ public class InitialMarketDataRunner implements CommandLineRunner {
     private final StockCommandUseCase stockCommandUseCase;
     private final BatchPriceUpdateService batchPriceUpdateService;
     private final IndexMinuteCandleCacheService indexMinuteCandleCacheService;
+    private final HolidayCalendarService holidayCalendarService;
     private final StockRepository stockRepository;
     private final StockThemeRepository stockThemeRepository;
 
@@ -75,6 +78,27 @@ public class InitialMarketDataRunner implements CommandLineRunner {
         runBatchPriceUpdateIfClosedAndMissing();
 
         initializeIndexMinuteCandlesIfMissing();
+
+        initializeHolidayCalendarIfMissing();
+    }
+
+    /**
+     * 당월·다음 달 휴장일 달력이 없으면 KIS 국내휴장일조회로 적재.
+     */
+    private void initializeHolidayCalendarIfMissing() {
+        YearMonth now = YearMonth.now();
+        try {
+            holidayCalendarService.ensureCalendarForMonth(now);
+            holidayCalendarService.ensureCalendarForMonth(now.plusMonths(1));
+        } catch (DomainException ex) {
+            if (ex.getErrorCode() == GlobalErrorCode.CIRCUIT_BREAKER_OPEN) {
+                log.warn("KIS API Circuit Breaker 열림으로 휴장일 달력 초기화 스킵.");
+            } else {
+                log.error("휴장일 달력 초기화 중 도메인 에러 발생.", ex);
+            }
+        } catch (Exception ex) {
+            log.error("휴장일 달력 초기화 중 예상치 못한 에러 발생.", ex);
+        }
     }
 
     private void runBatchPriceUpdateIfClosedAndMissing() {

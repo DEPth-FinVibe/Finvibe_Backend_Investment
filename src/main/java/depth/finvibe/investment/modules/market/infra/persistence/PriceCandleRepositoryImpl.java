@@ -33,6 +33,14 @@ public class PriceCandleRepositoryImpl implements PriceCandleRepository {
     }
 
     @Override
+    public List<PriceCandle> findByStockIdsAndTimeframeAndAt(List<Long> stockIds, Timeframe timeframe, LocalDateTime at) {
+        if (stockIds == null || stockIds.isEmpty()) {
+            return List.of();
+        }
+        return jpaRepository.findByStockIdInAndTimeframeAndAtAndIsMissingFalse(stockIds, timeframe, at);
+    }
+
+    @Override
     @Transactional
     public void saveAll(List<PriceCandle> fetchedResult) {
         jpaRepository.saveAll(fetchedResult);
