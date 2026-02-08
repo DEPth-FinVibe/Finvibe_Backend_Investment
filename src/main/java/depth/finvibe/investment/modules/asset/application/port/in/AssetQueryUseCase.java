@@ -11,4 +11,5 @@ public interface AssetQueryUseCase {
     List<PortfolioGroupDto.PortfolioGroupResponse> getPortfoliosByUser(UUID userId);
     boolean isExistPortfolio(Long portfolioId, UUID userId);
     TopHoldingStockDto.TopHoldingStockListResponse getTopHoldingStocks(UUID userId);
+    PortfolioGroupDto.AssetAllocationResponse getAssetAllocation(UUID requesterUserId);
 }

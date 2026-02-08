@@ -95,6 +95,32 @@ public class AssetControllerTest {
                 .andExpect(jsonPath("$[1].name").value("Apple Inc."));
     }
 
+    @Test
+    @DisplayName("전체 자산 배분 조회 API")
+    void getAssetAllocation() throws Exception {
+        UUID userId = UUID.randomUUID();
+        PortfolioGroupDto.AssetAllocationResponse response = PortfolioGroupDto.AssetAllocationResponse.builder()
+                .cashAmount(new BigDecimal("2500000"))
+                .stockAmount(new BigDecimal("8300000"))
+                .totalAmount(new BigDecimal("10800000"))
+                .changeAmount(new BigDecimal("800000"))
+                .changeRate(new BigDecimal("8.0000"))
+                .build();
+
+        given(assetQueryUseCase.getAssetAllocation(userId)).willReturn(response);
+
+        mockMvc.perform(get("/assets/allocation")
+                        .header("Authorization", bearerToken(userId))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cashAmount").value(2500000))
+                .andExpect(jsonPath("$.stockAmount").value(8300000))
+                .andExpect(jsonPath("$.totalAmount").value(10800000))
+                .andExpect(jsonPath("$.changeAmount").value(800000))
+                .andExpect(jsonPath("$.changeRate").value(8.0000));
+    }
+
     private String bearerToken(UUID userId) throws Exception {
         String header = Base64.getUrlEncoder().withoutPadding()
                 .encodeToString("{}".getBytes(StandardCharsets.UTF_8));

@@ -1,6 +1,7 @@
 package depth.finvibe.investment.modules.asset.application;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -22,6 +23,7 @@ import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
 import depth.finvibe.investment.modules.asset.domain.error.AssetErrorCode;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
 import depth.finvibe.investment.modules.asset.dto.TopHoldingStockDto;
+import depth.finvibe.investment.modules.wallet.application.port.in.WalletQueryUseCase;
 import depth.finvibe.investment.shared.application.port.out.GamificationEventProducer;
 import depth.finvibe.investment.shared.dto.MetricEventType;
 import depth.finvibe.investment.shared.dto.UserMetricUpdatedEvent;
@@ -30,9 +32,12 @@ import depth.finvibe.investment.shared.error.DomainException;
 @Service
 @RequiredArgsConstructor
 public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
+    private static final BigDecimal INITIAL_ASSET_BASELINE = BigDecimal.valueOf(10_000_000L);
+
     private final PortfolioGroupRepository portfolioGroupRepository;
     private final GamificationEventProducer gamificationEventProducer;
     private final TopHoldingStockCacheRepository topHoldingStockCacheRepository;
+    private final WalletQueryUseCase walletQueryUseCase;
 
     @Override
     @Transactional(readOnly = true)
@@ -75,6 +80,32 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
                 .orElseGet(() -> getTopHoldingStocksFromSource(userId));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public PortfolioGroupDto.AssetAllocationResponse getAssetAllocation(UUID requesterUserId) {
+        List<PortfolioGroup> portfolios = portfolioGroupRepository.findAllByUserIdWithAssets(requesterUserId);
+
+        BigDecimal stockAmount = portfolios.stream()
+                .flatMap(portfolio -> portfolio.getAssets().stream())
+                .map(this::resolveAssetCurrentValue)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal cashAmount = BigDecimal.valueOf(walletQueryUseCase.getWalletByUserId(requesterUserId).getBalance());
+        BigDecimal totalAmount = cashAmount.add(stockAmount);
+        BigDecimal changeAmount = totalAmount.subtract(INITIAL_ASSET_BASELINE);
+        BigDecimal changeRate = changeAmount
+                .divide(INITIAL_ASSET_BASELINE, 4, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100));
+
+        return PortfolioGroupDto.AssetAllocationResponse.builder()
+                .cashAmount(cashAmount)
+                .stockAmount(stockAmount)
+                .totalAmount(totalAmount)
+                .changeAmount(changeAmount)
+                .changeRate(changeRate)
+                .build();
+    }
+
     private TopHoldingStockDto.TopHoldingStockListResponse getTopHoldingStocksFromSource(UUID userId) {
         List<PortfolioGroup> portfolios = portfolioGroupRepository.findAllByUserIdWithAssets(userId);
         Map<Long, HoldingSummary> summaryByStockId = new HashMap<>();
@@ -108,6 +139,16 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
                 .build();
         topHoldingStockCacheRepository.save(userId, response);
         return response;
+    }
+
+    private BigDecimal resolveAssetCurrentValue(Asset asset) {
+        if (asset.getValuation() != null && asset.getValuation().getCurrentValue() != null) {
+            return asset.getValuation().getCurrentValue();
+        }
+        if (asset.getTotalPrice() != null && asset.getTotalPrice().getAmount() != null) {
+            return asset.getTotalPrice().getAmount();
+        }
+        return BigDecimal.ZERO;
     }
 
     @Override

@@ -132,6 +132,24 @@ public class PortfolioGroupDto {
     @NoArgsConstructor
     @Data
     @Builder
+    @Schema(name = "AssetAllocationResponse", description = "전체 자산 배분 응답")
+    public static class AssetAllocationResponse {
+        @Schema(description = "현금 금액", example = "3500000")
+        private BigDecimal cashAmount;
+        @Schema(description = "주식 금액(현재 평가금액 기준)", example = "7600000")
+        private BigDecimal stockAmount;
+        @Schema(description = "총 자산 금액", example = "11100000")
+        private BigDecimal totalAmount;
+        @Schema(description = "기준금액(10000000) 대비 증감 금액", example = "1100000")
+        private BigDecimal changeAmount;
+        @Schema(description = "기준금액(10000000) 대비 증감률(%)", example = "11.00")
+        private BigDecimal changeRate;
+    }
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Data
+    @Builder
     @Schema(name = "AssetResponse", description = "자산 응답")
     public static class AssetResponse {
         @Schema(description = "자산 ID", example = "1")
