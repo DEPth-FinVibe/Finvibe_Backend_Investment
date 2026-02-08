@@ -191,7 +191,12 @@ public class KisApiClient {
         public List<KisDto.ChkHolidayOutput> fetchChkHoliday(String bassDt) {
                 KisDto.ChkHolidayResponse body = Objects.requireNonNull(
                                 restClient.get()
-                                                .uri("/uapi/domestic-stock/v1/quotations/chk-holiday?BASS_DT=" + bassDt)
+                                                .uri(uriBuilder -> uriBuilder
+                                                                .path("/uapi/domestic-stock/v1/quotations/chk-holiday")
+                                                                .queryParam("BASS_DT", bassDt)
+                                                                .queryParam("CTX_AREA_FK", "")
+                                                                .queryParam("CTX_AREA_NK", "")
+                                                                .build())
                                                 .headers(h -> h.set("tr_id", "CTCA0903R"))
                                                 .retrieve()
                                                 .body(KisDto.ChkHolidayResponse.class));

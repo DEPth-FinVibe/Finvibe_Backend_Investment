@@ -30,7 +30,7 @@ public class TradingDayRepositoryImpl implements TradingDayRepository {
   }
 
   @Override
-  public boolean existsByYearMonth(int year, int month) {
-    return queryRepository.existsByYearMonth(year, month);
+  public long countByYearMonth(int year, int month) {
+    return queryRepository.countByYearMonth(year, month);
   }
 }

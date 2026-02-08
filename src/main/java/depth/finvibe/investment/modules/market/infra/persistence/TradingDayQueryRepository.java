@@ -32,9 +32,9 @@ public class TradingDayQueryRepository {
   }
 
   /**
-   * 해당 연월에 레코드가 하나라도 있는지 여부.
+   * 해당 연월에 저장된 거래일 레코드 수.
    */
-  public boolean existsByYearMonth(int year, int month) {
+  public long countByYearMonth(int year, int month) {
     Long count = queryFactory
         .select(tradingDay.date.count())
         .from(tradingDay)
@@ -43,6 +43,6 @@ public class TradingDayQueryRepository {
             tradingDay.date.month().eq(month)
         )
         .fetchOne();
-    return count != null && count > 0;
+    return count != null ? count : 0L;
   }
 }

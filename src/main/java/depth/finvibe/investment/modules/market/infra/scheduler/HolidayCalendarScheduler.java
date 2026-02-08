@@ -20,7 +20,7 @@ public class HolidayCalendarScheduler {
   /**
    * 매월 1일 새벽 2시에 다음 달 휴장일 데이터 선행 적재.
    */
-  @Scheduled(cron = "0 0 2 1 * *")
+  @Scheduled(cron = "0 0 2 1 * *", zone = "Asia/Seoul")
   @SchedulerLock(
       name = "holidayCalendarScheduler",
       lockAtMostFor = "PT10M",
