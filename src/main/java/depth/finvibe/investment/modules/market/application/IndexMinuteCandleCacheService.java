@@ -41,6 +41,29 @@ public class IndexMinuteCandleCacheService {
         }
     }
 
+    /**
+     * 지수 분봉 데이터가 없으면 초기화
+     * 애플리케이션 시작 시 InitialMarketDataRunner에서 호출
+     *
+     * @param indexType 초기화할 지수 타입 (KOSPI, KOSDAQ)
+     */
+    @Transactional
+    public void initializeIndexMinuteCandlesIfEmpty(MarketIndexType indexType) {
+        // 1. Stock 조회 또는 생성 (INDEX_KOSPI, INDEX_KOSDAQ 심볼)
+        Stock indexStock = getOrCreateIndexStock(indexType);
+
+        // 2. 분봉 데이터 존재 여부 확인
+        if (priceCandleRepository.existsByStockIdAndTimeframe(
+                indexStock.getId(), Timeframe.MINUTE)) {
+            log.debug("지수 분봉 데이터가 이미 존재하여 초기화 스킵. indexType={}", indexType);
+            return;
+        }
+
+        // 3. 데이터 없으면 KIS API 호출하여 저장
+        log.info("지수 분봉 초기화를 위해 KIS API 호출. indexType={}", indexType);
+        cacheIndexMinuteCandles(indexType);
+    }
+
     private void cacheIndexMinuteCandles(MarketIndexType indexType) {
         Stock indexStock = getOrCreateIndexStock(indexType);
 

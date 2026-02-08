@@ -38,4 +38,6 @@ public interface PriceCandleJpaRepository extends JpaRepository<PriceCandle, Lon
             @Param("stockIds") List<Long> stockIds,
             @Param("timeframe") Timeframe timeframe
     );
+
+    boolean existsByStockIdAndTimeframe(Long stockId, Timeframe timeframe);
 }

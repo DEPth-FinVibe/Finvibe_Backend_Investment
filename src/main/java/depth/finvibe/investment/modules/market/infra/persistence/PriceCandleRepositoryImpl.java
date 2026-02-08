@@ -38,6 +38,11 @@ public class PriceCandleRepositoryImpl implements PriceCandleRepository {
         jpaRepository.saveAll(fetchedResult);
     }
 
+    @Override
+    public boolean existsByStockIdAndTimeframe(Long stockId, Timeframe timeframe) {
+        return jpaRepository.existsByStockIdAndTimeframe(stockId, timeframe);
+    }
+
     private LocalDateTime alignStartTime(LocalDateTime startTime, Timeframe timeframe) {
         return timeframe.normalizeStart(startTime);
     }
