@@ -97,8 +97,9 @@ public class RestClientConfig {
         JsonNode rtCdNode = root.get("rt_cd");
         if (rtCdNode != null && !"0".equals(rtCdNode.asText())) {
           String rtCd = rtCdNode.asText();
+          String msgCd = root.has("msg_cd") ? root.get("msg_cd").asText() : "Unknown";
           String msg1 = root.has("msg1") ? root.get("msg1").asText() : "Unknown error";
-          throw new IOException("KIS API 호출 실패 - rt_cd: " + rtCd + ", message: " + msg1);
+          throw new IOException("KIS API 호출 실패 - rt_cd: " + rtCd + ", msg_cd: " + msgCd + ", message: " + msg1);
         }
       } catch (IOException e) {
         throw e;
