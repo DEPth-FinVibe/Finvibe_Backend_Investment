@@ -27,8 +27,8 @@ public class KisApiClient {
         private final String kisUserId;
 
         public KisApiClient(
-                        @Qualifier("kisRestClient") RestClient restClient,
-                        @Value("${market.kis.user-id}") String kisUserId) {
+                @Qualifier("kisRestClient") RestClient restClient,
+                @Value("${market.kis.user-id}") String kisUserId) {
                 this.restClient = restClient;
                 this.kisUserId = kisUserId;
         }
@@ -126,8 +126,8 @@ public class KisApiClient {
 
         /**
          * <a href=
-         * "https://apiportal.koreainvestment.com/apiservice-apiservice?/uapi/domestic-stock/v1/quotations/inquire-index-timeprice">국내업종
-         * 시간별지수(분) API</a>
+         * "https://apiportal.koreainvestment.com/apiservice-apiservice?/uapi/domestic-stock/v1/quotations/inquire-time-indexchartprice">업종 분봉조회
+         * API</a>
          * 코스피/코스닥 등 국내 업종 지수를 분 단위로 조회합니다.
          */
         @CircuitBreaker(name = "kisChartData", fallbackMethod = "fallbackIndexTimePrice")
@@ -137,14 +137,17 @@ public class KisApiClient {
                 String resolvedIntervalSec = intervalSec == null || intervalSec.isBlank() ? "60" : intervalSec;
 
                 KisDto.IndexTimePriceResponse response = Objects.requireNonNull(
-                                restClient.get()
-                                                .uri("/uapi/domestic-stock/v1/quotations/inquire-index-timeprice" +
-                                                                "?FID_INPUT_HOUR_1=" + resolvedIntervalSec +
-                                                                "&FID_INPUT_ISCD=" + indexCode.getCode() +
-                                                                "&FID_COND_MRKT_DIV_CODE=U")
-                                                .headers(h -> h.set("tr_id", "FHPUP02110200"))
-                                                .retrieve()
-                                                .body(KisDto.IndexTimePriceResponse.class));
+                        restClient.get()
+                                .uri("/uapi/domestic-stock/v1/quotations/inquire-index-timeprice" +
+                                        "?FID_INPUT_HOUR_1=" + resolvedIntervalSec +
+                                        "&FID_INPUT_ISCD=" + indexCode.getCode() +
+                                        "&FID_ETC_CLS_CODE=" + "1" +
+                                        "&FID_PW_DATA_INCU_YN=" + "Y" +
+                                        "&FID_COND_MRKT_DIV_CODE=U")
+                                .headers(h -> h.set("tr_id", "FHKUP03500200"))
+                                .retrieve()
+                                .body(KisDto.IndexTimePriceResponse.class));
+
 
                 if (response.getOutput2() != null && !response.getOutput2().isEmpty()) {
                         return response.getOutput2();
