@@ -157,6 +157,9 @@ public class RealMarketClientImpl implements RealMarketClient {
                             item.getStck_bsop_date(),
                             item.getStck_cntg_hour()
                     );
+                    if (candleAt == null) {
+                        continue;
+                    }
                     LocalDateTime normalized = normalizeIntradayAt(candleAt);
 
                     if (normalized.isBefore(normalizedStart) || normalized.isAfter(normalizedEnd)) {
@@ -230,6 +233,9 @@ public class RealMarketClientImpl implements RealMarketClient {
 
             for (KisDto.DailyItemChartPriceOutput2 item : items) {
                 LocalDateTime candleAt = parseDateTime(item.getStck_bsop_date(), null);
+                if (candleAt == null) {
+                    continue;
+                }
                 LocalDateTime normalizedAt = normalizeDateAt(candleAt, timeframe);
 
                 if (normalizedAt.isBefore(startTime) || normalizedAt.isAfter(endTime)) {
@@ -294,13 +300,24 @@ public class RealMarketClientImpl implements RealMarketClient {
     }
 
     private LocalDateTime parseDateTime(String date, String time) {
-        LocalDate parsedDate = LocalDate.parse(date, DateTimeFormatter.BASIC_ISO_DATE);
-        if (time == null || time.isBlank()) {
-            return parsedDate.atStartOfDay();
+        if (date == null || date.isBlank()) {
+            log.debug("Skip candle because date is blank. time={}", time);
+            return null;
         }
-        String normalizedTime = time.length() == 4 ? time + "00" : time;
-        LocalTime parsedTime = LocalTime.parse(normalizedTime, DateTimeFormatter.ofPattern("HHmmss"));
-        return LocalDateTime.of(parsedDate, parsedTime);
+
+        try {
+            LocalDate parsedDate = LocalDate.parse(date, DateTimeFormatter.BASIC_ISO_DATE);
+            if (time == null || time.isBlank()) {
+                return parsedDate.atStartOfDay();
+            }
+
+            String normalizedTime = time.length() == 4 ? time + "00" : time;
+            LocalTime parsedTime = LocalTime.parse(normalizedTime, DateTimeFormatter.ofPattern("HHmmss"));
+            return LocalDateTime.of(parsedDate, parsedTime);
+        } catch (Exception ex) {
+            log.debug("Skip candle because date/time parsing failed. date={}, time={}", date, time, ex);
+            return null;
+        }
     }
 
     private BigDecimal toBigDecimal(String value) {

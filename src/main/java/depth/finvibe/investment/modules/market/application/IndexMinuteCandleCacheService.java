@@ -29,6 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 public class IndexMinuteCandleCacheService {
 
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HHmmss");
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.BASIC_ISO_DATE;
 
     private final KisApiClient kisApiClient;
     private final StockRepository stockRepository;
@@ -111,7 +112,7 @@ public class IndexMinuteCandleCacheService {
     }
 
     private PriceCandle toPriceCandle(Long stockId, KisDto.IndexTimePriceOutput output) {
-        LocalDateTime at = parseAt(output.getBsop_hour());
+        LocalDateTime at = parseAt(output.getStck_bsop_date(), output.getStck_cntg_hour(), output.getBsop_hour());
         if (at == null) {
             return null;
         }
@@ -130,17 +131,28 @@ public class IndexMinuteCandleCacheService {
         );
     }
 
-    private LocalDateTime parseAt(String bsopHour) {
-        if (bsopHour == null || bsopHour.isBlank()) {
+    private LocalDateTime parseAt(String stckBsopDate, String stckCntgHour, String bsopHour) {
+        if (stckBsopDate == null || stckBsopDate.isBlank()) {
+            log.debug("Skip index minute candle because stck_bsop_date is blank. stck_cntg_hour={}, bsop_hour={}",
+                    stckCntgHour, bsopHour);
             return null;
         }
 
-        String normalizedTime = bsopHour.length() == 4 ? bsopHour + "00" : bsopHour;
+        String rawTime = (stckCntgHour != null && !stckCntgHour.isBlank()) ? stckCntgHour : bsopHour;
+        if (rawTime == null || rawTime.isBlank()) {
+            log.debug("Skip index minute candle because stck_cntg_hour and bsop_hour are blank. stck_bsop_date={}",
+                    stckBsopDate);
+            return null;
+        }
+
+        String normalizedTime = rawTime.length() == 4 ? rawTime + "00" : rawTime;
         try {
+            LocalDate date = LocalDate.parse(stckBsopDate, DATE_FORMATTER);
             LocalTime time = LocalTime.parse(normalizedTime, TIME_FORMATTER);
-            return LocalDateTime.of(LocalDate.now(), time).withSecond(0).withNano(0);
+            return LocalDateTime.of(date, time).withSecond(0).withNano(0);
         } catch (Exception ex) {
-            log.debug("Failed to parse bsopHour: {}", bsopHour, ex);
+            log.debug("Failed to parse index minute candle date/time. stck_bsop_date={}, stck_cntg_hour={}, bsop_hour={}",
+                    stckBsopDate, stckCntgHour, bsopHour, ex);
             return null;
         }
     }

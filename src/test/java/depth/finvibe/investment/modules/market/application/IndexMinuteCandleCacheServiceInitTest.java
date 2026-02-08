@@ -10,7 +10,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -209,8 +211,96 @@ class IndexMinuteCandleCacheServiceInitTest {
     assertThat(savedCandles).hasSize(2);
   }
 
+  @Test
+  @DisplayName("잘못된 시간 데이터는 건너뛰고 정상 분봉만 저장한다")
+  void initializeIndexMinuteCandles_skipInvalidTime() {
+    // Given
+    MarketIndexType indexType = MarketIndexType.KOSPI;
+    Stock indexStock = Stock.builder()
+            .id(1L)
+            .name("코스피")
+            .symbol("INDEX_KOSPI")
+            .build();
+
+    when(stockRepository.findBySymbol("INDEX_KOSPI")).thenReturn(Optional.of(indexStock));
+    when(priceCandleRepository.existsByStockIdAndTimeframe(1L, Timeframe.MINUTE)).thenReturn(false);
+
+    List<KisDto.IndexTimePriceOutput> outputs = List.of(
+            createIndexOutput("999999", "2500.50", "100", "1000000"),
+            createIndexOutput("888888", "2501.00", "110", "1100000"),
+            createIndexOutput("153000", "2502.00", "120", "1200000")
+    );
+    when(kisApiClient.fetchIndexTimePrice(eq(KisApiClient.IndexCode.KOSPI), eq("60")))
+            .thenReturn(outputs);
+
+    when(priceCandleRepository.findByStockIdAndTimeframeAndAtIn(eq(1L), eq(Timeframe.MINUTE), anyList()))
+            .thenReturn(Collections.emptyList());
+
+    // When
+    service.initializeIndexMinuteCandlesIfEmpty(indexType);
+
+    // Then
+    ArgumentCaptor<List<PriceCandle>> captor = ArgumentCaptor.forClass(List.class);
+    verify(priceCandleRepository).saveAll(captor.capture());
+    List<PriceCandle> savedCandles = captor.getValue();
+
+    assertThat(savedCandles).hasSize(1);
+    assertThat(savedCandles.get(0).getAt().toLocalDate())
+            .isEqualTo(LocalDate.parse(currentDate(), DateTimeFormatter.BASIC_ISO_DATE));
+    assertThat(savedCandles.get(0).getAt().toLocalTime().format(DateTimeFormatter.ofPattern("HHmmss")))
+            .isEqualTo("153000");
+  }
+
+  @Test
+  @DisplayName("잘못된 날짜 데이터는 건너뛰고 정상 분봉만 저장한다")
+  void initializeIndexMinuteCandles_skipInvalidDate() {
+    // Given
+    MarketIndexType indexType = MarketIndexType.KOSPI;
+    Stock indexStock = Stock.builder()
+            .id(1L)
+            .name("코스피")
+            .symbol("INDEX_KOSPI")
+            .build();
+
+    when(stockRepository.findBySymbol("INDEX_KOSPI")).thenReturn(Optional.of(indexStock));
+    when(priceCandleRepository.existsByStockIdAndTimeframe(1L, Timeframe.MINUTE)).thenReturn(false);
+
+    KisDto.IndexTimePriceOutput invalidDate = createIndexOutput("999999", "153000", "2500.50", "100", "1000000");
+    KisDto.IndexTimePriceOutput validDate = createIndexOutput("152000", "2501.00", "110", "1100000");
+
+    when(kisApiClient.fetchIndexTimePrice(eq(KisApiClient.IndexCode.KOSPI), eq("60")))
+            .thenReturn(List.of(invalidDate, validDate));
+
+    when(priceCandleRepository.findByStockIdAndTimeframeAndAtIn(eq(1L), eq(Timeframe.MINUTE), anyList()))
+            .thenReturn(Collections.emptyList());
+
+    // When
+    service.initializeIndexMinuteCandlesIfEmpty(indexType);
+
+    // Then
+    ArgumentCaptor<List<PriceCandle>> captor = ArgumentCaptor.forClass(List.class);
+    verify(priceCandleRepository).saveAll(captor.capture());
+    List<PriceCandle> savedCandles = captor.getValue();
+
+    assertThat(savedCandles).hasSize(1);
+    assertThat(savedCandles.get(0).getAt().toLocalTime().format(DateTimeFormatter.ofPattern("HHmmss")))
+            .isEqualTo("152000");
+  }
+
   private KisDto.IndexTimePriceOutput createIndexOutput(String time, String price, String volume, String value) {
+    return createIndexOutput(currentDate(), time, price, volume, value);
+  }
+
+  private KisDto.IndexTimePriceOutput createIndexOutput(
+          String date,
+          String time,
+          String price,
+          String volume,
+          String value
+  ) {
     return KisDto.IndexTimePriceOutput.builder()
+            .stck_bsop_date(date)
+            .stck_cntg_hour(time)
             .bsop_hour(time)
             .bstp_nmix_prpr(price)
             .bstp_nmix_oprc(price)
@@ -220,5 +310,9 @@ class IndexMinuteCandleCacheServiceInitTest {
             .cntg_vol(volume)
             .acml_tr_pbmn(value)
             .build();
+  }
+
+  private String currentDate() {
+    return LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
   }
 }

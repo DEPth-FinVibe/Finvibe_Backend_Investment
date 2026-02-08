@@ -136,7 +136,7 @@ public class KisApiClient {
                         String intervalSec) {
                 String resolvedIntervalSec = intervalSec == null || intervalSec.isBlank() ? "60" : intervalSec;
 
-                return Objects.requireNonNull(
+                KisDto.IndexTimePriceResponse response = Objects.requireNonNull(
                                 restClient.get()
                                                 .uri("/uapi/domestic-stock/v1/quotations/inquire-index-timeprice" +
                                                                 "?FID_INPUT_HOUR_1=" + resolvedIntervalSec +
@@ -144,8 +144,15 @@ public class KisApiClient {
                                                                 "&FID_COND_MRKT_DIV_CODE=U")
                                                 .headers(h -> h.set("tr_id", "FHPUP02110200"))
                                                 .retrieve()
-                                                .body(KisDto.IndexTimePriceResponse.class))
-                                .getOutput();
+                                                .body(KisDto.IndexTimePriceResponse.class));
+
+                if (response.getOutput2() != null && !response.getOutput2().isEmpty()) {
+                        return response.getOutput2();
+                }
+                if (response.getOutput() != null && !response.getOutput().isEmpty()) {
+                        return response.getOutput();
+                }
+                return List.of();
         }
 
         /**

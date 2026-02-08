@@ -138,7 +138,35 @@ public class KisDto {
         private String rt_cd;
         private String msg_cd;
         private String msg1;
+        private IndexTimePriceOutput1 output1;
+        private List<IndexTimePriceOutput> output2;
         private List<IndexTimePriceOutput> output;
+    }
+
+    /**
+     * 국내업종 시간별지수(분) 응답 출력1 (당일 시세 요약 정보)
+     */
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Data
+    @Builder
+    public static class IndexTimePriceOutput1 {
+        private String bstp_nmix_prdy_vrss;
+        private String prdy_vrss_sign;
+        private String bstp_nmix_prdy_ctrt;
+        private String prdy_nmix;
+        private String acml_vol;
+        private String acml_tr_pbmn;
+        private String hts_kor_isnm;
+        private String bstp_nmix_prpr;
+        private String bstp_cls_code;
+        private String prdy_vol;
+        private String bstp_nmix_oprc;
+        private String bstp_nmix_hgpr;
+        private String bstp_nmix_lwpr;
+        private String futs_prdy_oprc;
+        private String futs_prdy_hgpr;
+        private String futs_prdy_lwpr;
     }
 
     /**
@@ -149,6 +177,8 @@ public class KisDto {
     @Data
     @Builder
     public static class IndexTimePriceOutput {
+        private String stck_bsop_date;
+        private String stck_cntg_hour;
         private String bsop_hour;
         private String bstp_nmix_prpr;
         private String bstp_nmix_prdy_vrss;
