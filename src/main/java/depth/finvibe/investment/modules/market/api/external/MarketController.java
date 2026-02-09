@@ -68,6 +68,14 @@ public class MarketController {
         return ResponseEntity.ok(candles);
     }
 
+    @GetMapping("/stocks/{stockId}")
+    @Operation(summary = "종목 단건 조회", description = "종목 ID로 종목 정보를 조회합니다.")
+    public ResponseEntity<StockDto.Response> getStockById(
+            @Parameter(description = "종목 ID", example = "1") @PathVariable Long stockId
+    ) {
+        return ResponseEntity.ok(marketQueryUseCase.getStockById(stockId));
+    }
+
     @GetMapping("/indexes/{indexType}/candles")
     @Operation(summary = "지수 캔들 조회", description = "코스피/코스닥 지수 캔들 데이터를 캐시에서 조회합니다.")
     public ResponseEntity<List<PriceCandleDto.Response>> getIndexCandles(

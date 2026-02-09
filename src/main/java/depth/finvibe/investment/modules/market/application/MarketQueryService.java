@@ -270,6 +270,14 @@ public class MarketQueryService implements MarketQueryUseCase {
     }
 
     @Override
+    public StockDto.Response getStockById(Long stockId) {
+        Stock stock = stockRepository.findById(stockId)
+                .orElseThrow(() -> new DomainException(MarketErrorCode.STOCK_NOT_FOUND));
+
+        return StockDto.Response.from(stock);
+    }
+
+    @Override
     @Transactional
     public List<ClosingPriceDto.Response> getClosingPrices(List<Long> stockIds) {
         if (stockIds == null || stockIds.isEmpty()) {
