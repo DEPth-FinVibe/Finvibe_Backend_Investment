@@ -31,7 +31,6 @@ public class KisRawMessageHandler extends TextWebSocketHandler {
             if (payload == null || payload.isBlank()) {
                 return;
             }
-            log.info("KIS RAW <= {}", payload);
             String trimmed = payload.trim();
             if (trimmed.startsWith("{")) {
                 jsonMessageHandler.handle(session, message, trimmed);
