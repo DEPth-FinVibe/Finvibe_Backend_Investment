@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -23,8 +24,10 @@ import tools.jackson.databind.ObjectMapper;
 
 import depth.finvibe.investment.boot.security.JwtTokenVerifier;
 import depth.finvibe.investment.boot.security.JwtTokenVerifier.JwtVerificationException;
+import depth.finvibe.investment.modules.market.application.port.in.MarketQueryUseCase;
 import depth.finvibe.investment.modules.market.domain.MarketHours;
 import depth.finvibe.investment.modules.market.domain.enums.MarketStatus;
+import depth.finvibe.investment.modules.market.dto.CurrentPriceDto;
 
 @Slf4j
 @Component
@@ -35,6 +38,7 @@ public class MarketQuoteWebSocketHandler extends TextWebSocketHandler {
 
     private final MarketWebSocketRegistry registry;
     private final JwtTokenVerifier jwtTokenVerifier;
+    private final MarketQueryUseCase marketQueryUseCase;
     private final ObjectMapper objectMapper;
     private final TaskScheduler taskScheduler;
 
@@ -180,6 +184,7 @@ public class MarketQuoteWebSocketHandler extends TextWebSocketHandler {
 
         Map<String, Object> warning = buildMarketClosedWarning();
         sendSubscribeAck(session, requestId, result, rejected, warning);
+        sendInitialPriceSnapshots(session, result.subscribed());
     }
 
     private void handleUnsubscribe(WebSocketSession session, MarketWebSocketConnection connection, JsonNode root) {
@@ -281,6 +286,62 @@ public class MarketQuoteWebSocketHandler extends TextWebSocketHandler {
         sendMessage(session, payload);
     }
 
+    private void sendInitialPriceSnapshots(WebSocketSession session, List<String> subscribedTopics) {
+        if (subscribedTopics == null || subscribedTopics.isEmpty()) {
+            return;
+        }
+
+        List<Long> stockIds = subscribedTopics.stream()
+                .map(this::extractStockId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (stockIds.isEmpty()) {
+            return;
+        }
+
+        try {
+            List<CurrentPriceDto.Response> prices = marketQueryUseCase.getCurrentPrices(stockIds);
+            Map<Long, CurrentPriceDto.Response> priceByStockId = prices.stream()
+                    .collect(Collectors.toMap(CurrentPriceDto.Response::getStockId, price -> price, (left, right) -> right));
+
+            for (String topic : subscribedTopics) {
+                Long stockId = extractStockId(topic);
+                if (stockId == null) {
+                    continue;
+                }
+                CurrentPriceDto.Response price = priceByStockId.get(stockId);
+                if (price == null) {
+                    continue;
+                }
+                sendMessage(session, buildInitialPriceEventPayload(topic, price));
+            }
+        } catch (Exception ex) {
+            log.warn("Failed to send initial price snapshot for subscribed topics: {}", subscribedTopics, ex);
+        }
+    }
+
+    private Map<String, Object> buildInitialPriceEventPayload(String topic, CurrentPriceDto.Response price) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("stockId", price.getStockId());
+        data.put("exchange", "KRX");
+        data.put("price", price.getClose());
+        data.put("open", price.getOpen());
+        data.put("high", price.getHigh());
+        data.put("low", price.getLow());
+        data.put("prevDayChangePct", price.getPrevDayChangePct());
+        data.put("volume", price.getVolume());
+        data.put("value", price.getValue());
+        data.put("initial", true);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("type", "event");
+        payload.put("topic", topic);
+        payload.put("ts", Instant.now().toEpochMilli());
+        payload.put("data", data);
+        return payload;
+    }
+
   private void sendMessage(WebSocketSession session, Map<String, Object> payload) {
     try {
       synchronized (session) {
@@ -326,6 +387,18 @@ public class MarketQuoteWebSocketHandler extends TextWebSocketHandler {
             return null;
         }
         return node.asText();
+    }
+
+    private Long extractStockId(String topic) {
+        if (topic == null || !TOPIC_PATTERN.matcher(topic).matches()) {
+            return null;
+        }
+        try {
+            return Long.parseLong(topic.substring(6));
+        } catch (NumberFormatException ex) {
+            log.warn("Invalid topic format: {}", topic);
+            return null;
+        }
     }
 
     private void closeSession(WebSocketSession session, CloseStatus status) {
