@@ -107,32 +107,6 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
                 .build();
     }
 
-    private TopHoldingStockDto.TopHoldingStockListResponse getTopHoldingStocksFromSource(UUID userId) {
-        List<PortfolioGroup> portfolios = portfolioGroupRepository.findAllByUserIdWithAssets(userId);
-        Map<Long, HoldingSummary> summaryByStockId = new HashMap<>();
-
-        for (PortfolioGroup portfolio : portfolios) {
-            for (Asset asset : portfolio.getAssets()) {
-                HoldingSummary existing = summaryByStockId.get(asset.getStockId());
-                if (existing == null) {
-                    summaryByStockId.put(asset.getStockId(), new HoldingSummary(asset.getName(), asset.getAmount()));
-                } else {
-                    existing.addAmount(asset.getAmount());
-                }
-            }
-        }
-
-        List<TopHoldingStockDto.TopHoldingStockResponse> items = summaryByStockId.entrySet().stream()
-                .map(entry -> TopHoldingStockDto.TopHoldingStockResponse.builder()
-                        .stockId(entry.getKey())
-                        .name(entry.getValue().name())
-                        .totalAmount(entry.getValue().totalAmount())
-                        .build())
-                .sorted(Comparator.comparing(TopHoldingStockDto.TopHoldingStockResponse::getTotalAmount)
-                        .reversed()
-                        .thenComparing(TopHoldingStockDto.TopHoldingStockResponse::getStockId))
-                .limit(100)
-                .toList();
     private TopHoldingStockDto.TopHoldingStockListResponse getTopHoldingStocksFromSource() {
         List<TopHoldingStockDto.TopHoldingStockResponse> items = portfolioGroupRepository
                 .findTopHoldingStocks(TOP_HOLDING_STOCK_LIMIT);
