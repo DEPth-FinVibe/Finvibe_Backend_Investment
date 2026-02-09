@@ -84,9 +84,9 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
     }
 
     private void validateTradeContexts(TradeDto.TransactionRequest request, Requester requester) {
-        if(!marketClient.isMarketOpen()) {
-            throw new DomainException(TradeErrorCode.MARKET_CLOSED);
-        }
+//        if(!marketClient.isMarketOpen()) {
+//            throw new DomainException(TradeErrorCode.MARKET_CLOSED);
+//        }
 
         if(!assetClient.isExistPortfolio(request.getPortfolioId(), requester.getUuid())) {
             throw new DomainException(TradeErrorCode.PORTFOLIO_NOT_FOUND);
