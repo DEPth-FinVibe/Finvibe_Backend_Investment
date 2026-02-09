@@ -23,7 +23,7 @@ public class StaleCurrentPriceRecoveryScheduler {
   @Value("${market.current-price.stale-recovery.threshold-seconds:3}")
   private long staleThresholdSeconds;
 
-  @Scheduled(fixedDelayString = "${market.current-price.stale-recovery.interval-ms:1000}")
+  @Scheduled(fixedDelayString = "${market.current-price.stale-recovery.interval-ms:5000}")
   @SchedulerLock(
           name = "staleCurrentPriceRecovery",
           lockAtMostFor = "PT30S",
