@@ -3,7 +3,9 @@ package depth.finvibe.investment.modules.asset.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,6 +32,7 @@ import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
 import depth.finvibe.investment.modules.asset.domain.PortfolioValuation;
 import depth.finvibe.investment.modules.asset.domain.error.AssetErrorCode;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
+import depth.finvibe.investment.modules.asset.dto.TopHoldingStockDto;
 import depth.finvibe.investment.shared.application.port.out.GamificationEventProducer;
 import depth.finvibe.investment.shared.error.DomainException;
 
@@ -364,5 +367,53 @@ class AssetServiceTest {
     assertThatThrownBy(() -> assetService.deletePortfolioGroup(1L, userId))
         .isInstanceOf(DomainException.class)
         .satisfies(ex -> assertThat(((DomainException) ex).getErrorCode()).isEqualTo(AssetErrorCode.CANNOT_DELETE_DEFAULT_PORTFOLIO_GROUP));
+  }
+
+  @Test
+  @DisplayName("상위 보유 종목 캐시 미스 시 DB 집계를 조회하고 캐시에 저장한다.")
+  void getTopHoldingStocks_cacheMiss_fetchFromSourceAndCache() {
+    // given
+    UUID userId = UUID.randomUUID();
+    TopHoldingStockDto.TopHoldingStockResponse item = TopHoldingStockDto.TopHoldingStockResponse.builder()
+        .stockId(101L)
+        .name("애플")
+        .totalAmount(BigDecimal.valueOf(12.5))
+        .build();
+    when(topHoldingStockCacheRepository.find(userId)).thenReturn(Optional.empty());
+    when(portfolioGroupRepository.findTopHoldingStocks(userId, 100)).thenReturn(List.of(item));
+
+    // when
+    TopHoldingStockDto.TopHoldingStockListResponse result = assetService.getTopHoldingStocks(userId);
+
+    // then
+    assertThat(result.getTotalElements()).isEqualTo(1);
+    assertThat(result.getItems()).hasSize(1);
+    assertThat(result.getItems().get(0).getStockId()).isEqualTo(101L);
+    verify(portfolioGroupRepository).findTopHoldingStocks(userId, 100);
+    verify(topHoldingStockCacheRepository).save(userId, result);
+  }
+
+  @Test
+  @DisplayName("상위 보유 종목 캐시 히트 시 DB를 조회하지 않는다.")
+  void getTopHoldingStocks_cacheHit_returnCacheOnly() {
+    // given
+    UUID userId = UUID.randomUUID();
+    TopHoldingStockDto.TopHoldingStockResponse item = TopHoldingStockDto.TopHoldingStockResponse.builder()
+        .stockId(101L)
+        .name("애플")
+        .totalAmount(BigDecimal.valueOf(12.5))
+        .build();
+    TopHoldingStockDto.TopHoldingStockListResponse cached = TopHoldingStockDto.TopHoldingStockListResponse.builder()
+        .totalElements(1)
+        .items(List.of(item))
+        .build();
+    when(topHoldingStockCacheRepository.find(userId)).thenReturn(Optional.of(cached));
+
+    // when
+    TopHoldingStockDto.TopHoldingStockListResponse result = assetService.getTopHoldingStocks(userId);
+
+    // then
+    assertThat(result).isEqualTo(cached);
+    verify(portfolioGroupRepository, never()).findTopHoldingStocks(any(UUID.class), anyInt());
   }
 }
