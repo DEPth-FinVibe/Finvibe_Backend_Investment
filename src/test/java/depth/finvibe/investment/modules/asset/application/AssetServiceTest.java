@@ -379,8 +379,8 @@ class AssetServiceTest {
         .name("애플")
         .totalAmount(BigDecimal.valueOf(12.5))
         .build();
-    when(topHoldingStockCacheRepository.find(userId)).thenReturn(Optional.empty());
-    when(portfolioGroupRepository.findTopHoldingStocks(userId, 100)).thenReturn(List.of(item));
+    when(topHoldingStockCacheRepository.find(any(UUID.class))).thenReturn(Optional.empty());
+    when(portfolioGroupRepository.findTopHoldingStocks(100)).thenReturn(List.of(item));
 
     // when
     TopHoldingStockDto.TopHoldingStockListResponse result = assetService.getTopHoldingStocks(userId);
@@ -389,8 +389,8 @@ class AssetServiceTest {
     assertThat(result.getTotalElements()).isEqualTo(1);
     assertThat(result.getItems()).hasSize(1);
     assertThat(result.getItems().get(0).getStockId()).isEqualTo(101L);
-    verify(portfolioGroupRepository).findTopHoldingStocks(userId, 100);
-    verify(topHoldingStockCacheRepository).save(userId, result);
+    verify(portfolioGroupRepository).findTopHoldingStocks(100);
+    verify(topHoldingStockCacheRepository).save(any(UUID.class), eq(result));
   }
 
   @Test
@@ -407,13 +407,13 @@ class AssetServiceTest {
         .totalElements(1)
         .items(List.of(item))
         .build();
-    when(topHoldingStockCacheRepository.find(userId)).thenReturn(Optional.of(cached));
+    when(topHoldingStockCacheRepository.find(any(UUID.class))).thenReturn(Optional.of(cached));
 
     // when
     TopHoldingStockDto.TopHoldingStockListResponse result = assetService.getTopHoldingStocks(userId);
 
     // then
     assertThat(result).isEqualTo(cached);
-    verify(portfolioGroupRepository, never()).findTopHoldingStocks(any(UUID.class), anyInt());
+    verify(portfolioGroupRepository, never()).findTopHoldingStocks(anyInt());
   }
 }

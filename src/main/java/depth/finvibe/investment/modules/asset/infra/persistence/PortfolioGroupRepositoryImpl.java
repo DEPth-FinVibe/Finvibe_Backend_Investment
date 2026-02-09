@@ -58,8 +58,8 @@ public class PortfolioGroupRepositoryImpl implements PortfolioGroupRepository {
     }
 
     @Override
-    public List<TopHoldingStockDto.TopHoldingStockResponse> findTopHoldingStocks(UUID userId, int limit) {
-        return queryRepository.findTopHoldingStocks(userId, limit);
+    public List<TopHoldingStockDto.TopHoldingStockResponse> findTopHoldingStocks(int limit) {
+        return queryRepository.findTopHoldingStocks(limit);
     }
 
     @Override

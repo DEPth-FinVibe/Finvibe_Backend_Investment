@@ -69,8 +69,8 @@ public class PortfolioGroupQueryRepository {
                 .fetch();
     }
 
-    public List<TopHoldingStockDto.TopHoldingStockResponse> findTopHoldingStocks(UUID userId, int limit) {
-        if (userId == null || limit <= 0) {
+    public List<TopHoldingStockDto.TopHoldingStockResponse> findTopHoldingStocks(int limit) {
+        if (limit <= 0) {
             return List.of();
         }
         return queryFactory
@@ -81,7 +81,6 @@ public class PortfolioGroupQueryRepository {
                         asset.amount.sum()
                 ))
                 .from(asset)
-                .where(asset.userId.eq(userId))
                 .groupBy(asset.stockId, asset.name)
                 .orderBy(asset.amount.sum().desc(), asset.stockId.asc())
                 .limit(limit)

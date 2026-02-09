@@ -23,7 +23,7 @@ public class TopHoldingStockController {
     private final AssetQueryUseCase queryUseCase;
 
     @GetMapping("/top-100")
-    @Operation(summary = "개인 보유 종목 TOP100 조회", description = "보유 수량 기준 TOP 종목을 조회합니다.")
+    @Operation(summary = "전체 보유 종목 TOP100 조회", description = "전체 사용자 보유 수량 합계 기준 TOP 종목을 조회합니다.")
     public ResponseEntity<TopHoldingStockDto.TopHoldingStockListResponse> getTopHoldingStocks(
             @Parameter(hidden = true) @AuthenticatedUser Requester requester
     ) {

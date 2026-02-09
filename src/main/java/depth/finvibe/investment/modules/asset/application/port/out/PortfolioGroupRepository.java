@@ -24,7 +24,7 @@ public interface PortfolioGroupRepository {
 
     List<PortfolioGroup> findAllByStockIdsWithAssets(List<Long> stockIds);
 
-    List<TopHoldingStockDto.TopHoldingStockResponse> findTopHoldingStocks(UUID userId, int limit);
+    List<TopHoldingStockDto.TopHoldingStockResponse> findTopHoldingStocks(int limit);
 
     void delete(PortfolioGroup existing);
 

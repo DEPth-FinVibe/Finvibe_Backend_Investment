@@ -28,6 +28,7 @@ import depth.finvibe.investment.shared.error.DomainException;
 @RequiredArgsConstructor
 public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
     private static final int TOP_HOLDING_STOCK_LIMIT = 100;
+    private static final UUID TOP_HOLDING_STOCK_CACHE_KEY = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
     private final PortfolioGroupRepository portfolioGroupRepository;
     private final GamificationEventProducer gamificationEventProducer;
@@ -64,25 +65,19 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
     @Override
     @Transactional(readOnly = true)
     public TopHoldingStockDto.TopHoldingStockListResponse getTopHoldingStocks(UUID userId) {
-        if (userId == null) {
-            return TopHoldingStockDto.TopHoldingStockListResponse.builder()
-                    .totalElements(0)
-                    .items(List.of())
-                    .build();
-        }
-        return topHoldingStockCacheRepository.find(userId)
-                .orElseGet(() -> getTopHoldingStocksFromSource(userId));
+        return topHoldingStockCacheRepository.find(TOP_HOLDING_STOCK_CACHE_KEY)
+                .orElseGet(this::getTopHoldingStocksFromSource);
     }
 
-    private TopHoldingStockDto.TopHoldingStockListResponse getTopHoldingStocksFromSource(UUID userId) {
+    private TopHoldingStockDto.TopHoldingStockListResponse getTopHoldingStocksFromSource() {
         List<TopHoldingStockDto.TopHoldingStockResponse> items = portfolioGroupRepository
-                .findTopHoldingStocks(userId, TOP_HOLDING_STOCK_LIMIT);
+                .findTopHoldingStocks(TOP_HOLDING_STOCK_LIMIT);
 
         TopHoldingStockDto.TopHoldingStockListResponse response = TopHoldingStockDto.TopHoldingStockListResponse.builder()
                 .totalElements(items.size())
                 .items(items)
                 .build();
-        topHoldingStockCacheRepository.save(userId, response);
+        topHoldingStockCacheRepository.save(TOP_HOLDING_STOCK_CACHE_KEY, response);
         return response;
     }
 
