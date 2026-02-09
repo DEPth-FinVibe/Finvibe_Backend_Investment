@@ -2,6 +2,7 @@ package depth.finvibe.investment.modules.trade.api.external;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -59,6 +60,18 @@ public class TradeController {
     ) {
         List<TradeDto.TradeHistoryResponse> response =
                 tradeQueryUseCase.findTradesByMonth(requester.getUuid(), year, month);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/users/{userId}/history")
+    @Operation(summary = "특정 사용자 월별 거래 기록 조회", description = "해당 사용자의 특정 월 거래 기록을 최신순으로 조회합니다.")
+    public ResponseEntity<List<TradeDto.TradeHistoryResponse>> getTradeHistoryByUserId(
+            @Parameter(description = "사용자 ID", example = "00000000-0000-0000-0000-000000000000") @PathVariable UUID userId,
+            @Parameter(description = "연도", example = "2026") @RequestParam int year,
+            @Parameter(description = "월", example = "2") @RequestParam int month,
+            @Parameter(hidden = true) @AuthenticatedUser Requester requester
+    ) {
+        List<TradeDto.TradeHistoryResponse> response = tradeQueryUseCase.findTradesByMonth(userId, year, month);
         return ResponseEntity.ok(response);
     }
 
