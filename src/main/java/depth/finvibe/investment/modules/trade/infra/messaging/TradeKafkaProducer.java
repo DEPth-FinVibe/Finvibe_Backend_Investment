@@ -48,7 +48,7 @@ public class TradeKafkaProducer implements TradeEventProducer {
                 .amount(BigDecimal.valueOf(trade.getAmount()))
                 .price(trade.getPrice())
                 .stockId(trade.getStockId())
-                .name("Unknown") //TODO: 종목명도 Trade 엔티티에서 저장하도록 수정
+                .name(trade.getStockName())
                 .currency("KRW")
                 .portfolioId(trade.getPortfolioId())
                 .build();
