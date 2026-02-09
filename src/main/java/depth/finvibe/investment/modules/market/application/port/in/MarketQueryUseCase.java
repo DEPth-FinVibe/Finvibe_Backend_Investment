@@ -45,4 +45,6 @@ public interface MarketQueryUseCase {
      * 종목명 또는 코드 검색
      */
     List<StockDto.Response> searchStocks(String query);
+
+    String getStockNameById(Long stockId);
 }

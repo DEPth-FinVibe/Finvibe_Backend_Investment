@@ -432,6 +432,14 @@ public class MarketQueryService implements MarketQueryUseCase {
                 .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public String getStockNameById(Long stockId) {
+        return stockRepository.findById(stockId)
+                .map(Stock::getName)
+                .orElseThrow(() -> new DomainException(MarketErrorCode.STOCK_NOT_FOUND));
+    }
+
     private List<StockDto.Response> getTopStocksByRankType(RankType rankType) {
         List<StockRanking> rankings = stockRankingRepository.findByRankType(rankType);
         
