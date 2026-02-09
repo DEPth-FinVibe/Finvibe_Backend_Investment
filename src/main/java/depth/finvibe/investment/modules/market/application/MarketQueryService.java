@@ -270,6 +270,33 @@ public class MarketQueryService implements MarketQueryUseCase {
     }
 
     @Override
+    @Transactional
+    public Long getStockPriceInternal(Long stockId) {
+        if (MarketHours.getCurrentStatus() == MarketStatus.CLOSED) {
+            List<ClosingPriceDto.Response> closingPrices = getClosingPrices(List.of(stockId));
+            if (!closingPrices.isEmpty()) {
+                return closingPrices.getFirst().getClose().longValue();
+            }
+            throw new DomainException(MarketErrorCode.NO_PRICE_DATA_AVAILABLE);
+        }
+
+        List<CurrentPrice> currentPrices = currentPriceRepository.findByStockIds(List.of(stockId));
+        if (!currentPrices.isEmpty()) {
+            return currentPrices.getFirst().getClose().longValue();
+        }
+
+        Stock stock = stockRepository.findById(stockId)
+                .orElseThrow(() -> new DomainException(MarketErrorCode.STOCK_NOT_FOUND));
+
+        List<PriceCandleDto.Response> snapshots = realMarketClient.bulkFetchCurrentPrices(List.of(stock.getSymbol()));
+        if (!snapshots.isEmpty()) {
+            return snapshots.getFirst().getClose().longValue();
+        }
+
+        throw new DomainException(MarketErrorCode.NO_PRICE_DATA_AVAILABLE);
+    }
+
+    @Override
     public StockDto.Response getStockById(Long stockId) {
         Stock stock = stockRepository.findById(stockId)
                 .orElseThrow(() -> new DomainException(MarketErrorCode.STOCK_NOT_FOUND));

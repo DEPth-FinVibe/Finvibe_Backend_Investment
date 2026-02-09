@@ -27,6 +27,8 @@ public interface MarketQueryUseCase {
 
     List<CurrentPriceDto.Response> getCurrentPrices(List<Long> stockIds);
 
+    Long getStockPriceInternal(Long stockId);
+
     StockDto.Response getStockById(Long stockId);
 
     List<ClosingPriceDto.Response> getClosingPrices(List<Long> stockIds);
