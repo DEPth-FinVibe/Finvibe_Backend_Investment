@@ -23,6 +23,7 @@ import depth.finvibe.investment.modules.market.domain.Category;
 import depth.finvibe.investment.modules.market.domain.Stock;
 import depth.finvibe.investment.modules.market.domain.error.MarketErrorCode;
 import depth.finvibe.investment.modules.market.dto.CategoryDto;
+import depth.finvibe.investment.modules.market.dto.CategoryInternalDto;
 import depth.finvibe.investment.shared.error.DomainException;
 
 @Service
@@ -42,6 +43,14 @@ public class CategoryQueryService implements CategoryQueryUseCase {
                         category,
                         stockRepository.countByCategoryId(category.getId())
                 ))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CategoryInternalDto.Response> getAllCategoriesForInternal() {
+        return categoryRepository.findAll().stream()
+                .map(CategoryInternalDto.Response::of)
                 .toList();
     }
 

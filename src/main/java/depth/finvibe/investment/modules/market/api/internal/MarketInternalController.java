@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import depth.finvibe.investment.modules.market.application.port.in.BatchPriceQueryUseCase;
+import depth.finvibe.investment.modules.market.application.port.in.CategoryQueryUseCase;
+import depth.finvibe.investment.modules.market.dto.CategoryInternalDto;
 import depth.finvibe.investment.shared.dto.BatchPriceSnapshot;
 
 @RestController
@@ -17,6 +19,7 @@ import depth.finvibe.investment.shared.dto.BatchPriceSnapshot;
 @RequiredArgsConstructor
 public class MarketInternalController {
     private final BatchPriceQueryUseCase batchPriceQueryService;
+    private final CategoryQueryUseCase categoryQueryUseCase;
     private final MarketQueryUseCase marketQueryService;
 
     @GetMapping("/batch-prices")
@@ -27,5 +30,10 @@ public class MarketInternalController {
     @GetMapping("/stocks/{stockId}/name")
     public String getStockName(@RequestParam Long stockId) {
         return marketQueryService.getStockNameById(stockId);
+    }
+
+    @GetMapping("/categories")
+    public List<CategoryInternalDto.Response> getCategories() {
+        return categoryQueryUseCase.getAllCategoriesForInternal();
     }
 }
