@@ -2,6 +2,7 @@ package depth.finvibe.investment.modules.market.application.port.out;
 
 import depth.finvibe.investment.modules.market.domain.HolidayDayInfo;
 
+import java.time.YearMonth;
 import java.util.List;
 
 /**
@@ -10,10 +11,11 @@ import java.util.List;
 public interface ChkHolidayClient {
 
   /**
-   * 기준일자의 개장일 여부를 조회. 보통 1건 반환.
+   * 지정한 연월의 모든 휴장일 정보를 조회.
+   * 내부적으로 KIS API를 여러 번 호출(페이징)하여 해당 월의 전체 데이터를 수집합니다.
    *
-   * @param bassDt 기준일자 (YYYYMMDD)
-   * @return 해당 일자의 휴장일 정보 (date, openDay)
+   * @param yearMonth 조회할 연월
+   * @return 해당 월의 모든 휴장일 정보 리스트 (date, openDay)
    */
-  List<HolidayDayInfo> fetchChkHoliday(String bassDt);
+  List<HolidayDayInfo> fetchChkHoliday(YearMonth yearMonth);
 }

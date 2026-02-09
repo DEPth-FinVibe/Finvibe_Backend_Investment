@@ -57,11 +57,9 @@ public class HolidayCalendarService {
     if (isCalendarComplete(yearMonth)) {
       return;
     }
-    String bassDt = yearMonth.atDay(1).format(BASS_DT_FORMAT);
     try {
-      List<HolidayDayInfo> infos = chkHolidayClient.fetchChkHoliday(bassDt);
+      List<HolidayDayInfo> infos = chkHolidayClient.fetchChkHoliday(yearMonth);
       List<TradingDay> tradingDays = infos.stream()
-          .filter(info -> YearMonth.from(info.date()).equals(yearMonth))
           .collect(Collectors.toMap(
               HolidayDayInfo::date,
               HolidayDayInfo::openDay,
@@ -94,7 +92,7 @@ public class HolidayCalendarService {
             actualCount);
       }
     } catch (Exception e) {
-      log.warn("휴장일 조회 실패. bassDt={}", bassDt, e);
+      log.warn("휴장일 조회 실패. yearMonth={}", yearMonth, e);
     }
   }
 
