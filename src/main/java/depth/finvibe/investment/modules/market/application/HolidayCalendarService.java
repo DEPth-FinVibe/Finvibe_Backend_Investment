@@ -3,9 +3,11 @@ package depth.finvibe.investment.modules.market.application;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -23,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 public class HolidayCalendarService {
 
   private static final DateTimeFormatter BASS_DT_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
+  private static final int MISSING_DATES_LOG_LIMIT = 10;
 
   private final TradingDayRepository tradingDayRepository;
   private final ChkHolidayClient chkHolidayClient;
@@ -69,12 +72,22 @@ public class HolidayCalendarService {
           .map(entry -> TradingDay.of(entry.getKey(), entry.getValue()))
           .toList();
 
+      List<LocalDate> missingDates = calculateMissingDates(yearMonth, infos);
+
       if (!tradingDays.isEmpty()) {
         tradingDayRepository.saveAll(tradingDays);
         log.info("휴장일 달력 적재 완료. yearMonth={}, count={}", yearMonth, tradingDays.size());
       }
       if (!isCalendarComplete(yearMonth)) {
         long actualCount = tradingDayRepository.countByYearMonth(yearMonth.getYear(), yearMonth.getMonthValue());
+        if (!missingDates.isEmpty()) {
+          log.warn(
+              "휴장일 달력 누락 날짜 감지. yearMonth={}, missingCount={}, missingDates={}",
+              yearMonth,
+              missingDates.size(),
+              formatMissingDatesForLog(missingDates)
+          );
+        }
         log.warn("휴장일 달력 부분 적재 상태. yearMonth={}, expectedCount={}, actualCount={}",
             yearMonth,
             yearMonth.lengthOfMonth(),
@@ -88,5 +101,29 @@ public class HolidayCalendarService {
   private boolean isCalendarComplete(YearMonth yearMonth) {
     long savedCount = tradingDayRepository.countByYearMonth(yearMonth.getYear(), yearMonth.getMonthValue());
     return savedCount >= yearMonth.lengthOfMonth();
+  }
+
+  private List<LocalDate> calculateMissingDates(YearMonth yearMonth, List<HolidayDayInfo> infos) {
+    Set<LocalDate> loadedDates = infos.stream()
+        .map(HolidayDayInfo::date)
+        .filter(date -> YearMonth.from(date).equals(yearMonth))
+        .collect(Collectors.toSet());
+
+    List<LocalDate> missingDates = new ArrayList<>();
+    for (int day = 1; day <= yearMonth.lengthOfMonth(); day++) {
+      LocalDate date = yearMonth.atDay(day);
+      if (!loadedDates.contains(date)) {
+        missingDates.add(date);
+      }
+    }
+    return missingDates;
+  }
+
+  private String formatMissingDatesForLog(List<LocalDate> missingDates) {
+    if (missingDates.size() <= MISSING_DATES_LOG_LIMIT) {
+      return missingDates.toString();
+    }
+    List<LocalDate> truncated = new ArrayList<>(missingDates.subList(0, MISSING_DATES_LOG_LIMIT));
+    return truncated + " ...";
   }
 }
