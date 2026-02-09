@@ -1,6 +1,7 @@
 package depth.finvibe.investment.modules.market.api.external;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,7 +18,9 @@ import org.springframework.web.bind.annotation.RestController;
 import depth.finvibe.investment.modules.market.application.port.in.CategoryQueryUseCase;
 import depth.finvibe.investment.modules.market.application.port.in.MarketQueryUseCase;
 import depth.finvibe.investment.modules.market.application.port.in.MarketStatusQueryUseCase;
+import depth.finvibe.investment.modules.market.domain.MarketHours;
 import depth.finvibe.investment.modules.market.domain.enums.MarketIndexType;
+import depth.finvibe.investment.modules.market.domain.enums.MarketStatus;
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
 import depth.finvibe.investment.modules.market.domain.error.MarketErrorCode;
 import depth.finvibe.investment.modules.market.dto.CategoryDto;
@@ -52,10 +55,7 @@ public class MarketController {
         // 종료 시각이 완료된 마지막 캔들을 넘어가면 마지막 완료 캔들 시각으로 보정한다.
         // DAY/WEEK/MONTH/YEAR는 캔들 시작 시각 기준으로 보정해야 한다.
         LocalDateTime normalizedEndTime = timeframe.normalizeStart(endTime);
-        LocalDateTime lastCompletedCandleTime = getLastCompletedCandleTime(timeframe);
-        LocalDateTime effectiveEndTime = normalizedEndTime.isAfter(lastCompletedCandleTime)
-                ? lastCompletedCandleTime
-                : normalizedEndTime;
+        LocalDateTime effectiveEndTime = resolveEffectiveEndTime(timeframe, normalizedEndTime);
 
         LocalDateTime normalizedStartTime = timeframe.normalizeStart(startTime);
         if (normalizedStartTime.isAfter(effectiveEndTime)) {
@@ -100,12 +100,18 @@ public class MarketController {
         return ResponseEntity.ok(candles);
     }
     
-    /**
-     * Timeframe별로 현재 시점에서 완료된 마지막 캔들의 시각을 계산
-     */
-    private LocalDateTime getLastCompletedCandleTime(Timeframe timeframe) {
-        LocalDateTime now = LocalDateTime.now();
-        return timeframe.lastCompletedTime(now);
+    private LocalDateTime resolveEffectiveEndTime(Timeframe timeframe, LocalDateTime normalizedEndTime) {
+        LocalDateTime nowInKst = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
+
+        if (timeframe == Timeframe.MINUTE && MarketHours.getCurrentStatus() == MarketStatus.OPEN) {
+            LocalDateTime oneMinuteAgo = nowInKst.minusMinutes(1).withSecond(0).withNano(0);
+            return normalizedEndTime.isAfter(oneMinuteAgo) ? oneMinuteAgo : normalizedEndTime;
+        }
+
+        LocalDateTime lastCompletedCandleTime = timeframe.lastCompletedTime(nowInKst);
+        return normalizedEndTime.isAfter(lastCompletedCandleTime)
+                ? lastCompletedCandleTime
+                : normalizedEndTime;
     }
 
     @GetMapping("/stocks/closing-prices")
