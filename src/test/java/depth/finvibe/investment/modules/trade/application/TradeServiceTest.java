@@ -100,7 +100,8 @@ class TradeServiceTest {
                 1L,
                 userId,
                 TransactionType.BUY,
-                TradeType.NORMAL
+                TradeType.NORMAL,
+                "삼성전자"
         );
 
         reservedTrade = Trade.create(
@@ -110,7 +111,8 @@ class TradeServiceTest {
                 1L,
                 userId,
                 TransactionType.BUY,
-                TradeType.RESERVED
+                TradeType.RESERVED,
+                "삼성전자"
         );
     }
 
@@ -196,7 +198,8 @@ class TradeServiceTest {
                 1L,
                 userId,
                 TransactionType.SELL,
-                TradeType.NORMAL
+                TradeType.NORMAL,
+                "삼성전자"
         );
 
         given(tradeRepository.save(any(Trade.class))).willReturn(sellTrade);

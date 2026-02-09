@@ -32,7 +32,8 @@ class TradeTest {
         portfolioId,
         userId,
         TransactionType.BUY,
-        TradeType.NORMAL
+        TradeType.NORMAL,
+        "테스트종목"
     );
 
     // then
@@ -56,7 +57,8 @@ class TradeTest {
         1L,
         UUID.randomUUID(),
         TransactionType.BUY,
-        TradeType.RESERVED
+        TradeType.RESERVED,
+        "테스트종목"
     );
 
     // when
@@ -77,7 +79,8 @@ class TradeTest {
         1L,
         UUID.randomUUID(),
         TransactionType.BUY,
-        TradeType.RESERVED
+        TradeType.RESERVED,
+        "테스트종목"
     );
 
     // when
@@ -99,7 +102,8 @@ class TradeTest {
         1L,
         UUID.randomUUID(),
         transactionType,
-        TradeType.NORMAL
+        TradeType.NORMAL,
+        "테스트종목"
     );
 
     // then
@@ -118,7 +122,8 @@ class TradeTest {
         1L,
         UUID.randomUUID(),
         TransactionType.BUY,
-        tradeType
+        tradeType,
+        "테스트종목"
     );
 
     // then
