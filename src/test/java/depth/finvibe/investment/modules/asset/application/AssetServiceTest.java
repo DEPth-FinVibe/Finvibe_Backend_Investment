@@ -32,6 +32,8 @@ import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
 import depth.finvibe.investment.modules.asset.domain.PortfolioValuation;
 import depth.finvibe.investment.modules.asset.domain.error.AssetErrorCode;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
+import depth.finvibe.investment.modules.wallet.application.port.in.WalletQueryUseCase;
+import depth.finvibe.investment.modules.wallet.dto.WalletDto;
 import depth.finvibe.investment.modules.asset.dto.TopHoldingStockDto;
 import depth.finvibe.investment.shared.application.port.out.GamificationEventProducer;
 import depth.finvibe.investment.shared.error.DomainException;
@@ -47,6 +49,9 @@ class AssetServiceTest {
 
   @Mock
   TopHoldingStockCacheRepository topHoldingStockCacheRepository;
+
+  @Mock
+  WalletQueryUseCase walletQueryUseCase;
 
   @InjectMocks
   AssetService assetService;
@@ -314,6 +319,79 @@ class AssetServiceTest {
     assertThat(results.get(0).getTotalCurrentValue()).isEqualByComparingTo(BigDecimal.ZERO);
     assertThat(results.get(0).getTotalPurchaseAmount()).isEqualByComparingTo(BigDecimal.ZERO);
     assertThat(results.get(0).getTotalReturnRate()).isEqualByComparingTo(BigDecimal.ZERO);
+  }
+
+  @Test
+  @DisplayName("포트폴리오별 수익 비교 조회 시 이름, 총자산, 수익률, 실현 수익을 반환한다.")
+  void getPortfolioComparisons_success() {
+    UUID userId = UUID.randomUUID();
+    PortfolioValuation valuation = PortfolioValuation.builder()
+        .totalCurrentValue(BigDecimal.valueOf(1_500_000))
+        .totalProfitLoss(BigDecimal.valueOf(180_000))
+        .totalReturnRate(BigDecimal.valueOf(12.5))
+        .build();
+    PortfolioGroup valuedGroup = PortfolioGroup.builder()
+        .id(1L)
+        .name("공격형")
+        .iconCode("ICON1")
+        .userId(userId)
+        .valuation(valuation)
+        .build();
+    PortfolioGroup emptyGroup = PortfolioGroup.builder()
+        .id(2L)
+        .name("안정형")
+        .iconCode("ICON2")
+        .userId(userId)
+        .build();
+    when(portfolioGroupRepository.findAllByUserId(userId)).thenReturn(List.of(valuedGroup, emptyGroup));
+
+    List<PortfolioGroupDto.PortfolioComparisonResponse> results = assetService.getPortfolioComparisons(userId);
+
+    assertThat(results).hasSize(2);
+    assertThat(results.get(0).getName()).isEqualTo("공격형");
+    assertThat(results.get(0).getTotalAssetAmount()).isEqualByComparingTo(BigDecimal.valueOf(1_500_000));
+    assertThat(results.get(0).getReturnRate()).isEqualByComparingTo(BigDecimal.valueOf(12.5));
+    assertThat(results.get(0).getRealizedProfit()).isEqualByComparingTo(BigDecimal.valueOf(180_000));
+    assertThat(results.get(1).getName()).isEqualTo("안정형");
+    assertThat(results.get(1).getTotalAssetAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+    assertThat(results.get(1).getReturnRate()).isEqualByComparingTo(BigDecimal.ZERO);
+    assertThat(results.get(1).getRealizedProfit()).isEqualByComparingTo(BigDecimal.ZERO);
+  }
+
+  @Test
+  @DisplayName("전체 자산 배분 조회 시 현금/주식/총합/증감 정보가 계산된다.")
+  void getAssetAllocation_success() {
+    UUID userId = UUID.randomUUID();
+
+    Asset valuedAsset = Asset.create(BigDecimal.valueOf(2), BigDecimal.valueOf(500), Currency.KRW, "A", 1L, userId);
+    valuedAsset.updateValuation(BigDecimal.valueOf(600)); // currentValue = 1200
+
+    Asset unvaluedAsset = Asset.create(BigDecimal.valueOf(1), BigDecimal.valueOf(300), Currency.KRW, "B", 2L, userId);
+
+    PortfolioGroup portfolio = PortfolioGroup.builder()
+        .id(1L)
+        .name("기본")
+        .iconCode("ICON")
+        .userId(userId)
+        .assets(new ArrayList<>())
+        .build();
+    portfolio.register(valuedAsset, userId);
+    portfolio.register(unvaluedAsset, userId);
+
+    when(portfolioGroupRepository.findAllByUserIdWithAssets(userId)).thenReturn(List.of(portfolio));
+    when(walletQueryUseCase.getWalletByUserId(userId)).thenReturn(WalletDto.WalletResponse.builder()
+        .walletId(1L)
+        .userId(userId)
+        .balance(8_000_000L)
+        .build());
+
+    PortfolioGroupDto.AssetAllocationResponse result = assetService.getAssetAllocation(userId);
+
+    assertThat(result.getCashAmount()).isEqualByComparingTo(new BigDecimal("8000000"));
+    assertThat(result.getStockAmount()).isEqualByComparingTo(new BigDecimal("1500"));
+    assertThat(result.getTotalAmount()).isEqualByComparingTo(new BigDecimal("8001500"));
+    assertThat(result.getChangeAmount()).isEqualByComparingTo(new BigDecimal("-1998500"));
+    assertThat(result.getChangeRate()).isEqualByComparingTo(new BigDecimal("-19.9900"));
   }
 
   @Test

@@ -95,6 +95,65 @@ public class AssetControllerTest {
                 .andExpect(jsonPath("$[1].name").value("Apple Inc."));
     }
 
+    @Test
+    @DisplayName("전체 자산 배분 조회 API")
+    void getAssetAllocation() throws Exception {
+        UUID userId = UUID.randomUUID();
+        PortfolioGroupDto.AssetAllocationResponse response = PortfolioGroupDto.AssetAllocationResponse.builder()
+                .cashAmount(new BigDecimal("2500000"))
+                .stockAmount(new BigDecimal("8300000"))
+                .totalAmount(new BigDecimal("10800000"))
+                .changeAmount(new BigDecimal("800000"))
+                .changeRate(new BigDecimal("8.0000"))
+                .build();
+
+        given(assetQueryUseCase.getAssetAllocation(userId)).willReturn(response);
+
+        mockMvc.perform(get("/assets/allocation")
+                        .header("Authorization", bearerToken(userId))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cashAmount").value(2500000))
+                .andExpect(jsonPath("$.stockAmount").value(8300000))
+                .andExpect(jsonPath("$.totalAmount").value(10800000))
+                .andExpect(jsonPath("$.changeAmount").value(800000))
+                .andExpect(jsonPath("$.changeRate").value(8.0000));
+    }
+
+    @Test
+    @DisplayName("포트폴리오별 수익 비교 조회 API")
+    void getPortfolioComparisons() throws Exception {
+        UUID userId = UUID.randomUUID();
+        List<PortfolioGroupDto.PortfolioComparisonResponse> response = List.of(
+                PortfolioGroupDto.PortfolioComparisonResponse.builder()
+                        .name("공격형")
+                        .totalAssetAmount(new BigDecimal("1500000"))
+                        .returnRate(new BigDecimal("12.5000"))
+                        .realizedProfit(new BigDecimal("180000"))
+                        .build(),
+                PortfolioGroupDto.PortfolioComparisonResponse.builder()
+                        .name("안정형")
+                        .totalAssetAmount(new BigDecimal("900000"))
+                        .returnRate(new BigDecimal("4.2000"))
+                        .realizedProfit(new BigDecimal("36000"))
+                        .build()
+        );
+
+        given(assetQueryUseCase.getPortfolioComparisons(userId)).willReturn(response);
+
+        mockMvc.perform(get("/portfolios/comparison")
+                        .header("Authorization", bearerToken(userId))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].name").value("공격형"))
+                .andExpect(jsonPath("$[0].totalAssetAmount").value(1500000))
+                .andExpect(jsonPath("$[0].returnRate").value(12.5000))
+                .andExpect(jsonPath("$[0].realizedProfit").value(180000));
+    }
+
     private String bearerToken(UUID userId) throws Exception {
         String header = Base64.getUrlEncoder().withoutPadding()
                 .encodeToString("{}".getBytes(StandardCharsets.UTF_8));

@@ -23,6 +23,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -142,6 +143,44 @@ class TradeControllerTest {
                 .andDo(print());
 
         verify(tradeCommandUseCase).cancelTrade(eq(tradeId), any(Requester.class));
+    }
+
+    @Test
+    @DisplayName("특정 사용자 월별 거래 기록 조회 성공")
+    void getTradeHistoryByUserId() throws Exception {
+        // given
+        UUID requesterId = UUID.randomUUID();
+        UUID targetUserId = UUID.randomUUID();
+        int year = 2026;
+        int month = 2;
+
+        List<TradeDto.TradeHistoryResponse> mockResponse = List.of(
+                TradeDto.TradeHistoryResponse.builder()
+                        .tradeId(1L)
+                        .stockId(100L)
+                        .amount(2.0)
+                        .price(50000L)
+                        .portfolioId(10L)
+                        .transactionType(TransactionType.BUY)
+                        .tradeType(TradeType.NORMAL)
+                        .build()
+        );
+
+        given(tradeQueryUseCase.findTradesByMonth(targetUserId, year, month)).willReturn(mockResponse);
+
+        // when & then
+        mockMvc.perform(get("/trades/users/{userId}/history", targetUserId)
+                        .param("year", String.valueOf(year))
+                        .param("month", String.valueOf(month))
+                        .header("Authorization", bearerToken(requesterId))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].tradeId").value(1L))
+                .andExpect(jsonPath("$[0].stockId").value(100L))
+                .andExpect(jsonPath("$[0].tradeType").value("NORMAL"))
+                .andDo(print());
+
+        verify(tradeQueryUseCase).findTradesByMonth(targetUserId, year, month);
     }
 
     private String bearerToken(UUID userId) throws Exception {
