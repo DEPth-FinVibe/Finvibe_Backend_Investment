@@ -25,4 +25,9 @@ public class MarketClientImpl implements MarketClient {
     public Long getCurrentPrice(Long stockId) {
         return marketQueryUseCase.getStockPriceInternal(stockId);
     }
+
+    @Override
+    public String getStockNameById(Long stockId) {
+        return marketQueryUseCase.getStockById(stockId).getName();
+    }
 }
