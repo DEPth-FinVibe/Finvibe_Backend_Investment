@@ -20,6 +20,7 @@ import depth.finvibe.investment.modules.asset.application.port.out.UserProfitRan
 import depth.finvibe.investment.modules.asset.application.port.out.UserProfitSnapshotRepository;
 import depth.finvibe.investment.modules.asset.domain.UserProfitSnapshotDaily;
 import depth.finvibe.investment.modules.asset.domain.enums.UserProfitRankType;
+import depth.finvibe.investment.modules.asset.infra.client.UserServiceClient;
 import depth.finvibe.investment.shared.application.port.out.GamificationEventProducer;
 import depth.finvibe.investment.shared.dto.Badge;
 import depth.finvibe.investment.shared.dto.RewardBadgeEvent;
@@ -29,6 +30,7 @@ import depth.finvibe.investment.shared.dto.RewardBadgeEvent;
 public class UserProfitRankingAggregationService {
   private final UserProfitSnapshotRepository userProfitSnapshotRepository;
   private final UserProfitRankingRepository userProfitRankingRepository;
+  private final UserServiceClient userServiceClient;
   private final GamificationEventProducer gamificationEventProducer;
 
   @Transactional
@@ -62,6 +64,7 @@ public class UserProfitRankingAggregationService {
 
     Map<UUID, UserProfitSnapshotDaily> startByUser = toUserMap(startSnapshots);
     Map<UUID, UserProfitSnapshotDaily> endByUser = toUserMap(endSnapshots);
+    Map<UUID, String> userNamesByIds = getUserNamesByIds(endByUser.keySet());
 
     List<UserProfitRankingData> rankings = new ArrayList<>();
     for (Map.Entry<UUID, UserProfitSnapshotDaily> entry : endByUser.entrySet()) {
@@ -79,6 +82,7 @@ public class UserProfitRankingAggregationService {
 
       rankings.add(new UserProfitRankingData(
         entry.getKey(),
+        userNamesByIds.get(entry.getKey()),
         periodReturnRate,
         periodProfitLoss
       ));
@@ -94,6 +98,14 @@ public class UserProfitRankingAggregationService {
       map.put(snapshot.getId().getUserId(), snapshot);
     }
     return map;
+  }
+
+  private Map<UUID, String> getUserNamesByIds(Iterable<UUID> userIds) {
+    Map<UUID, String> userNamesByIds = userServiceClient.getUserNamesByIds(userIds);
+    if (userNamesByIds == null) {
+      return Map.of();
+    }
+    return userNamesByIds;
   }
 
   private BigDecimal calculateReturnRate(BigDecimal profitLoss, BigDecimal purchaseAmount) {

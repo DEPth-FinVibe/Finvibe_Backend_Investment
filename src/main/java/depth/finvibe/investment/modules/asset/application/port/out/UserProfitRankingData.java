@@ -5,6 +5,7 @@ import java.util.UUID;
 
 public record UserProfitRankingData(
     UUID userId,
+    String userNickname,
     BigDecimal totalReturnRate,
     BigDecimal totalProfitLoss
 ) {}

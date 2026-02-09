@@ -24,14 +24,14 @@ import depth.finvibe.investment.modules.asset.domain.enums.UserProfitRankType;
 
 @Entity
 @Table(
-  name = "user_profit_ranking",
-  uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"rank_type", "user_id"})
-  },
-  indexes = {
-    @Index(name = "idx_user_profit_ranking_type_rank", columnList = "rank_type,rank"),
-    @Index(name = "idx_user_profit_ranking_type_user_id", columnList = "rank_type,user_id")
-  }
+        name = "user_profit_ranking",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"rank_type", "user_id"})
+        },
+        indexes = {
+                @Index(name = "idx_user_profit_ranking_type_rank", columnList = "rank_type,rank"),
+                @Index(name = "idx_user_profit_ranking_type_user_id", columnList = "rank_type,user_id")
+        }
 )
 @Getter
 @Builder
@@ -39,43 +39,47 @@ import depth.finvibe.investment.modules.asset.domain.enums.UserProfitRankType;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class UserProfitRanking {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-  @Column(name = "user_id", nullable = false, columnDefinition = "BINARY(16)")
-  private UUID userId;
+    @Column(name = "user_id", nullable = false, columnDefinition = "BINARY(16)")
+    private UUID userId;
 
-  @Enumerated(EnumType.STRING)
-  @Column(name = "rank_type", nullable = false)
-  private UserProfitRankType rankType;
+    private String userNickname;
 
-  @Column(name = "total_return_rate", nullable = false, precision = 10, scale = 4)
-  private BigDecimal totalReturnRate;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "rank_type", nullable = false)
+    private UserProfitRankType rankType;
 
-  @Column(name = "total_profit_loss", nullable = false, precision = 20, scale = 2)
-  private BigDecimal totalProfitLoss;
+    @Column(name = "total_return_rate", nullable = false, precision = 10, scale = 4)
+    private BigDecimal totalReturnRate;
 
-  @Column(name = "rank", nullable = false)
-  private Integer rank;
+    @Column(name = "total_profit_loss", nullable = false, precision = 20, scale = 2)
+    private BigDecimal totalProfitLoss;
 
-  @Column(name = "updated_at", nullable = false)
-  private LocalDateTime updatedAt;
+    @Column(name = "rank", nullable = false)
+    private Integer rank;
 
-  public static UserProfitRanking create(
-    UUID userId,
-    UserProfitRankType rankType,
-    BigDecimal totalReturnRate,
-    BigDecimal totalProfitLoss,
-    Integer rank
-  ) {
-    return UserProfitRanking.builder()
-      .userId(userId)
-      .rankType(rankType)
-      .totalReturnRate(totalReturnRate)
-      .totalProfitLoss(totalProfitLoss)
-      .rank(rank)
-      .updatedAt(LocalDateTime.now())
-      .build();
-  }
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    public static UserProfitRanking create(
+            UUID userId,
+            String userNickname,
+            UserProfitRankType rankType,
+            BigDecimal totalReturnRate,
+            BigDecimal totalProfitLoss,
+            Integer rank
+    ) {
+        return UserProfitRanking.builder()
+                .userId(userId)
+                .userNickname(userNickname)
+                .rankType(rankType)
+                .totalReturnRate(totalReturnRate)
+                .totalProfitLoss(totalProfitLoss)
+                .rank(rank)
+                .updatedAt(LocalDateTime.now())
+                .build();
+    }
 }

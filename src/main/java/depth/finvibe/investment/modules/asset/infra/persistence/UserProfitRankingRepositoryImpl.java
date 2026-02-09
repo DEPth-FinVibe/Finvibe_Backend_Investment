@@ -47,6 +47,7 @@ public class UserProfitRankingRepositoryImpl implements UserProfitRankingReposit
       UserProfitRankingData data = sortedRankings.get(i);
       entities.add(UserProfitRanking.create(
         data.userId(),
+        data.userNickname(),
         rankType,
         data.totalReturnRate(),
         data.totalProfitLoss(),

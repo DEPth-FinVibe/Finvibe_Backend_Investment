@@ -117,6 +117,7 @@ public class ProfitCalculationService implements ProfitCalculationUseCase {
       if (summary.hasAssets()) {
         rankings.add(new UserProfitRankingData(
           entry.getKey(),
+          null,
           summary.totalReturnRate(),
           summary.totalProfitLoss()
         ));
