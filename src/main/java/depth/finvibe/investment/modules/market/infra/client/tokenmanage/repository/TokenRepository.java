@@ -9,6 +9,8 @@ public interface TokenRepository {
 
     void saveToken(String appKey, String token, LocalDateTime expiresAt);
 
+    void deleteToken(String appKey);
+
     boolean acquireRefreshLock(String appKey);
 
     void releaseRefreshLock(String appKey);

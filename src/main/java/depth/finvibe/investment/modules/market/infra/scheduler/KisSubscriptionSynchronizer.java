@@ -87,7 +87,7 @@ public class KisSubscriptionSynchronizer {
     ) {
     }
 
-    @Scheduled(fixedDelayString = "${market.kis.websocket.sync-interval-ms:5000}")
+    @Scheduled(fixedDelayString = "${market.kis.websocket.sync-interval-ms:1000}")
     public void syncRealtimeSubscriptions() {
         try {
             String nodeId = activeNodeRegistry.getNodeId();

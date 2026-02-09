@@ -84,9 +84,9 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
     }
 
     private void validateTradeContexts(TradeDto.TransactionRequest request, Requester requester) {
-        if(!marketClient.isMarketOpen()) {
-            throw new DomainException(TradeErrorCode.MARKET_CLOSED);
-        }
+//        if(!marketClient.isMarketOpen()) {
+//            throw new DomainException(TradeErrorCode.MARKET_CLOSED);
+//        }
 
         if(!assetClient.isExistPortfolio(request.getPortfolioId(), requester.getUuid())) {
             throw new DomainException(TradeErrorCode.PORTFOLIO_NOT_FOUND);
@@ -149,7 +149,10 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
 
     private TradeDto.TradeResponse processNormalTrade(TradeDto.TransactionRequest request, UUID userId) {
         validateMarketPrice(request);
-        Trade trade = createTradeFrom(request, userId);
+
+        String stockName = marketClient.getStockNameById(request.getStockId());
+
+        Trade trade = createTradeFrom(request, stockName, userId);
         Trade savedTrade = tradeRepository.save(trade);
 
         tradeEventProducer.publishNormalTradeExecutedEvent(trade);
@@ -165,7 +168,7 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
         }
     }
 
-    private static Trade createTradeFrom(TradeDto.TransactionRequest request, UUID userId) {
+    private static Trade createTradeFrom(TradeDto.TransactionRequest request, String stockName, UUID userId) {
         return Trade.create(
                 request.getStockId(),
                 request.getAmount(),
@@ -173,7 +176,8 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
                 request.getPortfolioId(),
                 userId,
                 request.getTransactionType(),
-                request.getTradeType().toTradeType()
+                request.getTradeType().toTradeType(),
+                stockName
         );
     }
 
@@ -191,7 +195,9 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
     }
 
     private TradeDto.TradeResponse processReservedTrade(TradeDto.TransactionRequest request, UUID userId) {
-        Trade trade = createTradeFrom(request, userId);
+        String stockName = marketClient.getStockNameById(request.getStockId());
+
+        Trade trade = createTradeFrom(request, stockName, userId);
         Trade savedTrade = tradeRepository.save(trade);
 
         return TradeDto.TradeResponse.from(savedTrade);

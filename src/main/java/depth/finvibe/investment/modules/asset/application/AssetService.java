@@ -3,10 +3,7 @@ package depth.finvibe.investment.modules.asset.application;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
@@ -33,6 +30,8 @@ import depth.finvibe.investment.shared.error.DomainException;
 @RequiredArgsConstructor
 public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
     private static final BigDecimal INITIAL_ASSET_BASELINE = BigDecimal.valueOf(10_000_000L);
+    private static final int TOP_HOLDING_STOCK_LIMIT = 100;
+    private static final UUID TOP_HOLDING_STOCK_CACHE_KEY = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
     private final PortfolioGroupRepository portfolioGroupRepository;
     private final GamificationEventProducer gamificationEventProducer;
@@ -78,14 +77,8 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
     @Override
     @Transactional(readOnly = true)
     public TopHoldingStockDto.TopHoldingStockListResponse getTopHoldingStocks(UUID userId) {
-        if (userId == null) {
-            return TopHoldingStockDto.TopHoldingStockListResponse.builder()
-                    .totalElements(0)
-                    .items(List.of())
-                    .build();
-        }
-        return topHoldingStockCacheRepository.find(userId)
-                .orElseGet(() -> getTopHoldingStocksFromSource(userId));
+        return topHoldingStockCacheRepository.find(TOP_HOLDING_STOCK_CACHE_KEY)
+                .orElseGet(this::getTopHoldingStocksFromSource);
     }
 
     @Override
@@ -140,12 +133,15 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
                         .thenComparing(TopHoldingStockDto.TopHoldingStockResponse::getStockId))
                 .limit(100)
                 .toList();
+    private TopHoldingStockDto.TopHoldingStockListResponse getTopHoldingStocksFromSource() {
+        List<TopHoldingStockDto.TopHoldingStockResponse> items = portfolioGroupRepository
+                .findTopHoldingStocks(TOP_HOLDING_STOCK_LIMIT);
 
         TopHoldingStockDto.TopHoldingStockListResponse response = TopHoldingStockDto.TopHoldingStockListResponse.builder()
                 .totalElements(items.size())
                 .items(items)
                 .build();
-        topHoldingStockCacheRepository.save(userId, response);
+        topHoldingStockCacheRepository.save(TOP_HOLDING_STOCK_CACHE_KEY, response);
         return response;
     }
 
@@ -304,28 +300,5 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
     }
 
     private record HoldingMetricsSnapshot(int holdingStockCount, int portfolioWithStocksCount) {
-    }
-
-
-    private static class HoldingSummary {
-        private final String name;
-        private BigDecimal totalAmount;
-
-        private HoldingSummary(String name, BigDecimal totalAmount) {
-            this.name = name;
-            this.totalAmount = totalAmount;
-        }
-
-        private String name() {
-            return name;
-        }
-
-        private BigDecimal totalAmount() {
-            return totalAmount;
-        }
-
-        private void addAmount(BigDecimal amount) {
-            this.totalAmount = this.totalAmount.add(amount);
-        }
     }
 }

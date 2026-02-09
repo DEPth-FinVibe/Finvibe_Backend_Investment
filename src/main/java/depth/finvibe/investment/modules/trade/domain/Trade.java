@@ -27,7 +27,7 @@ public class Trade extends TimeStampedBaseEntity{
 
     private Long stockId;
 
-    //TODO: 종목명 저장
+    private String stockName;
 
     private Double amount;
 
@@ -42,7 +42,7 @@ public class Trade extends TimeStampedBaseEntity{
     private TradeType tradeType;
 
     public static Trade create(Long stockId, Double amount, Long price, Long portfolioId, UUID userId,
-                               TransactionType transactionType, TradeType tradeType) {
+                               TransactionType transactionType, TradeType tradeType, String stockName) {
         return Trade.builder()
                 .stockId(stockId)
                 .amount(amount)
@@ -51,6 +51,7 @@ public class Trade extends TimeStampedBaseEntity{
                 .userId(userId)
                 .transactionType(transactionType)
                 .tradeType(tradeType)
+                .stockName(stockName)
                 .build();
     }
 

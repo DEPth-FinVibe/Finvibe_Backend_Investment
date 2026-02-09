@@ -2,6 +2,7 @@ package depth.finvibe.investment.modules.market.infra.scheduler;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -19,11 +20,16 @@ import org.springframework.stereotype.Component;
 import depth.finvibe.investment.modules.market.application.port.in.CategoryCommandUseCase;
 import depth.finvibe.investment.modules.market.application.port.in.StockCommandUseCase;
 import depth.finvibe.investment.modules.market.application.BatchPriceUpdateService;
+import depth.finvibe.investment.modules.market.application.HolidayCalendarService;
+import depth.finvibe.investment.modules.market.application.IndexMinuteCandleCacheService;
 import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
 import depth.finvibe.investment.modules.market.application.port.out.StockThemeRepository;
 import depth.finvibe.investment.modules.market.domain.Category;
 import depth.finvibe.investment.modules.market.domain.MarketHours;
+import depth.finvibe.investment.modules.market.domain.enums.MarketIndexType;
 import depth.finvibe.investment.modules.market.domain.enums.MarketStatus;
+import depth.finvibe.investment.shared.error.DomainException;
+import depth.finvibe.investment.shared.error.GlobalErrorCode;
 
 @Slf4j
 @Component
@@ -40,6 +46,8 @@ public class InitialMarketDataRunner implements CommandLineRunner {
     private final CategoryCommandUseCase categoryCommandUseCase;
     private final StockCommandUseCase stockCommandUseCase;
     private final BatchPriceUpdateService batchPriceUpdateService;
+    private final IndexMinuteCandleCacheService indexMinuteCandleCacheService;
+    private final HolidayCalendarService holidayCalendarService;
     private final StockRepository stockRepository;
     private final StockThemeRepository stockThemeRepository;
 
@@ -68,6 +76,29 @@ public class InitialMarketDataRunner implements CommandLineRunner {
         }
 
         runBatchPriceUpdateIfClosedAndMissing();
+
+        initializeIndexMinuteCandlesIfMissing();
+
+        initializeHolidayCalendarIfMissing();
+    }
+
+    /**
+     * 당월·다음 달 휴장일 달력이 없으면 KIS 국내휴장일조회로 적재.
+     */
+    private void initializeHolidayCalendarIfMissing() {
+        YearMonth now = YearMonth.now();
+        try {
+            holidayCalendarService.ensureCalendarForMonth(now);
+            holidayCalendarService.ensureCalendarForMonth(now.plusMonths(1));
+        } catch (DomainException ex) {
+            if (ex.getErrorCode() == GlobalErrorCode.CIRCUIT_BREAKER_OPEN) {
+                log.warn("KIS API Circuit Breaker 열림으로 휴장일 달력 초기화 스킵.");
+            } else {
+                log.error("휴장일 달력 초기화 중 도메인 에러 발생.", ex);
+            }
+        } catch (Exception ex) {
+            log.error("휴장일 달력 초기화 중 예상치 못한 에러 발생.", ex);
+        }
     }
 
     private void runBatchPriceUpdateIfClosedAndMissing() {
@@ -83,6 +114,30 @@ public class InitialMarketDataRunner implements CommandLineRunner {
 
         log.info("장이 닫혀 있고 누락된 배치 시세 키가 있어 시작 시 배치 시세 보정을 실행합니다.");
         batchPriceUpdateService.updateHoldingStockPrices();
+    }
+
+    /**
+     * 지수 분봉 데이터가 없으면 KIS API로부터 최신 데이터를 가져와 초기화
+     * KIS API는 최신 약 2시간의 분봉 데이터만 제공하므로, 완전한 과거 데이터는 불가
+     */
+    private void initializeIndexMinuteCandlesIfMissing() {
+        log.info("지수 분봉 데이터 초기화를 시작합니다.");
+
+        for (MarketIndexType indexType : MarketIndexType.values()) {
+            try {
+                indexMinuteCandleCacheService.initializeIndexMinuteCandlesIfEmpty(indexType);
+                log.info("지수 분봉 초기화 완료. indexType={}", indexType);
+            } catch (DomainException ex) {
+                if (ex.getErrorCode() == GlobalErrorCode.CIRCUIT_BREAKER_OPEN) {
+                    log.warn("KIS API Circuit Breaker 열림으로 지수 분봉 초기화 스킵. indexType={}",
+                            indexType);
+                } else {
+                    log.error("지수 분봉 초기화 중 도메인 에러 발생. indexType={}", indexType, ex);
+                }
+            } catch (Exception ex) {
+                log.error("지수 분봉 초기화 중 예상치 못한 에러 발생. indexType={}", indexType, ex);
+            }
+        }
     }
 
     private List<String> loadCategoryThemes() {

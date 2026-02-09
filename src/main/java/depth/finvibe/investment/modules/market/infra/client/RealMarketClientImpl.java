@@ -1,6 +1,7 @@
 package depth.finvibe.investment.modules.market.infra.client;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -39,6 +40,8 @@ public class RealMarketClientImpl implements RealMarketClient {
 
     private static final int DAILY_CHART_BATCH_LIMIT = 100;
     private static final int DAILY_CHART_MAX_CALL_COUNT = 50;
+    private static final BigDecimal ONE_HUNDRED = new BigDecimal("100");
+    private static final int CHANGE_RATE_SCALE = 6;
 
     private final KisApiClient kisApiClient;
     private final List<KisFileClient> kisFileClient;
@@ -146,11 +149,17 @@ public class RealMarketClientImpl implements RealMarketClient {
                     continue;
                 }
 
+                BigDecimal previousClosePrice = toBigDecimal(
+                        response.getOutput1() == null ? null : response.getOutput1().getStck_prdy_clpr());
+
                 for (KisDto.TimeDailyChartPriceOutput2 item : response.getOutput2()) {
                     LocalDateTime candleAt = parseDateTime(
                             item.getStck_bsop_date(),
                             item.getStck_cntg_hour()
                     );
+                    if (candleAt == null) {
+                        continue;
+                    }
                     LocalDateTime normalized = normalizeIntradayAt(candleAt);
 
                     if (normalized.isBefore(normalizedStart) || normalized.isAfter(normalizedEnd)) {
@@ -171,7 +180,7 @@ public class RealMarketClientImpl implements RealMarketClient {
                             .stockId(stockId)
                             .timeframe(Timeframe.MINUTE)
                             .at(normalized)
-                            .prevDayChangePct(BigDecimal.ZERO)
+                            .prevDayChangePct(calculateChangeRate(toBigDecimal(item.getStck_prpr()), previousClosePrice))
                             .build());
                 }
             }
@@ -224,6 +233,9 @@ public class RealMarketClientImpl implements RealMarketClient {
 
             for (KisDto.DailyItemChartPriceOutput2 item : items) {
                 LocalDateTime candleAt = parseDateTime(item.getStck_bsop_date(), null);
+                if (candleAt == null) {
+                    continue;
+                }
                 LocalDateTime normalizedAt = normalizeDateAt(candleAt, timeframe);
 
                 if (normalizedAt.isBefore(startTime) || normalizedAt.isAfter(endTime)) {
@@ -240,7 +252,7 @@ public class RealMarketClientImpl implements RealMarketClient {
                         .stockId(stockId)
                         .timeframe(timeframe)
                         .at(normalizedAt)
-                        .prevDayChangePct(BigDecimal.ZERO)
+                        .prevDayChangePct(calculateDailyChangeRate(item))
                         .build());
 
                 LocalDate candleDate = candleAt.toLocalDate();
@@ -288,13 +300,24 @@ public class RealMarketClientImpl implements RealMarketClient {
     }
 
     private LocalDateTime parseDateTime(String date, String time) {
-        LocalDate parsedDate = LocalDate.parse(date, DateTimeFormatter.BASIC_ISO_DATE);
-        if (time == null || time.isBlank()) {
-            return parsedDate.atStartOfDay();
+        if (date == null || date.isBlank()) {
+            log.debug("Skip candle because date is blank. time={}", time);
+            return null;
         }
-        String normalizedTime = time.length() == 4 ? time + "00" : time;
-        LocalTime parsedTime = LocalTime.parse(normalizedTime, DateTimeFormatter.ofPattern("HHmmss"));
-        return LocalDateTime.of(parsedDate, parsedTime);
+
+        try {
+            LocalDate parsedDate = LocalDate.parse(date, DateTimeFormatter.BASIC_ISO_DATE);
+            if (time == null || time.isBlank()) {
+                return parsedDate.atStartOfDay();
+            }
+
+            String normalizedTime = time.length() == 4 ? time + "00" : time;
+            LocalTime parsedTime = LocalTime.parse(normalizedTime, DateTimeFormatter.ofPattern("HHmmss"));
+            return LocalDateTime.of(parsedDate, parsedTime);
+        } catch (Exception ex) {
+            log.debug("Skip candle because date/time parsing failed. date={}, time={}", date, time, ex);
+            return null;
+        }
     }
 
     private BigDecimal toBigDecimal(String value) {
@@ -302,6 +325,38 @@ public class RealMarketClientImpl implements RealMarketClient {
             return BigDecimal.ZERO;
         }
         return new BigDecimal(value);
+    }
+
+    private BigDecimal calculateDailyChangeRate(KisDto.DailyItemChartPriceOutput2 item) {
+        BigDecimal closePrice = toBigDecimal(item.getStck_clpr());
+        BigDecimal signedChange = resolveSignedChange(item.getPrdy_vrss(), item.getPrdy_vrss_sign());
+        BigDecimal previousClosePrice = closePrice.subtract(signedChange);
+        return calculateChangeRate(closePrice, previousClosePrice);
+    }
+
+    private BigDecimal resolveSignedChange(String change, String changeSign) {
+        BigDecimal changeValue = toBigDecimal(change);
+
+        if ("4".equals(changeSign) || "5".equals(changeSign)) {
+            return changeValue.abs().negate();
+        }
+
+        if ("1".equals(changeSign) || "2".equals(changeSign)) {
+            return changeValue.abs();
+        }
+
+        return changeValue;
+    }
+
+    private BigDecimal calculateChangeRate(BigDecimal currentPrice, BigDecimal previousClosePrice) {
+        if (previousClosePrice == null || previousClosePrice.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO;
+        }
+
+        return currentPrice
+                .subtract(previousClosePrice)
+                .multiply(ONE_HUNDRED)
+                .divide(previousClosePrice, CHANGE_RATE_SCALE, RoundingMode.HALF_UP);
     }
 
     private List<LocalDate> getTradingDates(LocalDate start, LocalDate end) {

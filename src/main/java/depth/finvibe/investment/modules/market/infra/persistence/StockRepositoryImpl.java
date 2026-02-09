@@ -13,6 +13,7 @@ import depth.finvibe.investment.modules.market.domain.Stock;
 public class StockRepositoryImpl implements StockRepository {
 
     private final StockJpaRepository jpaRepository;
+    private final StockQueryRepository stockQueryRepository;
 
     @Override
     public Optional<Stock> findById(Long stockId) {
@@ -81,6 +82,6 @@ public class StockRepositoryImpl implements StockRepository {
 
     @Override
     public List<Stock> searchByNameOrSymbol(String query) {
-        return jpaRepository.findByNameContainingIgnoreCaseOrSymbolContainingIgnoreCase(query, query);
+        return stockQueryRepository.searchByNameOrSymbol(query);
     }
 }

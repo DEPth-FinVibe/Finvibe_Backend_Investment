@@ -7,12 +7,14 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import depth.finvibe.investment.modules.market.infra.client.KisCredentialAllocator;
 import depth.finvibe.investment.modules.market.infra.client.tokenmanage.repository.TokenRepository;
 import depth.finvibe.investment.modules.market.infra.config.KisCredentialsProperties.Credential;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class KisTokenManager {
@@ -51,6 +53,23 @@ public class KisTokenManager {
                 tokenCache.put(credential.appKey(), cached);
             }
         }
+    }
+
+    public void invalidateToken(String appKey) {
+        // 1. 메모리 캐시 삭제
+        tokenCache.remove(appKey);
+
+        // 2. Redis 삭제
+        tokenRepository.deleteToken(appKey);
+
+        log.warn("KIS access token invalidated - appKey={}", maskAppKey(appKey));
+    }
+
+    private String maskAppKey(String appKey) {
+        if (appKey == null || appKey.length() < 8) {
+            return "***";
+        }
+        return appKey.substring(0, 4) + "****" + appKey.substring(appKey.length() - 4);
     }
 
     private CachedToken refreshToken(Credential credential) {

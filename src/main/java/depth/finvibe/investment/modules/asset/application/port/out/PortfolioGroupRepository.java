@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
+import depth.finvibe.investment.modules.asset.dto.TopHoldingStockDto;
 
 public interface PortfolioGroupRepository {
     PortfolioGroup save(PortfolioGroup portfolioGroup);
@@ -22,6 +23,8 @@ public interface PortfolioGroupRepository {
     Optional<PortfolioGroup> findDefaultByUserId(UUID userId);
 
     List<PortfolioGroup> findAllByStockIdsWithAssets(List<Long> stockIds);
+
+    List<TopHoldingStockDto.TopHoldingStockResponse> findTopHoldingStocks(int limit);
 
     void delete(PortfolioGroup existing);
 

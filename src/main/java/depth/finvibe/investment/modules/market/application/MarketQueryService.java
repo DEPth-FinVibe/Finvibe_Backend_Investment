@@ -1,17 +1,22 @@
 package depth.finvibe.investment.modules.market.application;
 
 import depth.finvibe.investment.modules.market.application.port.in.MarketQueryUseCase;
+import depth.finvibe.investment.modules.market.application.HolidayCalendarService;
 import depth.finvibe.investment.modules.market.application.port.out.CurrentPriceRepository;
+import depth.finvibe.investment.modules.market.application.port.out.ClosingPriceRepository;
 import depth.finvibe.investment.modules.market.application.port.out.PriceCandleRepository;
 import depth.finvibe.investment.modules.market.application.port.out.RealMarketClient;
 import depth.finvibe.investment.modules.market.application.port.out.CurrentStockWatcherRepository;
 import depth.finvibe.investment.modules.market.application.port.out.StockRankingRepository;
 import depth.finvibe.investment.modules.market.application.port.out.StockRepository;
+import depth.finvibe.investment.modules.market.domain.ClosingPrice;
 import depth.finvibe.investment.modules.market.domain.CurrentPrice;
+import depth.finvibe.investment.modules.market.domain.MarketHours;
 import depth.finvibe.investment.modules.market.domain.PriceCandle;
 import depth.finvibe.investment.modules.market.domain.Stock;
 import depth.finvibe.investment.modules.market.domain.StockRanking;
 import depth.finvibe.investment.modules.market.domain.enums.MarketIndexType;
+import depth.finvibe.investment.modules.market.domain.enums.MarketStatus;
 import depth.finvibe.investment.modules.market.domain.enums.RankType;
 import depth.finvibe.investment.modules.market.domain.enums.Timeframe;
 import depth.finvibe.investment.modules.market.domain.error.MarketErrorCode;
@@ -28,7 +33,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -42,10 +50,12 @@ public class MarketQueryService implements MarketQueryUseCase {
     private final PriceCandleRepository priceCandleRepository;
     private final RealMarketClient realMarketClient;
     private final CurrentPriceRepository currentPriceRepository;
+    private final ClosingPriceRepository closingPriceRepository;
     private final CurrentStockWatcherRepository currentStockWatcherRepository;
     private final StockRankingRepository stockRankingRepository;
     private final StockRepository stockRepository;
     private final DistributedLockManager distributedLockManager;
+    private final HolidayCalendarService holidayCalendarService;
 
     @Override
     @Transactional
@@ -260,40 +270,115 @@ public class MarketQueryService implements MarketQueryUseCase {
     }
 
     @Override
+    @Transactional
+    public Long getStockPriceInternal(Long stockId) {
+        if (MarketHours.getCurrentStatus() == MarketStatus.CLOSED) {
+            List<ClosingPriceDto.Response> closingPrices = getClosingPrices(List.of(stockId));
+            if (!closingPrices.isEmpty()) {
+                return closingPrices.getFirst().getClose().longValue();
+            }
+            throw new DomainException(MarketErrorCode.NO_PRICE_DATA_AVAILABLE);
+        }
+
+        List<CurrentPrice> currentPrices = currentPriceRepository.findByStockIds(List.of(stockId));
+        if (!currentPrices.isEmpty()) {
+            return currentPrices.getFirst().getClose().longValue();
+        }
+
+        Stock stock = stockRepository.findById(stockId)
+                .orElseThrow(() -> new DomainException(MarketErrorCode.STOCK_NOT_FOUND));
+
+        List<PriceCandleDto.Response> snapshots = realMarketClient.bulkFetchCurrentPrices(List.of(stock.getSymbol()));
+        if (!snapshots.isEmpty()) {
+            return snapshots.getFirst().getClose().longValue();
+        }
+
+        throw new DomainException(MarketErrorCode.NO_PRICE_DATA_AVAILABLE);
+    }
+
+    @Override
+    public StockDto.Response getStockById(Long stockId) {
+        Stock stock = stockRepository.findById(stockId)
+                .orElseThrow(() -> new DomainException(MarketErrorCode.STOCK_NOT_FOUND));
+
+        return StockDto.Response.from(stock);
+    }
+
+    @Override
+    @Transactional
     public List<ClosingPriceDto.Response> getClosingPrices(List<Long> stockIds) {
         if (stockIds == null || stockIds.isEmpty()) {
             return List.of();
         }
 
-        List<Stock> stocks = stockRepository.findAllById(stockIds);
+        if (MarketHours.getCurrentStatus() == MarketStatus.OPEN) {
+            throw new DomainException(MarketErrorCode.CLOSING_PRICE_NOT_AVAILABLE_DURING_MARKET_OPEN);
+        }
+
+        List<Long> requestedStockIds = stockIds.stream()
+                .distinct()
+                .toList();
+
+        List<Stock> stocks = stockRepository.findAllById(requestedStockIds);
         Map<Long, Stock> stockMap = stocks.stream()
                 .collect(Collectors.toMap(Stock::getId, stock -> stock));
 
-        if (stockMap.size() != new HashSet<>(stockIds).size()) {
-            Set<Long> missingStockIds = new HashSet<>(stockIds);
+        if (stockMap.size() != requestedStockIds.size()) {
+            Set<Long> missingStockIds = new HashSet<>(requestedStockIds);
             missingStockIds.removeAll(stockMap.keySet());
             log.warn("Some stockIds are missing in DB. stockIds={}", missingStockIds);
         }
 
-        List<PriceCandle> candles = priceCandleRepository.findLatestByStockIdsAndTimeframe(stockIds, Timeframe.DAY);
-        Set<Long> fetchedStockIds = candles.stream()
-                .map(PriceCandle::getStockId)
-                .collect(Collectors.toSet());
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        LocalDate lastTradingDay = holidayCalendarService.getLastTradingDayOnOrBefore(today)
+                .orElse(Timeframe.DAY.lastCompletedTime(LocalDateTime.now()).toLocalDate());
+        LocalDateTime closingAt = lastTradingDay.atTime(LocalTime.of(15, 30));
 
-        List<Long> missingStockIds = stockIds.stream()
+        List<ClosingPrice> cachedClosingPrices = closingPriceRepository
+                .findByStockIdsAndTradingDate(requestedStockIds, lastTradingDay);
+        Map<Long, ClosingPrice> closingPriceByStockId = cachedClosingPrices.stream()
+                .collect(Collectors.toMap(ClosingPrice::getStockId, closingPrice -> closingPrice));
+
+        List<Long> missingStockIds = requestedStockIds.stream()
                 .filter(stockMap::containsKey)
-                .filter(stockId -> !fetchedStockIds.contains(stockId))
+                .filter(stockId -> !closingPriceByStockId.containsKey(stockId))
                 .toList();
 
         if (!missingStockIds.isEmpty()) {
-            fetchLatestDailyCandles(missingStockIds);
-            candles = priceCandleRepository.findLatestByStockIdsAndTimeframe(stockIds, Timeframe.DAY);
+            List<String> missingSymbols = missingStockIds.stream()
+                    .map(stockMap::get)
+                    .filter(Objects::nonNull)
+                    .map(Stock::getSymbol)
+                    .filter(Objects::nonNull)
+                    .filter(symbol -> !symbol.isBlank())
+                    .toList();
+
+            if (!missingSymbols.isEmpty()) {
+                List<PriceCandleDto.Response> snapshots = realMarketClient.bulkFetchCurrentPrices(missingSymbols);
+                Set<Long> missingStockIdSet = new HashSet<>(missingStockIds);
+
+                List<ClosingPrice> fetchedClosingPrices = snapshots.stream()
+                        .filter(snapshot -> missingStockIdSet.contains(snapshot.getStockId()))
+                        .map(snapshot -> ClosingPrice.create(
+                                snapshot.getStockId(),
+                                lastTradingDay,
+                                closingAt,
+                                snapshot.getClose(),
+                                snapshot.getPrevDayChangePct(),
+                                snapshot.getVolume(),
+                                snapshot.getValue()
+                        ))
+                        .toList();
+
+                closingPriceRepository.saveAll(fetchedClosingPrices);
+                fetchedClosingPrices.forEach(price -> closingPriceByStockId.put(price.getStockId(), price));
+            }
         }
 
-        return candles.stream()
-                .filter(candle -> !candle.getIsMissing())
-                .filter(candle -> stockMap.containsKey(candle.getStockId()))
-                .map(candle -> ClosingPriceDto.Response.from(candle, stockMap.get(candle.getStockId())))
+        return requestedStockIds.stream()
+                .filter(stockMap::containsKey)
+                .filter(closingPriceByStockId::containsKey)
+                .map(stockId -> ClosingPriceDto.Response.from(closingPriceByStockId.get(stockId), stockMap.get(stockId)))
                 .toList();
     }
 

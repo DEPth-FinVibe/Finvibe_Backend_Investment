@@ -4,11 +4,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
+import depth.finvibe.investment.modules.asset.dto.TopHoldingStockDto;
 
 import static depth.finvibe.investment.modules.asset.domain.QAsset.asset;
 import static depth.finvibe.investment.modules.asset.domain.QPortfolioGroup.portfolioGroup;
@@ -64,6 +66,24 @@ public class PortfolioGroupQueryRepository {
                 .leftJoin(portfolioGroup.assets, asset).fetchJoin()
                 .where(asset.stockId.in(stockIds))
                 .distinct()
+                .fetch();
+    }
+
+    public List<TopHoldingStockDto.TopHoldingStockResponse> findTopHoldingStocks(int limit) {
+        if (limit <= 0) {
+            return List.of();
+        }
+        return queryFactory
+                .select(Projections.constructor(
+                        TopHoldingStockDto.TopHoldingStockResponse.class,
+                        asset.stockId,
+                        asset.name,
+                        asset.amount.sum()
+                ))
+                .from(asset)
+                .groupBy(asset.stockId, asset.name)
+                .orderBy(asset.amount.sum().desc(), asset.stockId.asc())
+                .limit(limit)
                 .fetch();
     }
 

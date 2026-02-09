@@ -21,6 +21,7 @@ public class MarketErrorHttpMapper implements DomainErrorHttpMapper {
         MarketErrorCode marketCode = (MarketErrorCode) code;
         return switch (marketCode) {
             case INVALID_CATEGORY_NAME,
+                 CLOSING_PRICE_NOT_AVAILABLE_DURING_MARKET_OPEN,
                  INVALID_TIME_RANGE,
                  INVALID_START_END_TIME -> HttpStatus.BAD_REQUEST;
 

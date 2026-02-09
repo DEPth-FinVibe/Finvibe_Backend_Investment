@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import depth.finvibe.investment.modules.asset.application.port.out.PortfolioGroupRepository;
 import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
+import depth.finvibe.investment.modules.asset.dto.TopHoldingStockDto;
 
 @Repository
 @RequiredArgsConstructor
@@ -54,6 +55,11 @@ public class PortfolioGroupRepositoryImpl implements PortfolioGroupRepository {
     @Override
     public List<PortfolioGroup> findAllByStockIdsWithAssets(List<Long> stockIds) {
         return queryRepository.findAllByStockIdsWithAssets(stockIds);
+    }
+
+    @Override
+    public List<TopHoldingStockDto.TopHoldingStockResponse> findTopHoldingStocks(int limit) {
+        return queryRepository.findTopHoldingStocks(limit);
     }
 
     @Override

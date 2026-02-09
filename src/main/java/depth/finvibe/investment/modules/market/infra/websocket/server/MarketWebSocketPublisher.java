@@ -1,6 +1,5 @@
 package depth.finvibe.investment.modules.market.infra.websocket.server;
 
-import depth.finvibe.investment.modules.market.application.port.out.CurrentPriceEventPublisher;
 import depth.finvibe.investment.modules.market.dto.CurrentPriceUpdatedEvent;
 import java.time.Instant;
 import java.util.HashMap;
@@ -14,13 +13,12 @@ import tools.jackson.databind.ObjectMapper;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class MarketWebSocketPublisher implements CurrentPriceEventPublisher {
+public class MarketWebSocketPublisher {
     private static final String EXCHANGE = "KRX";
 
     private final MarketWebSocketRegistry registry;
     private final ObjectMapper objectMapper;
 
-    @Override
     public void publish(CurrentPriceUpdatedEvent event) {
         if (event == null || event.getStockId() == null) {
             return;

@@ -100,7 +100,8 @@ class TradeServiceTest {
                 1L,
                 userId,
                 TransactionType.BUY,
-                TradeType.NORMAL
+                TradeType.NORMAL,
+                "삼성전자"
         );
 
         reservedTrade = Trade.create(
@@ -110,7 +111,8 @@ class TradeServiceTest {
                 1L,
                 userId,
                 TransactionType.BUY,
-                TradeType.RESERVED
+                TradeType.RESERVED,
+                "삼성전자"
         );
     }
 
@@ -196,7 +198,8 @@ class TradeServiceTest {
                 1L,
                 userId,
                 TransactionType.SELL,
-                TradeType.NORMAL
+                TradeType.NORMAL,
+                "삼성전자"
         );
 
         given(tradeRepository.save(any(Trade.class))).willReturn(sellTrade);
@@ -272,7 +275,6 @@ class TradeServiceTest {
     }
 
     private void stubTradeContexts() {
-        given(marketClient.isMarketOpen()).willReturn(true);
         given(assetClient.isExistPortfolio(eq(1L), eq(userId))).willReturn(true);
         given(walletClient.getWalletBalance(eq(userId))).willReturn(1_000_000L);
     }

@@ -9,7 +9,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import depth.finvibe.investment.modules.market.domain.PriceCandle;
+import depth.finvibe.investment.modules.market.domain.ClosingPrice;
 import depth.finvibe.investment.modules.market.domain.Stock;
 
 public class ClosingPriceDto {
@@ -36,15 +36,15 @@ public class ClosingPriceDto {
     @Schema(description = "거래대금", example = "840000000000")
     private BigDecimal value;
 
-    public static Response from(PriceCandle candle, Stock stock) {
+    public static Response from(ClosingPrice closingPrice, Stock stock) {
       return Response.builder()
-          .stockId(candle.getStockId())
+          .stockId(closingPrice.getStockId())
           .stockName(stock.getName())
-          .at(candle.getAt())
-          .close(candle.getClose())
-          .prevDayChangePct(candle.getPrevDayChangePct())
-          .volume(candle.getVolume())
-          .value(candle.getValue())
+          .at(closingPrice.getAt())
+          .close(closingPrice.getClose())
+          .prevDayChangePct(closingPrice.getPrevDayChangePct())
+          .volume(closingPrice.getVolume())
+          .value(closingPrice.getValue())
           .build();
     }
   }

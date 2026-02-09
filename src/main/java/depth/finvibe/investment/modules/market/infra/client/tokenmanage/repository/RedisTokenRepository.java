@@ -7,6 +7,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.UUID;
 
 @Repository
@@ -51,6 +52,14 @@ public class RedisTokenRepository implements TokenRepository {
                 String.valueOf(expiresAt.atZone(KIS_ZONE).toEpochSecond()),
                 Duration.ofSeconds(ttlSeconds)
         );
+    }
+
+    @Override
+    public void deleteToken(String appKey) {
+        redisTemplate.delete(List.of(
+                tokenKey(appKey),
+                expiresAtKey(appKey)
+        ));
     }
 
     @Override

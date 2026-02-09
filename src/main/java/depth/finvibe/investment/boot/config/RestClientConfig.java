@@ -61,14 +61,14 @@ public class RestClientConfig {
           ClientHttpResponse response = execution.execute(request, body);
 
           // 응답을 캐싱하고 msg_cd 확인
-          return new CachedBodyClientHttpResponse(response, credential.appKey(), rateLimiter, objectMapper);
+          return new CachedBodyClientHttpResponse(response, credential.appKey(), rateLimiter, tokenManager, objectMapper);
         })
         .build();
   }
 
   /**
    * 응답 본문을 캐싱하여 여러 번 읽을 수 있도록 하는 래퍼 클래스
-   * msg_cd를 확인하여 레이트 리미트 에러를 감지하고, rt_cd를 확인하여 API 성공/실패를 검증합니다.
+   * msg_cd를 확인하여 토큰 만료 및 레이트 리미트 에러를 감지하고, rt_cd를 확인하여 API 성공/실패를 검증합니다.
    */
   private static class CachedBodyClientHttpResponse implements ClientHttpResponse {
     private final ClientHttpResponse response;
@@ -78,6 +78,7 @@ public class RestClientConfig {
         ClientHttpResponse response,
         String appKey,
         KisRateLimiter rateLimiter,
+        KisTokenManager tokenManager,
         ObjectMapper objectMapper
     ) throws IOException {
       this.response = response;
@@ -87,18 +88,26 @@ public class RestClientConfig {
       try {
         JsonNode root = objectMapper.readTree(cachedBody);
 
-        // 1. msg_cd 확인 (레이트 리미트 에러)
+        // 1. msg_cd 확인 (토큰 만료 및 레이트 리미트 에러)
         JsonNode msgCdNode = root.get("msg_cd");
-        if (msgCdNode != null && "EGW00201".equals(msgCdNode.asText())) {
-          rateLimiter.markAsExceeded(appKey);
+        if (msgCdNode != null) {
+          String msgCd = msgCdNode.asText();
+          if ("EGW00123".equals(msgCd)) {
+            // 토큰 만료 시 Redis에서 삭제
+            tokenManager.invalidateToken(appKey);
+          } else if ("EGW00201".equals(msgCd)) {
+            // 레이트 리미트 처리
+            rateLimiter.markAsExceeded(appKey);
+          }
         }
 
         // 2. rt_cd 확인 (API 성공/실패)
         JsonNode rtCdNode = root.get("rt_cd");
         if (rtCdNode != null && !"0".equals(rtCdNode.asText())) {
           String rtCd = rtCdNode.asText();
+          String msgCd = root.has("msg_cd") ? root.get("msg_cd").asText() : "Unknown";
           String msg1 = root.has("msg1") ? root.get("msg1").asText() : "Unknown error";
-          throw new IOException("KIS API 호출 실패 - rt_cd: " + rtCd + ", message: " + msg1);
+          throw new IOException("KIS API 호출 실패 - rt_cd: " + rtCd + ", msg_cd: " + msgCd + ", message: " + msg1);
         }
       } catch (IOException e) {
         throw e;
