@@ -82,6 +82,8 @@ public class TradeDto {
         private Long tradeId;
         @Schema(description = "종목 ID", example = "10")
         private Long stockId;
+        @Schema(description = "종목명", example = "삼성전자")
+        private String stockName;
         @Schema(description = "주문 수량", example = "5")
         private Double amount;
         @Schema(description = "주문 가격", example = "60000")
@@ -99,6 +101,7 @@ public class TradeDto {
             return TradeHistoryResponse.builder()
                     .tradeId(trade.getId())
                     .stockId(trade.getStockId())
+                    .stockName(trade.getStockName())
                     .amount(trade.getAmount())
                     .price(trade.getPrice())
                     .portfolioId(trade.getPortfolioId())

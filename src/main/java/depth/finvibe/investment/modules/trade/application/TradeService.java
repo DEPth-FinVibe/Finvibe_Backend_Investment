@@ -1,6 +1,7 @@
 package depth.finvibe.investment.modules.trade.application;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
@@ -58,6 +59,17 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
         YearMonth yearMonth = YearMonth.of(year, month);
         LocalDateTime start = yearMonth.atDay(1).atStartOfDay();
         LocalDateTime end = yearMonth.plusMonths(1).atDay(1).atStartOfDay();
+
+        return tradeRepository.findByUserIdAndCreatedAtBetween(userId, start, end)
+                .stream()
+                .map(TradeDto.TradeHistoryResponse::from)
+                .toList();
+    }
+
+    @Override
+    public List<TradeDto.TradeHistoryResponse> findTradesByDateRange(UUID userId, LocalDate fromDate, LocalDate toDate) {
+        LocalDateTime start = fromDate.atStartOfDay();
+        LocalDateTime end = toDate.plusDays(1).atStartOfDay();
 
         return tradeRepository.findByUserIdAndCreatedAtBetween(userId, start, end)
                 .stream()
