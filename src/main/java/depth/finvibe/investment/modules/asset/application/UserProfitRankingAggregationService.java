@@ -101,7 +101,7 @@ public class UserProfitRankingAggregationService {
   }
 
   private Map<UUID, String> getUserNamesByIds(Iterable<UUID> userIds) {
-    Map<UUID, String> userNamesByIds = userServiceClient.getUserNamesByIds(userIds);
+    Map<UUID, String> userNamesByIds = userServiceClient.getUserNkcinamesByIds(userIds);
     if (userNamesByIds == null) {
       return Map.of();
     }
