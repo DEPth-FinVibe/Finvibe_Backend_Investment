@@ -71,4 +71,11 @@ public class Trade extends TimeStampedBaseEntity{
         }
         this.tradeType = TradeType.NORMAL;
     }
+
+    public void fail() {
+        if (this.tradeType != TradeType.RESERVED) {
+            throw new DomainException(TradeErrorCode.INVALID_TRADE_TYPE);
+        }
+        this.tradeType = TradeType.FAILED;
+    }
 }

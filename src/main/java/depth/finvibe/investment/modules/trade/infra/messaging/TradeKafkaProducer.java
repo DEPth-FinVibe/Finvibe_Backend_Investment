@@ -28,8 +28,8 @@ public class TradeKafkaProducer implements TradeEventProducer {
     }
 
     @Override
-    public void publishReservedTradeExecutedEvent(Trade trade) {
-        log.info("Publishing reserved trade executed event for trade: {}", trade.getId());
+    public void publishTradeReservedEvent(Trade trade) {
+        log.info("Publishing trade reserved event for trade: {}", trade.getId());
         TradeExecutedEvent event = createTradeExecutedEvent(trade);
         kafkaTemplate.send(TRADE_RESERVED_TOPIC, trade.getUserId().toString(), event);
     }

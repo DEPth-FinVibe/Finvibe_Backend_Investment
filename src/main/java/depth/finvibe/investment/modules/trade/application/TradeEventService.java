@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import depth.finvibe.investment.modules.trade.application.port.in.TradeCommandUseCase;
 import depth.finvibe.investment.modules.trade.application.port.in.TradeEventUseCase;
+import depth.finvibe.investment.modules.trade.domain.enums.TradeType;
 import depth.finvibe.investment.modules.trade.domain.error.TradeErrorCode;
 import depth.finvibe.investment.modules.trade.dto.TradeDto;
 import depth.finvibe.investment.shared.dto.ReservationSatisfiedEvent;
@@ -26,6 +27,14 @@ public class TradeEventService implements TradeEventUseCase {
             Long tradeId = event.getTradeId();
 
             TradeDto.TradeResponse response = tradeCommandUseCase.executeReservedTrade(tradeId);
+
+            if (response.getTradeType() == TradeType.FAILED) {
+                log.warn("예약 거래 체결 실패(잔액 부족): tradeId={}, amount={}, price={}",
+                        response.getTradeId(),
+                        response.getAmount(),
+                        response.getPrice());
+                return;
+            }
 
             log.info("예약 거래 체결 완료: tradeId={}, amount={}, price={}",
                 response.getTradeId(),

@@ -175,6 +175,7 @@ class TradeServiceTest {
         assertThat(response.getStockId()).isEqualTo(5930L);
         assertThat(response.getTradeType()).isEqualTo(TradeType.RESERVED);
         verify(tradeRepository, times(1)).save(any(Trade.class));
+        verify(tradeEventProducer, times(1)).publishTradeReservedEvent(any(Trade.class));
     }
 
     @Test
@@ -248,6 +249,7 @@ class TradeServiceTest {
         // then
         verify(spyReservedTrade, times(1)).cancel();
         verify(tradeRepository, times(1)).save(any(Trade.class));
+        verify(tradeEventProducer, times(1)).publishTradeCancelledEvent(any(Trade.class));
     }
 
     @Test
@@ -286,6 +288,7 @@ class TradeServiceTest {
         Trade spyReservedTrade = spy(reservedTrade);
         given(tradeRepository.findById(1L)).willReturn(Optional.of(spyReservedTrade));
         given(tradeRepository.save(any(Trade.class))).willReturn(spyReservedTrade);
+        given(walletClient.getWalletBalance(eq(userId))).willReturn(1_000_000L);
 
         // when
         TradeDto.TradeResponse response = tradeService.executeReservedTrade(1L);
@@ -293,7 +296,28 @@ class TradeServiceTest {
         // then
         verify(spyReservedTrade, times(1)).execute();
         verify(tradeRepository, times(1)).save(any(Trade.class));
-        verify(tradeEventProducer, times(1)).publishReservedTradeExecutedEvent(any(Trade.class));
+        verify(walletClient, times(1)).getWalletBalance(eq(userId));
+        verify(tradeEventProducer, times(1)).publishNormalTradeExecutedEvent(any(Trade.class));
+    }
+
+    @Test
+    @DisplayName("예약 주문 체결 실패 - 잔액 부족")
+    void executeReservedTrade_InsufficientBalance() {
+        // given
+        Trade spyReservedTrade = spy(reservedTrade);
+        given(tradeRepository.findById(1L)).willReturn(Optional.of(spyReservedTrade));
+        given(tradeRepository.save(any(Trade.class))).willReturn(spyReservedTrade);
+        given(walletClient.getWalletBalance(eq(userId))).willReturn(1L);
+
+        // when
+        TradeDto.TradeResponse response = tradeService.executeReservedTrade(1L);
+
+        // then
+        assertThat(response.getTradeType()).isEqualTo(TradeType.FAILED);
+        verify(spyReservedTrade, never()).execute();
+        verify(spyReservedTrade, times(1)).fail();
+        verify(tradeRepository, times(1)).save(any(Trade.class));
+        verify(tradeEventProducer, never()).publishNormalTradeExecutedEvent(any(Trade.class));
     }
 
     @Test

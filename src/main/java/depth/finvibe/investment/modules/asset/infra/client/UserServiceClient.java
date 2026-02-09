@@ -16,7 +16,7 @@ public class UserServiceClient {
             .baseUrl("http://user")
             .build();
 
-    public Map<UUID, String> getUserNkcinamesByIds(Iterable<UUID> userIds) {
+    public Map<UUID, String> getUserNicknamesByIds(Iterable<UUID> userIds) {
         return restClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/internal/members/nicknames")

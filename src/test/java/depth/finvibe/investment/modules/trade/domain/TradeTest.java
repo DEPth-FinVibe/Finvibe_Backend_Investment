@@ -90,6 +90,28 @@ class TradeTest {
     assertThat(trade.getTradeType()).isEqualTo(TradeType.NORMAL);
   }
 
+  @Test
+  @DisplayName("예약 주문 실패 처리 성공")
+  void failReservedTrade_success() {
+    // given
+    Trade trade = Trade.create(
+        1L,
+        10.0,
+        50000L,
+        1L,
+        UUID.randomUUID(),
+        TransactionType.BUY,
+        TradeType.RESERVED,
+        "테스트종목"
+    );
+
+    // when
+    trade.fail();
+
+    // then
+    assertThat(trade.getTradeType()).isEqualTo(TradeType.FAILED);
+  }
+
   @ParameterizedTest
   @EnumSource(TransactionType.class)
   @DisplayName("모든 TransactionType으로 거래 생성 가능")

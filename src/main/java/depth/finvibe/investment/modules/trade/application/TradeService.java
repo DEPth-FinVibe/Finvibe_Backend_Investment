@@ -1,6 +1,7 @@
 package depth.finvibe.investment.modules.trade.application;
 
 import java.time.Instant;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -119,6 +120,7 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
 
         trade.cancel();
         Trade cancelledTrade = tradeRepository.save(trade);
+        tradeEventProducer.publishTradeCancelledEvent(cancelledTrade);
 
         return TradeDto.TradeResponse.from(cancelledTrade);
     }
@@ -131,10 +133,16 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
 
         ensureTradeIsReserved(trade);
 
+        if (isInsufficientBalanceForReservedBuy(trade)) {
+            trade.fail();
+            Trade failedTrade = tradeRepository.save(trade);
+            return TradeDto.TradeResponse.from(failedTrade);
+        }
+
         trade.execute();
         Trade saveTrade = tradeRepository.save(trade);
 
-        tradeEventProducer.publishReservedTradeExecutedEvent(trade);
+        tradeEventProducer.publishNormalTradeExecutedEvent(trade);
 
         return TradeDto.TradeResponse.from(saveTrade);
     }
@@ -143,6 +151,18 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
         if(trade.getTradeType() != TradeType.RESERVED) {
             throw new DomainException(TradeErrorCode.INVALID_TRADE_TYPE);
         }
+    }
+
+    private boolean isInsufficientBalanceForReservedBuy(Trade trade) {
+        if (trade.getTransactionType() != TransactionType.BUY) {
+            return false;
+        }
+
+        Long balance = walletClient.getWalletBalance(trade.getUserId());
+        BigDecimal required = BigDecimal.valueOf(trade.getAmount())
+                .multiply(BigDecimal.valueOf(trade.getPrice()));
+
+        return BigDecimal.valueOf(balance).compareTo(required) < 0;
     }
 
     private static void ensureTradeCancelable(Trade trade, Requester requester) {
@@ -211,6 +231,7 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
 
         Trade trade = createTradeFrom(request, stockName, userId);
         Trade savedTrade = tradeRepository.save(trade);
+        tradeEventProducer.publishTradeReservedEvent(trade);
 
         return TradeDto.TradeResponse.from(savedTrade);
     }
