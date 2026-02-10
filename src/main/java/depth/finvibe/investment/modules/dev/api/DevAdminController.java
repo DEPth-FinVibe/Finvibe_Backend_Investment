@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import depth.finvibe.investment.boot.security.model.AuthenticatedUser;
 import depth.finvibe.investment.boot.security.model.Requester;
 import depth.finvibe.investment.boot.security.model.UserRole;
+import depth.finvibe.investment.modules.market.application.BatchPriceUpdateService;
 import depth.finvibe.investment.modules.market.infra.client.tokenmanage.repository.TokenRepository;
 import depth.finvibe.investment.shared.error.DomainException;
 import depth.finvibe.investment.shared.error.GlobalErrorCode;
@@ -26,6 +28,7 @@ import depth.finvibe.investment.shared.error.GlobalErrorCode;
 public class DevAdminController {
 
   private final TokenRepository tokenRepository;
+  private final BatchPriceUpdateService batchPriceUpdateService;
 
   @GetMapping("/kis/token")
   @Operation(summary = "KIS 토큰 조회", description = "appKey로 Redis에 저장된 KIS access token을 조회합니다.")
@@ -39,6 +42,16 @@ public class DevAdminController {
     LocalDateTime expiresAt = tokenRepository.getExpiresAt(appKey);
 
     return ResponseEntity.ok(new KisTokenResponse(appKey, token, expiresAt, token != null));
+  }
+
+  @PostMapping("/market/batch-price-update")
+  @Operation(summary = "배치 가격 업데이트 강제 실행", description = "시장 상태와 무관하게 배치 가격 업데이트를 즉시 실행합니다.")
+  public ResponseEntity<Void> runBatchPriceUpdate(
+      @Parameter(hidden = true) @AuthenticatedUser Requester requester
+  ) {
+    ensureAdmin(requester);
+    batchPriceUpdateService.updateHoldingStockPrices();
+    return ResponseEntity.ok().build();
   }
 
   private void ensureAdmin(Requester requester) {
