@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -24,13 +25,18 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import depth.finvibe.investment.modules.asset.application.port.out.PortfolioGroupRepository;
+import depth.finvibe.investment.modules.asset.application.port.out.PortfolioPerformanceSnapshotRepository;
 import depth.finvibe.investment.modules.asset.application.port.out.TopHoldingStockCacheRepository;
 import depth.finvibe.investment.modules.asset.domain.Asset;
 import depth.finvibe.investment.modules.asset.domain.Currency;
 import depth.finvibe.investment.modules.asset.domain.Money;
+import depth.finvibe.investment.modules.asset.domain.PortfolioPerformanceSnapshotDaily;
+import depth.finvibe.investment.modules.asset.domain.PortfolioPerformanceSnapshotDailyId;
 import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
 import depth.finvibe.investment.modules.asset.domain.PortfolioValuation;
 import depth.finvibe.investment.modules.asset.domain.error.AssetErrorCode;
+import depth.finvibe.investment.modules.asset.domain.enums.PortfolioChartInterval;
+import depth.finvibe.investment.modules.asset.dto.PortfolioPerformanceDto;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
 import depth.finvibe.investment.modules.wallet.application.port.in.WalletQueryUseCase;
 import depth.finvibe.investment.modules.wallet.dto.WalletDto;
@@ -52,6 +58,9 @@ class AssetServiceTest {
 
   @Mock
   WalletQueryUseCase walletQueryUseCase;
+
+  @Mock
+  PortfolioPerformanceSnapshotRepository portfolioPerformanceSnapshotRepository;
 
   @InjectMocks
   AssetService assetService;
@@ -448,6 +457,68 @@ class AssetServiceTest {
   }
 
   @Test
+  @DisplayName("포트폴리오 성과 차트를 주별로 조회하면 포트폴리오/전체 합산 시리즈를 반환한다.")
+  void getPortfolioPerformanceChart_weekly_success() {
+    UUID userId = UUID.randomUUID();
+
+    when(portfolioGroupRepository.findAllByUserId(userId)).thenReturn(List.of(
+        PortfolioGroup.builder().id(1L).name("성장형").userId(userId).build(),
+        PortfolioGroup.builder().id(2L).name("안정형").userId(userId).build()
+    ));
+
+    when(portfolioPerformanceSnapshotRepository.findByUserIdAndSnapshotDateBetween(
+        userId,
+        LocalDate.of(2026, 2, 1),
+        LocalDate.of(2026, 2, 14)
+    )).thenReturn(List.of(
+        snapshot(1L, userId, "성장형", LocalDate.of(2026, 2, 3), "1000", "100", "10.0000"),
+        snapshot(1L, userId, "성장형", LocalDate.of(2026, 2, 7), "1200", "180", "17.6500"),
+        snapshot(1L, userId, "성장형", LocalDate.of(2026, 2, 10), "1300", "220", "20.3700"),
+        snapshot(2L, userId, "안정형", LocalDate.of(2026, 2, 5), "900", "45", "5.2600"),
+        snapshot(2L, userId, "안정형", LocalDate.of(2026, 2, 11), "950", "60", "6.7400")
+    ));
+
+    PortfolioPerformanceDto.ChartResponse result = assetService.getPortfolioPerformanceChart(
+        userId,
+        LocalDate.of(2026, 2, 1),
+        LocalDate.of(2026, 2, 14),
+        PortfolioChartInterval.WEEKLY
+    );
+
+    assertThat(result.getPortfolios()).hasSize(2);
+    assertThat(result.getPortfolios().get(0).getPortfolioName()).isEqualTo("성장형");
+    assertThat(result.getPortfolios().get(0).getPoints()).hasSize(2);
+    assertThat(result.getPortfolios().get(0).getPoints().get(0).getPeriodStartDate()).isEqualTo(LocalDate.of(2026, 2, 2));
+    assertThat(result.getPortfolios().get(0).getPoints().get(0).getTotalCurrentValue()).isEqualByComparingTo("1200");
+    assertThat(result.getPortfolios().get(0).getPoints().get(1).getPeriodStartDate()).isEqualTo(LocalDate.of(2026, 2, 9));
+    assertThat(result.getPortfolios().get(0).getPoints().get(1).getTotalCurrentValue()).isEqualByComparingTo("1300");
+
+    assertThat(result.getTotal()).hasSize(2);
+    assertThat(result.getTotal().get(0).getPeriodStartDate()).isEqualTo(LocalDate.of(2026, 2, 2));
+    assertThat(result.getTotal().get(0).getTotalCurrentValue()).isEqualByComparingTo("2100");
+    assertThat(result.getTotal().get(0).getTotalReturnRate()).isEqualByComparingTo("12.0000");
+    assertThat(result.getTotal().get(1).getPeriodStartDate()).isEqualTo(LocalDate.of(2026, 2, 9));
+    assertThat(result.getTotal().get(1).getTotalCurrentValue()).isEqualByComparingTo("2250");
+    assertThat(result.getTotal().get(1).getTotalReturnRate()).isEqualByComparingTo("14.2100");
+  }
+
+  @Test
+  @DisplayName("포트폴리오 성과 차트 조회 기간이 유효하지 않으면 예외를 던진다.")
+  void getPortfolioPerformanceChart_invalidDateRange_fail() {
+    UUID userId = UUID.randomUUID();
+
+    assertThatThrownBy(() -> assetService.getPortfolioPerformanceChart(
+        userId,
+        LocalDate.of(2026, 2, 10),
+        LocalDate.of(2026, 2, 1),
+        PortfolioChartInterval.DAILY
+    ))
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).getErrorCode())
+            .isEqualTo(AssetErrorCode.INVALID_PORTFOLIO_CHART_DATE_RANGE));
+  }
+
+  @Test
   @DisplayName("상위 보유 종목 캐시 미스 시 DB 집계를 조회하고 캐시에 저장한다.")
   void getTopHoldingStocks_cacheMiss_fetchFromSourceAndCache() {
     // given
@@ -493,5 +564,24 @@ class AssetServiceTest {
     // then
     assertThat(result).isEqualTo(cached);
     verify(portfolioGroupRepository, never()).findTopHoldingStocks(anyInt());
+  }
+
+  private PortfolioPerformanceSnapshotDaily snapshot(
+      Long portfolioId,
+      UUID userId,
+      String portfolioName,
+      LocalDate snapshotDate,
+      String totalCurrentValue,
+      String totalProfitLoss,
+      String totalReturnRate
+  ) {
+    return PortfolioPerformanceSnapshotDaily.create(
+        new PortfolioPerformanceSnapshotDailyId(portfolioId, snapshotDate),
+        userId,
+        portfolioName,
+        new BigDecimal(totalCurrentValue),
+        new BigDecimal(totalProfitLoss),
+        new BigDecimal(totalReturnRate)
+    );
   }
 }

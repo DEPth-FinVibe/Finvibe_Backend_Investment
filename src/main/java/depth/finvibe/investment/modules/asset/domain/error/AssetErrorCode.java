@@ -22,6 +22,7 @@ public enum AssetErrorCode implements DomainErrorCode {
     ONLY_OWNER_CAN_DELETE_PORTFOLIO_GROUP("ONLY_OWNER_CAN_DELETE_PORTFOLIO_GROUP", "포트폴리오 그룹 삭제는 소유자만 할 수 있습니다."),
     DEFAULT_PORTFOLIO_GROUP_NOT_FOUND("DEFAULT_PORTFOLIO_GROUP_NOT_FOUND", "기본 포트폴리오 그룹을 찾을 수 없습니다."),
     DEFAULT_PORTFOLIO_GROUP_ALREADY_EXISTS("DEFAULT_PORTFOLIO_GROUP_ALREADY_EXISTS", "기본 포트폴리오 그룹이 이미 존재합니다."),
+    INVALID_PORTFOLIO_CHART_DATE_RANGE("INVALID_PORTFOLIO_CHART_DATE_RANGE", "포트폴리오 차트 조회 기간이 유효하지 않습니다."),
 
     // Money
     NEGATIVE_MONEY_AMOUNT("NEGATIVE_MONEY_AMOUNT", "금액은 0보다 작을 수 없습니다."),

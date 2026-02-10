@@ -3,8 +3,15 @@ package depth.finvibe.investment.modules.asset.application;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -12,12 +19,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUseCase;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetQueryUseCase;
+import depth.finvibe.investment.modules.asset.application.port.out.PortfolioPerformanceSnapshotRepository;
 import depth.finvibe.investment.modules.asset.application.port.out.PortfolioGroupRepository;
 import depth.finvibe.investment.modules.asset.application.port.out.TopHoldingStockCacheRepository;
 import depth.finvibe.investment.modules.asset.domain.Asset;
+import depth.finvibe.investment.modules.asset.domain.PortfolioPerformanceSnapshotDaily;
 import depth.finvibe.investment.modules.asset.domain.Money;
 import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
 import depth.finvibe.investment.modules.asset.domain.error.AssetErrorCode;
+import depth.finvibe.investment.modules.asset.domain.enums.PortfolioChartInterval;
+import depth.finvibe.investment.modules.asset.dto.PortfolioPerformanceDto;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
 import depth.finvibe.investment.modules.asset.dto.TopHoldingStockDto;
 import depth.finvibe.investment.modules.wallet.application.port.in.WalletQueryUseCase;
@@ -37,6 +48,7 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
     private final GamificationEventProducer gamificationEventProducer;
     private final TopHoldingStockCacheRepository topHoldingStockCacheRepository;
     private final WalletQueryUseCase walletQueryUseCase;
+    private final PortfolioPerformanceSnapshotRepository portfolioPerformanceSnapshotRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -107,6 +119,45 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
                 .build();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public PortfolioPerformanceDto.ChartResponse getPortfolioPerformanceChart(
+            UUID requesterUserId,
+            LocalDate startDate,
+            LocalDate endDate,
+            PortfolioChartInterval interval
+    ) {
+        if (requesterUserId == null || startDate == null || endDate == null || interval == null || startDate.isAfter(endDate)) {
+            throw new DomainException(AssetErrorCode.INVALID_PORTFOLIO_CHART_DATE_RANGE);
+        }
+
+        List<PortfolioPerformanceSnapshotDaily> snapshots = portfolioPerformanceSnapshotRepository
+                .findByUserIdAndSnapshotDateBetween(requesterUserId, startDate, endDate);
+
+        Map<Long, String> portfolioNames = portfolioGroupRepository.findAllByUserId(requesterUserId).stream()
+                .filter(portfolio -> portfolio.getId() != null)
+                .collect(Collectors.toMap(PortfolioGroup::getId, PortfolioGroup::getName, (a, b) -> a));
+
+        Map<Long, List<PortfolioPerformanceSnapshotDaily>> snapshotsByPortfolio = snapshots.stream()
+                .collect(Collectors.groupingBy(snapshot -> snapshot.getId().getPortfolioId()));
+
+        List<PortfolioPerformanceDto.PortfolioSeries> portfolios = snapshotsByPortfolio.entrySet().stream()
+                .map(entry -> buildPortfolioSeries(entry.getKey(), entry.getValue(), interval, portfolioNames))
+                .sorted(Comparator.comparing(PortfolioPerformanceDto.PortfolioSeries::getPortfolioName,
+                        Comparator.nullsLast(String::compareTo)))
+                .toList();
+
+        List<PortfolioPerformanceDto.Point> total = buildTotalSeries(snapshotsByPortfolio, interval);
+
+        return PortfolioPerformanceDto.ChartResponse.builder()
+                .interval(interval)
+                .startDate(startDate)
+                .endDate(endDate)
+                .portfolios(portfolios)
+                .total(total)
+                .build();
+    }
+
     private TopHoldingStockDto.TopHoldingStockListResponse getTopHoldingStocksFromSource() {
         List<TopHoldingStockDto.TopHoldingStockResponse> items = portfolioGroupRepository
                 .findTopHoldingStocks(TOP_HOLDING_STOCK_LIMIT);
@@ -127,6 +178,96 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
             return asset.getTotalPrice().getAmount();
         }
         return BigDecimal.ZERO;
+    }
+
+    private BigDecimal calculateReturnRate(BigDecimal profitLoss, BigDecimal purchaseAmount) {
+        if (purchaseAmount.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO;
+        }
+        return profitLoss
+                .divide(purchaseAmount, 4, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100));
+    }
+
+    private PortfolioPerformanceDto.PortfolioSeries buildPortfolioSeries(
+            Long portfolioId,
+            List<PortfolioPerformanceSnapshotDaily> snapshots,
+            PortfolioChartInterval interval,
+            Map<Long, String> portfolioNames
+    ) {
+        TreeMap<LocalDate, PortfolioPerformanceSnapshotDaily> latestByBucket = latestSnapshotsByBucket(snapshots, interval);
+        List<PortfolioPerformanceDto.Point> points = latestByBucket.entrySet().stream()
+                .map(entry -> toPoint(entry.getKey(), entry.getValue()))
+                .toList();
+
+        String portfolioName = portfolioNames.getOrDefault(portfolioId, snapshots.get(0).getPortfolioName());
+        return PortfolioPerformanceDto.PortfolioSeries.builder()
+                .portfolioId(portfolioId)
+                .portfolioName(portfolioName)
+                .points(points)
+                .build();
+    }
+
+    private List<PortfolioPerformanceDto.Point> buildTotalSeries(
+            Map<Long, List<PortfolioPerformanceSnapshotDaily>> snapshotsByPortfolio,
+            PortfolioChartInterval interval
+    ) {
+        TreeMap<LocalDate, PeriodAggregate> totalByBucket = new TreeMap<>();
+
+        for (List<PortfolioPerformanceSnapshotDaily> snapshots : snapshotsByPortfolio.values()) {
+            TreeMap<LocalDate, PortfolioPerformanceSnapshotDaily> latestByBucket = latestSnapshotsByBucket(snapshots, interval);
+            for (Map.Entry<LocalDate, PortfolioPerformanceSnapshotDaily> entry : latestByBucket.entrySet()) {
+                LocalDate bucketDate = entry.getKey();
+                PortfolioPerformanceSnapshotDaily snapshot = entry.getValue();
+                PeriodAggregate aggregate = totalByBucket.computeIfAbsent(bucketDate, key -> new PeriodAggregate());
+                aggregate.totalCurrentValue = aggregate.totalCurrentValue.add(snapshot.getTotalCurrentValue());
+                aggregate.totalProfitLoss = aggregate.totalProfitLoss.add(snapshot.getTotalProfitLoss());
+            }
+        }
+
+        return totalByBucket.entrySet().stream()
+                .map(entry -> {
+                    BigDecimal purchaseAmount = entry.getValue().totalCurrentValue.subtract(entry.getValue().totalProfitLoss);
+                    BigDecimal totalReturnRate = calculateReturnRate(entry.getValue().totalProfitLoss, purchaseAmount);
+                    return PortfolioPerformanceDto.Point.builder()
+                            .periodStartDate(entry.getKey())
+                            .totalCurrentValue(entry.getValue().totalCurrentValue)
+                            .totalReturnRate(totalReturnRate)
+                            .build();
+                })
+                .toList();
+    }
+
+    private TreeMap<LocalDate, PortfolioPerformanceSnapshotDaily> latestSnapshotsByBucket(
+            List<PortfolioPerformanceSnapshotDaily> snapshots,
+            PortfolioChartInterval interval
+    ) {
+        TreeMap<LocalDate, PortfolioPerformanceSnapshotDaily> latestByBucket = new TreeMap<>();
+        for (PortfolioPerformanceSnapshotDaily snapshot : snapshots) {
+            LocalDate snapshotDate = snapshot.getId().getSnapshotDate();
+            LocalDate bucketDate = toBucketDate(snapshotDate, interval);
+            PortfolioPerformanceSnapshotDaily existing = latestByBucket.get(bucketDate);
+            if (existing == null || snapshotDate.isAfter(existing.getId().getSnapshotDate())) {
+                latestByBucket.put(bucketDate, snapshot);
+            }
+        }
+        return latestByBucket;
+    }
+
+    private LocalDate toBucketDate(LocalDate snapshotDate, PortfolioChartInterval interval) {
+        return switch (interval) {
+            case DAILY -> snapshotDate;
+            case WEEKLY -> snapshotDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+            case MONTHLY -> snapshotDate.withDayOfMonth(1);
+        };
+    }
+
+    private PortfolioPerformanceDto.Point toPoint(LocalDate bucketDate, PortfolioPerformanceSnapshotDaily snapshot) {
+        return PortfolioPerformanceDto.Point.builder()
+                .periodStartDate(bucketDate)
+                .totalCurrentValue(snapshot.getTotalCurrentValue())
+                .totalReturnRate(snapshot.getTotalReturnRate())
+                .build();
     }
 
     @Override
@@ -271,6 +412,11 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
                     .build());
         }
 
+    }
+
+    private static class PeriodAggregate {
+        private BigDecimal totalCurrentValue = BigDecimal.ZERO;
+        private BigDecimal totalProfitLoss = BigDecimal.ZERO;
     }
 
     private record HoldingMetricsSnapshot(int holdingStockCount, int portfolioWithStocksCount) {

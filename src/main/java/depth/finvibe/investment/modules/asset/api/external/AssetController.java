@@ -1,11 +1,13 @@
 package depth.finvibe.investment.modules.asset.api.external;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,6 +17,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import depth.finvibe.investment.boot.security.model.AuthenticatedUser;
 import depth.finvibe.investment.boot.security.model.Requester;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetQueryUseCase;
+import depth.finvibe.investment.modules.asset.domain.enums.PortfolioChartInterval;
+import depth.finvibe.investment.modules.asset.dto.PortfolioPerformanceDto;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
 
 @RestController
@@ -47,5 +51,16 @@ public class AssetController {
             @Parameter(hidden = true) @AuthenticatedUser Requester requester
     ) {
         return ResponseEntity.ok(queryUseCase.getAssetAllocation(requester.getUuid()));
+    }
+
+    @GetMapping("/portfolios/performance-chart")
+    @Operation(summary = "포트폴리오 성과 차트 조회", description = "포트폴리오별 평가금/수익률을 일별/주별/월별로 조회합니다.")
+    public ResponseEntity<PortfolioPerformanceDto.ChartResponse> getPortfolioPerformanceChart(
+            @Parameter(description = "조회 시작일", example = "2026-01-01") @RequestParam LocalDate startDate,
+            @Parameter(description = "조회 종료일", example = "2026-02-10") @RequestParam LocalDate endDate,
+            @Parameter(description = "차트 집계 단위", example = "WEEKLY") @RequestParam PortfolioChartInterval interval,
+            @Parameter(hidden = true) @AuthenticatedUser Requester requester
+    ) {
+        return ResponseEntity.ok(queryUseCase.getPortfolioPerformanceChart(requester.getUuid(), startDate, endDate, interval));
     }
 }

@@ -7,6 +7,8 @@ import depth.finvibe.investment.modules.asset.api.external.AssetController;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUseCase;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetQueryUseCase;
 import depth.finvibe.investment.modules.asset.domain.Currency;
+import depth.finvibe.investment.modules.asset.domain.enums.PortfolioChartInterval;
+import depth.finvibe.investment.modules.asset.dto.PortfolioPerformanceDto;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
@@ -152,6 +155,58 @@ public class AssetControllerTest {
                 .andExpect(jsonPath("$[0].totalAssetAmount").value(1500000))
                 .andExpect(jsonPath("$[0].returnRate").value(12.5000))
                 .andExpect(jsonPath("$[0].realizedProfit").value(180000));
+    }
+
+    @Test
+    @DisplayName("포트폴리오 성과 차트 조회 API")
+    void getPortfolioPerformanceChart() throws Exception {
+        UUID userId = UUID.randomUUID();
+        PortfolioPerformanceDto.ChartResponse response = PortfolioPerformanceDto.ChartResponse.builder()
+                .interval(PortfolioChartInterval.WEEKLY)
+                .startDate(LocalDate.of(2026, 1, 1))
+                .endDate(LocalDate.of(2026, 2, 10))
+                .portfolios(List.of(
+                        PortfolioPerformanceDto.PortfolioSeries.builder()
+                                .portfolioId(1L)
+                                .portfolioName("성장형")
+                                .points(List.of(
+                                        PortfolioPerformanceDto.Point.builder()
+                                                .periodStartDate(LocalDate.of(2026, 2, 2))
+                                                .totalCurrentValue(new BigDecimal("1550000"))
+                                                .totalReturnRate(new BigDecimal("12.5000"))
+                                                .build()
+                                ))
+                                .build()
+                ))
+                .total(List.of(
+                        PortfolioPerformanceDto.Point.builder()
+                                .periodStartDate(LocalDate.of(2026, 2, 2))
+                                .totalCurrentValue(new BigDecimal("1550000"))
+                                .totalReturnRate(new BigDecimal("12.5000"))
+                                .build()
+                ))
+                .build();
+
+        given(assetQueryUseCase.getPortfolioPerformanceChart(
+                eq(userId),
+                eq(LocalDate.of(2026, 1, 1)),
+                eq(LocalDate.of(2026, 2, 10)),
+                eq(PortfolioChartInterval.WEEKLY)
+        )).willReturn(response);
+
+        mockMvc.perform(get("/portfolios/performance-chart")
+                        .param("startDate", "2026-01-01")
+                        .param("endDate", "2026-02-10")
+                        .param("interval", "WEEKLY")
+                        .header("Authorization", bearerToken(userId))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.interval").value("WEEKLY"))
+                .andExpect(jsonPath("$.portfolios", hasSize(1)))
+                .andExpect(jsonPath("$.portfolios[0].portfolioName").value("성장형"))
+                .andExpect(jsonPath("$.portfolios[0].points[0].totalCurrentValue").value(1550000))
+                .andExpect(jsonPath("$.total[0].totalReturnRate").value(12.5000));
     }
 
     private String bearerToken(UUID userId) throws Exception {

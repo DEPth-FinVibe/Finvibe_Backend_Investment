@@ -1,8 +1,11 @@
 package depth.finvibe.investment.modules.asset.application.port.in;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import depth.finvibe.investment.modules.asset.domain.enums.PortfolioChartInterval;
+import depth.finvibe.investment.modules.asset.dto.PortfolioPerformanceDto;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
 import depth.finvibe.investment.modules.asset.dto.TopHoldingStockDto;
 
@@ -13,4 +16,10 @@ public interface AssetQueryUseCase {
     boolean isExistPortfolio(Long portfolioId, UUID userId);
     TopHoldingStockDto.TopHoldingStockListResponse getTopHoldingStocks(UUID userId);
     PortfolioGroupDto.AssetAllocationResponse getAssetAllocation(UUID requesterUserId);
+    PortfolioPerformanceDto.ChartResponse getPortfolioPerformanceChart(
+            UUID requesterUserId,
+            LocalDate startDate,
+            LocalDate endDate,
+            PortfolioChartInterval interval
+    );
 }
