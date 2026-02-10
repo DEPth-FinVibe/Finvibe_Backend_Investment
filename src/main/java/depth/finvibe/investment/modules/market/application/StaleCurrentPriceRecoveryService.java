@@ -71,7 +71,7 @@ public class StaleCurrentPriceRecoveryService {
       currentPriceCommandUseCase.stockPriceUpdated(event);
     }
 
-    log.info("Recovered stale current prices. staleCount={}, recoveredCount={}", staleStockIds.size(), events.size());
+    log.debug("Recovered stale current prices. staleCount={}, recoveredCount={}", staleStockIds.size(), events.size());
   }
 
   private boolean isStale(LocalDateTime lastUpdatedAt, LocalDateTime thresholdAt) {
