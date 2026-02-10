@@ -3,6 +3,7 @@ package depth.finvibe.investment.modules.market.infra.websocket.server;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -25,6 +26,7 @@ public class MarketWebSocketConnection {
 
     private long rateWindowSecond = -1;
     private int rateCount = 0;
+    private final AtomicInteger consecutiveSendFailures = new AtomicInteger(0);
 
     public MarketWebSocketConnection(WebSocketSession session) {
         this.session = session;
@@ -49,5 +51,13 @@ public class MarketWebSocketConnection {
             return null;
         }
         return UUID.fromString(state.getUserId());
+    }
+
+    public void recordSendSuccess() {
+        consecutiveSendFailures.set(0);
+    }
+
+    public int incrementSendFailure() {
+        return consecutiveSendFailures.incrementAndGet();
     }
 }

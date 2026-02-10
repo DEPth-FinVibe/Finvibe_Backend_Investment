@@ -6,7 +6,9 @@ import java.util.HashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import tools.jackson.databind.ObjectMapper;
 
@@ -18,6 +20,9 @@ public class MarketWebSocketPublisher {
 
     private final MarketWebSocketRegistry registry;
     private final ObjectMapper objectMapper;
+
+    @Value("${market.ws.send-failure-threshold:3}")
+    private int sendFailureThreshold;
 
     public void publish(CurrentPriceUpdatedEvent event) {
         if (event == null || event.getStockId() == null) {
@@ -38,10 +43,34 @@ public class MarketWebSocketPublisher {
             try {
                 if (connection.getSession().isOpen()) {
                     connection.getSession().sendMessage(textMessage);
+                    connection.recordSendSuccess();
+                } else {
+                    registry.remove(connection.getSession().getId());
                 }
             } catch (Exception ex) {
-                log.warn("Failed to send websocket event to session {}", connection.getSession().getId());
+                int failureCount = connection.incrementSendFailure();
+                log.warn("Failed to send websocket event to session {} (failureCount={}).",
+                        connection.getSession().getId(), failureCount, ex);
+
+                if (failureCount >= sendFailureThreshold) {
+                    closeAndRemoveSession(connection);
+                }
             }
+        }
+    }
+
+    private void closeAndRemoveSession(MarketWebSocketConnection connection) {
+        String sessionId = connection.getSession().getId();
+        try {
+            if (connection.getSession().isOpen()) {
+                connection.getSession().close(CloseStatus.SESSION_NOT_RELIABLE);
+            }
+        } catch (Exception ex) {
+            log.warn("Failed to close unreliable websocket session {}.", sessionId, ex);
+        } finally {
+            registry.remove(sessionId);
+            log.info("Closed websocket session due to repeated send failures - sessionId: {}, threshold: {}",
+                    sessionId, sendFailureThreshold);
         }
     }
 
