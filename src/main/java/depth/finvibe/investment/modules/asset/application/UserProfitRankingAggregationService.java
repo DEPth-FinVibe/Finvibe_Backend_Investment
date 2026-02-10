@@ -4,12 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -100,7 +95,7 @@ public class UserProfitRankingAggregationService {
     return map;
   }
 
-  private Map<UUID, String> getUserNamesByIds(Iterable<UUID> userIds) {
+  private Map<UUID, String> getUserNamesByIds(Collection<UUID> userIds) {
     Map<UUID, String> userNamesByIds = userServiceClient.getUserNicknamesByIds(userIds);
     if (userNamesByIds == null) {
       return Map.of();
