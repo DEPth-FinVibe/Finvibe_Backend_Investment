@@ -3,7 +3,9 @@ package depth.finvibe.investment.modules.asset.application;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -36,9 +38,12 @@ import depth.finvibe.investment.shared.dto.UserMetricUpdatedEvent;
 @Service
 @RequiredArgsConstructor
 public class ProfitCalculationService implements ProfitCalculationUseCase {
+  private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+
   private final PortfolioGroupRepository portfolioGroupRepository;
   private final MarketInternalClient marketInternalClient;
   private final UserServiceClient userServiceClient;
+  private final UserProfitRankingAggregationService userProfitRankingAggregationService;
   private final ApplicationEventPublisher eventPublisher;
   private final GamificationEventProducer gamificationEventProducer;
 
@@ -100,13 +105,16 @@ public class ProfitCalculationService implements ProfitCalculationUseCase {
       .collect(Collectors.groupingBy(PortfolioGroup::getUserId));
 
     Map<UUID, UserProfitSummary> summaries = buildUserSummaries(portfoliosByUser);
-    List<UserProfitRankingData> rankings = buildRankings(summaries);
+    Map<UUID, String> userNamesByIds = getUserNamesByIds(summaries.keySet());
+    Map<UUID, CurrentUserProfitData> currentProfitDataByUser = buildCurrentProfitData(summaries, userNamesByIds);
+    List<UserProfitRankingData> rankings = buildDailyRankings(currentProfitDataByUser);
     AllUserProfitRatesUpdatedEvent event = AllUserProfitRatesUpdatedEvent.builder()
       .rankings(rankings)
       .calculatedAt(LocalDateTime.now())
       .build();
 
     eventPublisher.publishEvent(event);
+    userProfitRankingAggregationService.aggregateRollingRankings(LocalDate.now(KST), currentProfitDataByUser);
 
     publishCurrentReturnRateMetrics(summaries);
   }
@@ -119,29 +127,47 @@ public class ProfitCalculationService implements ProfitCalculationUseCase {
     return summaries;
   }
 
-  private List<UserProfitRankingData> buildRankings(Map<UUID, UserProfitSummary> summaries) {
-    List<UserProfitRankingData> rankings = new ArrayList<>();
-    Map<UUID, String> userNamesByIds = getUserNamesByIds(summaries.keySet());
-    for (Map.Entry<UUID, UserProfitSummary> entry : summaries.entrySet()) {
-      UserProfitSummary summary = entry.getValue();
-      if (summary.hasAssets()) {
-        rankings.add(new UserProfitRankingData(
-          entry.getKey(),
-          userNamesByIds.get(entry.getKey()),
-          summary.totalReturnRate(),
-          summary.totalProfitLoss()
-        ));
-      }
-    }
-    return rankings;
-  }
-
   private Map<UUID, String> getUserNamesByIds(Collection<UUID> userIds) {
     Map<UUID, String> userNamesByIds = userServiceClient.getUserNicknamesByIds(userIds);
     if (userNamesByIds == null) {
       return Map.of();
     }
     return userNamesByIds;
+  }
+
+  private Map<UUID, CurrentUserProfitData> buildCurrentProfitData(
+    Map<UUID, UserProfitSummary> summaries,
+    Map<UUID, String> userNamesByIds
+  ) {
+    Map<UUID, CurrentUserProfitData> result = new HashMap<>();
+    for (Map.Entry<UUID, UserProfitSummary> entry : summaries.entrySet()) {
+      UserProfitSummary summary = entry.getValue();
+      if (!summary.hasAssets()) {
+        continue;
+      }
+      UUID userId = entry.getKey();
+      result.put(userId, new CurrentUserProfitData(
+        userId,
+        userNamesByIds.get(userId),
+        summary.totalCurrentValue(),
+        summary.totalProfitLoss(),
+        summary.totalReturnRate()
+      ));
+    }
+    return result;
+  }
+
+  private List<UserProfitRankingData> buildDailyRankings(Map<UUID, CurrentUserProfitData> currentProfitDataByUser) {
+    List<UserProfitRankingData> rankings = new ArrayList<>();
+    for (CurrentUserProfitData currentUserProfitData : currentProfitDataByUser.values()) {
+      rankings.add(new UserProfitRankingData(
+        currentUserProfitData.userId(),
+        currentUserProfitData.userNickname(),
+        currentUserProfitData.totalReturnRate(),
+        currentUserProfitData.totalProfitLoss()
+      ));
+    }
+    return rankings;
   }
 
   private void publishCurrentReturnRateMetrics(Map<UUID, UserProfitSummary> summaries) {
@@ -170,7 +196,7 @@ public class ProfitCalculationService implements ProfitCalculationUseCase {
       .isPresent();
 
     if (!hasAssets) {
-      return new UserProfitSummary(BigDecimal.ZERO, BigDecimal.ZERO, false);
+      return new UserProfitSummary(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, false);
     }
 
     BigDecimal totalCurrentValue = portfolios.stream()
@@ -188,7 +214,7 @@ public class ProfitCalculationService implements ProfitCalculationUseCase {
     BigDecimal purchaseAmount = totalCurrentValue.subtract(totalProfitLoss);
     BigDecimal totalReturnRate = calculateReturnRate(totalProfitLoss, purchaseAmount);
 
-    return new UserProfitSummary(totalReturnRate, totalProfitLoss, true);
+    return new UserProfitSummary(totalCurrentValue, totalProfitLoss, totalReturnRate, true);
   }
 
   private BigDecimal calculateReturnRate(BigDecimal profitLoss, BigDecimal purchaseAmount) {
@@ -201,6 +227,11 @@ public class ProfitCalculationService implements ProfitCalculationUseCase {
       .multiply(BigDecimal.valueOf(100));
   }
 
-  private record UserProfitSummary(BigDecimal totalReturnRate, BigDecimal totalProfitLoss, boolean hasAssets) {
+  private record UserProfitSummary(
+    BigDecimal totalCurrentValue,
+    BigDecimal totalProfitLoss,
+    BigDecimal totalReturnRate,
+    boolean hasAssets
+  ) {
   }
 }
