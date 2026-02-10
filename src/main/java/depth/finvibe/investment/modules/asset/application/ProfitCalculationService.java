@@ -5,6 +5,7 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,7 @@ import depth.finvibe.investment.modules.asset.application.port.out.UserProfitRan
 import depth.finvibe.investment.modules.asset.domain.Asset;
 import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
 import depth.finvibe.investment.modules.asset.infra.client.MarketInternalClient;
+import depth.finvibe.investment.modules.asset.infra.client.UserServiceClient;
 import depth.finvibe.investment.shared.application.port.out.GamificationEventProducer;
 import depth.finvibe.investment.shared.dto.BatchPriceSnapshot;
 import depth.finvibe.investment.shared.dto.MetricEventType;
@@ -36,6 +38,7 @@ import depth.finvibe.investment.shared.dto.UserMetricUpdatedEvent;
 public class ProfitCalculationService implements ProfitCalculationUseCase {
   private final PortfolioGroupRepository portfolioGroupRepository;
   private final MarketInternalClient marketInternalClient;
+  private final UserServiceClient userServiceClient;
   private final ApplicationEventPublisher eventPublisher;
   private final GamificationEventProducer gamificationEventProducer;
 
@@ -118,18 +121,27 @@ public class ProfitCalculationService implements ProfitCalculationUseCase {
 
   private List<UserProfitRankingData> buildRankings(Map<UUID, UserProfitSummary> summaries) {
     List<UserProfitRankingData> rankings = new ArrayList<>();
+    Map<UUID, String> userNamesByIds = getUserNamesByIds(summaries.keySet());
     for (Map.Entry<UUID, UserProfitSummary> entry : summaries.entrySet()) {
       UserProfitSummary summary = entry.getValue();
       if (summary.hasAssets()) {
         rankings.add(new UserProfitRankingData(
           entry.getKey(),
-          null,
+          userNamesByIds.get(entry.getKey()),
           summary.totalReturnRate(),
           summary.totalProfitLoss()
         ));
       }
     }
     return rankings;
+  }
+
+  private Map<UUID, String> getUserNamesByIds(Collection<UUID> userIds) {
+    Map<UUID, String> userNamesByIds = userServiceClient.getUserNicknamesByIds(userIds);
+    if (userNamesByIds == null) {
+      return Map.of();
+    }
+    return userNamesByIds;
   }
 
   private void publishCurrentReturnRateMetrics(Map<UUID, UserProfitSummary> summaries) {
