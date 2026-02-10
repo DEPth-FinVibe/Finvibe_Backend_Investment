@@ -59,7 +59,6 @@ public class CurrentPriceService implements CurrentPriceCommandUseCase {
     @Override
     public void stockPriceUpdated(CurrentPriceUpdatedEvent priceUpdate) {
         if(!currentStockWatcherRepository.existsByStockId(priceUpdate.getStockId())) {
-            log.warn("Skipping stock price update for stockId={} as it is not in the realtime index.", priceUpdate.getStockId());
             return;
         }
 
