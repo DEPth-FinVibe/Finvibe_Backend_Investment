@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +30,7 @@ import depth.finvibe.investment.shared.dto.BatchPriceSnapshot;
 import depth.finvibe.investment.shared.dto.MetricEventType;
 import depth.finvibe.investment.shared.dto.UserMetricUpdatedEvent;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProfitCalculationService implements ProfitCalculationUseCase {
@@ -46,6 +48,7 @@ public class ProfitCalculationService implements ProfitCalculationUseCase {
 
     List<PortfolioGroup> portfolios = portfolioGroupRepository.findAllByStockIdsWithAssets(updatedStockIds);
     if (portfolios.isEmpty()) {
+      log.info("No portfolios found with updated stock IDs for profit recalculation.");
       List<PortfolioGroup> allPortfolios = portfolioGroupRepository.findAllWithAssets();
       publishUserProfitRatesUpdatedEvent(allPortfolios);
       return;
@@ -58,11 +61,13 @@ public class ProfitCalculationService implements ProfitCalculationUseCase {
       .toList();
 
     if (stockIds.isEmpty()) {
+      log.info("No stock IDs found in portfolios for profit recalculation.");
       return;
     }
 
     List<BatchPriceSnapshot> batchPrices = marketInternalClient.getBatchPrices(stockIds);
     if (batchPrices == null || batchPrices.isEmpty()) {
+      log.warn("No batch prices retrieved for stock IDs: {}", stockIds);
       return;
     }
 
@@ -97,6 +102,7 @@ public class ProfitCalculationService implements ProfitCalculationUseCase {
       .rankings(rankings)
       .calculatedAt(LocalDateTime.now())
       .build();
+
     eventPublisher.publishEvent(event);
 
     publishCurrentReturnRateMetrics(summaries);

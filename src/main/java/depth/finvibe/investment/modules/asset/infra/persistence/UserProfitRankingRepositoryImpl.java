@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +14,7 @@ import depth.finvibe.investment.modules.asset.domain.UserProfitRanking;
 import depth.finvibe.investment.modules.asset.domain.enums.UserProfitRankType;
 import lombok.RequiredArgsConstructor;
 
+@Slf4j
 @Repository
 @RequiredArgsConstructor
 public class UserProfitRankingRepositoryImpl implements UserProfitRankingRepository {
@@ -57,5 +59,7 @@ public class UserProfitRankingRepositoryImpl implements UserProfitRankingReposit
 
     // 4. 배치 저장
     jpaRepository.saveAll(entities);
+
+    log.info("Replaced all user profit rankings for rank type {}: {} entries saved.", rankType, entities.size());
   }
 }
