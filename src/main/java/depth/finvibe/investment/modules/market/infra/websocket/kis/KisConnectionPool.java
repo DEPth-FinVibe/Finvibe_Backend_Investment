@@ -19,10 +19,10 @@ import org.springframework.stereotype.Component;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.ObjectMapper;
 
-import depth.finvibe.investment.modules.market.application.port.in.CurrentPriceCommandUseCase;
 import depth.finvibe.investment.modules.market.dto.CurrentPriceUpdatedEvent;
 import depth.finvibe.investment.modules.market.infra.client.KisCredentialAllocator;
 import depth.finvibe.investment.modules.market.infra.client.KisRateLimiter;
+import depth.finvibe.investment.modules.market.infra.client.MarketServiceClient;
 import depth.finvibe.investment.modules.market.infra.config.KisCredentialsProperties;
 import depth.finvibe.investment.modules.market.infra.config.KisCredentialsProperties.Credential;
 import depth.finvibe.investment.modules.market.infra.websocket.kis.model.KisMessage;
@@ -42,6 +42,7 @@ public class KisConnectionPool {
     private final KisCredentialsProperties properties;
     private final KisCredentialAllocator credentialAllocator;
     private final KisRateLimiter rateLimiter;
+    private final MarketServiceClient marketServiceClient;
     private final ObjectMapper objectMapper;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -49,12 +50,14 @@ public class KisConnectionPool {
             KisCredentialsProperties properties,
             KisCredentialAllocator credentialAllocator,
             KisRateLimiter rateLimiter,
+            MarketServiceClient marketServiceClient,
             ObjectMapper objectMapper,
             ApplicationEventPublisher eventPublisher
     ) {
         this.properties = properties;
         this.credentialAllocator = credentialAllocator;
         this.rateLimiter = rateLimiter;
+        this.marketServiceClient = marketServiceClient;
         this.objectMapper = objectMapper;
         this.eventPublisher = eventPublisher;
     }
@@ -214,14 +217,38 @@ public class KisConnectionPool {
     private void onPriceUpdated(KisMessage.TransactionResponse response) {
         String symbol = response.getShortStockCode();
 
-        Long stockId = symbolToStockId.get(symbol);
+        Long stockId = resolveStockId(symbol);
         if (stockId == null) {
-            log.warn("수신된 가격 정보의 종목 ID를 찾을 수 없습니다. - symbol: {}", symbol);
+            log.debug("수신된 가격 정보의 종목 ID를 찾을 수 없습니다. - symbol: {}, reason: mapping-and-lookup-miss", symbol);
             return;
         }
 
         CurrentPriceUpdatedEvent event = mapToEvent(response, stockId);
         eventPublisher.publishEvent(event);
+    }
+
+    private Long resolveStockId(String symbol) {
+        Long mappedStockId = symbolToStockId.get(symbol);
+        if (mappedStockId != null) {
+            return mappedStockId;
+        }
+
+        Long lookedUpStockId = marketServiceClient.findStockIdBySymbol(symbol)
+                .orElse(null);
+        if (lookedUpStockId == null) {
+            return null;
+        }
+
+        Long resolvedStockId = cacheStockMapping(symbol, lookedUpStockId);
+        log.debug("심볼-종목 매핑 복구 성공 - symbol: {}, stockId: {}", symbol, resolvedStockId);
+        return resolvedStockId;
+    }
+
+    private Long cacheStockMapping(String symbol, Long stockId) {
+        Long existingStockId = symbolToStockId.putIfAbsent(symbol, stockId);
+        Long resolvedStockId = existingStockId != null ? existingStockId : stockId;
+        stockIdToSymbol.putIfAbsent(resolvedStockId, symbol);
+        return resolvedStockId;
     }
 
     private CurrentPriceUpdatedEvent mapToEvent(KisMessage.TransactionResponse response, Long stockId) {

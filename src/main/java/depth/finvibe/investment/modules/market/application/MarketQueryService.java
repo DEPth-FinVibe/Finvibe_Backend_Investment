@@ -440,6 +440,20 @@ public class MarketQueryService implements MarketQueryUseCase {
                 .orElseThrow(() -> new DomainException(MarketErrorCode.STOCK_NOT_FOUND));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Long> findStockIdBySymbol(String symbol) {
+        return stockRepository.findBySymbol(symbol)
+                .map(Stock::getId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<String> findSymbolByStockId(Long stockId) {
+        return stockRepository.findById(stockId)
+                .map(Stock::getSymbol);
+    }
+
     private List<StockDto.Response> getTopStocksByRankType(RankType rankType) {
         List<StockRanking> rankings = stockRankingRepository.findByRankType(rankType);
         

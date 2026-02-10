@@ -9,6 +9,7 @@ import depth.finvibe.investment.modules.market.dto.StockDto;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface MarketQueryUseCase {
 
@@ -47,4 +48,8 @@ public interface MarketQueryUseCase {
     List<StockDto.Response> searchStocks(String query);
 
     String getStockNameById(Long stockId);
+
+    Optional<Long> findStockIdBySymbol(String symbol);
+
+    Optional<String> findSymbolByStockId(Long stockId);
 }
