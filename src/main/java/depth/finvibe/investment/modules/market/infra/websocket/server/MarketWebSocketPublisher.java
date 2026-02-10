@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
 import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
@@ -41,22 +42,48 @@ public class MarketWebSocketPublisher {
         TextMessage textMessage = new TextMessage(message);
         for (MarketWebSocketConnection connection : registry.getSubscribers(topic)) {
             try {
-                if (connection.getSession().isOpen()) {
-                    connection.getSession().sendMessage(textMessage);
+                WebSocketSession session = connection.getSession();
+                if (sendMessageSafely(session, textMessage)) {
                     connection.recordSendSuccess();
                 } else {
-                    registry.remove(connection.getSession().getId());
+                    registry.remove(session.getId());
                 }
             } catch (Exception ex) {
                 int failureCount = connection.incrementSendFailure();
-                log.warn("Failed to send websocket event to session {} (failureCount={}).",
-                        connection.getSession().getId(), failureCount, ex);
+                if (isPartialWritingError(ex)) {
+                    log.trace("Skipped websocket send while previous message is still writing - sessionId: {}, failureCount: {}",
+                            connection.getSession().getId(), failureCount);
+                } else {
+                    if (failureCount >= sendFailureThreshold) {
+                        log.warn("Failed to send websocket event repeatedly - sessionId: {}, failureCount: {}, threshold: {}, cause: {}",
+                                connection.getSession().getId(), failureCount, sendFailureThreshold, ex.toString());
+                    } else {
+                        log.debug("Failed to send websocket event (will retry) - sessionId: {}, failureCount: {}, threshold: {}, cause: {}",
+                                connection.getSession().getId(), failureCount, sendFailureThreshold, ex.toString());
+                    }
+                }
 
                 if (failureCount >= sendFailureThreshold) {
                     closeAndRemoveSession(connection);
                 }
             }
         }
+    }
+
+    private boolean sendMessageSafely(WebSocketSession session, TextMessage message) throws Exception {
+        synchronized (session) {
+            if (!session.isOpen()) {
+                return false;
+            }
+            session.sendMessage(message);
+            return true;
+        }
+    }
+
+    private boolean isPartialWritingError(Exception ex) {
+        return ex instanceof IllegalStateException
+                && ex.getMessage() != null
+                && ex.getMessage().contains("TEXT_PARTIAL_WRITING");
     }
 
     private void closeAndRemoveSession(MarketWebSocketConnection connection) {
