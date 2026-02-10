@@ -224,7 +224,7 @@ public class KisCredentialAllocator {
             log.error("KIS credential 할당 실패. Redis 연결 상태 및 다른 노드의 락 점유 상태를 확인하세요. 유효한 credential: {}", validCredentials.size());
             throw new IllegalStateException("KIS credential allocation failed. No credentials assigned.");
         }
-        log.info("KIS credential 할당 성공 - 할당된 개수: {}/{}", allocatedCredentials.size(), validCredentials.size());
+        log.debug("KIS credential 할당 성공 - 할당된 개수: {}/{}", allocatedCredentials.size(), validCredentials.size());
     }
 
     /**
