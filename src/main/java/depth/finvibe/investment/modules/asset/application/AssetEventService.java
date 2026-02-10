@@ -50,7 +50,11 @@ public class AssetEventService implements AssetEventUseCase {
 
     @Transactional
     public void handleBatchPriceUpdatedEvent(BatchPriceUpdatedEvent event) {
+        int updatedCount = event.getUpdatedStockIds() == null ? 0 : event.getUpdatedStockIds().size();
+        log.info("Received batch price updated event. executedAt={}, totalStockCount={}, updatedStockIdsCount={}",
+                event.getBatchExecutedAt(), event.getTotalStockCount(), updatedCount);
         profitCalculationService.recalculateAllProfits(event.getUpdatedStockIds());
+        log.info("Completed profit recalculation for batch price update. updatedStockIdsCount={}", updatedCount);
     }
 
     private PortfolioGroupDto.RegisterAssetRequest createRegisterRequestFrom(TradeExecutedEvent event) {
