@@ -35,6 +35,8 @@ public class UserProfitRankingRepositoryImpl implements UserProfitRankingReposit
     // 1. 기존 데이터 전체 삭제
     jpaRepository.deleteByRankType(rankType);
 
+    jpaRepository.flush();
+
     // 2. 정렬: totalReturnRate 내림차순, 동점일 경우 totalProfitLoss 내림차순
     List<UserProfitRankingData> sortedRankings = rankings.stream()
       .sorted(Comparator
