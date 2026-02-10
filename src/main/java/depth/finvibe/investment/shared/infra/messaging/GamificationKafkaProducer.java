@@ -13,7 +13,7 @@ import depth.finvibe.investment.shared.dto.UserMetricUpdatedEvent;
 @RequiredArgsConstructor
 @Slf4j
 public class GamificationKafkaProducer implements GamificationEventProducer {
-  private static final String USER_METRIC_UPDATED_TOPIC = "gamification.user-metric-updated.v1";
+  private static final String USER_METRIC_UPDATED_TOPIC = "gamification.update-user-metric.v1";
   private static final String REWARD_BADGE_TOPIC = "gamification.reward-badge.v1";
 
   private final KafkaTemplate<String, Object> kafkaTemplate;
