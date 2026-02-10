@@ -5,10 +5,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -18,9 +15,8 @@ public class UserServiceClient {
             .baseUrl("http://user")
             .build();
 
-    public Map<UUID, String> getUserNicknamesByIds(Iterable<UUID> userIds) {
-        List<UUID> ids = new ArrayList<>();
-        userIds.forEach(ids::add);
+    public Map<UUID, String> getUserNicknamesByIds(Collection<UUID> userIds) {
+        List<UUID> ids = new ArrayList<>(userIds);
 
         if (ids.isEmpty()) {
             return Map.of();
@@ -29,7 +25,7 @@ public class UserServiceClient {
         return restClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/internal/members/nicknames")
-                        .queryParam("userIds", ids.toArray())
+                        .queryParam("userIds", ids)
                         .build())
                 .retrieve()
                 .body(mapOfUuidToStringTypeRef);
