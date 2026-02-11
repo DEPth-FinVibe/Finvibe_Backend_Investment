@@ -1,10 +1,10 @@
 package depth.finvibe.investment.modules.asset.application;
 
-import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUseCase;
-import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
-import depth.finvibe.investment.modules.asset.domain.Currency;
-import depth.finvibe.investment.shared.dto.SignUpEvent;
-import depth.finvibe.investment.shared.dto.TradeExecutedEvent;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,19 +13,34 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
-import java.util.UUID;
+import depth.finvibe.investment.modules.asset.application.event.AssetTransferredEvent;
+import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUseCase;
+import depth.finvibe.investment.modules.asset.application.port.in.ProfitCalculationUseCase;
+import depth.finvibe.investment.modules.asset.application.port.out.PortfolioGroupRepository;
+import depth.finvibe.investment.modules.asset.domain.Currency;
+import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
+import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
+import depth.finvibe.investment.shared.dto.SignUpEvent;
+import depth.finvibe.investment.shared.dto.TradeExecutedEvent;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AssetEventServiceTest {
 
     @Mock
     private AssetCommandUseCase commandUseCase;
+
+    @Mock
+    private ProfitCalculationUseCase profitCalculationService;
+
+    @Mock
+    private PortfolioGroupRepository portfolioGroupRepository;
 
     @InjectMocks
     private AssetEventService assetEventService;
@@ -139,5 +154,69 @@ class AssetEventServiceTest {
 
         // then
         verify(commandUseCase).createDefaultPortfolioGroup(userId);
+    }
+
+    @Test
+    @DisplayName("자산 이동 이벤트 수신 시 양쪽 포트폴리오의 valuation을 재계산한다")
+    void handleAssetTransferredEvent_success() {
+        // given
+        Long sourcePortfolioId = 1L;
+        Long targetPortfolioId = 2L;
+        UUID userId = UUID.randomUUID();
+
+        PortfolioGroup sourcePortfolio = PortfolioGroup.builder()
+                .id(sourcePortfolioId)
+                .name("원본 포트폴리오")
+                .userId(userId)
+                .assets(new ArrayList<>())
+                .build();
+
+        PortfolioGroup targetPortfolio = PortfolioGroup.builder()
+                .id(targetPortfolioId)
+                .name("대상 포트폴리오")
+                .userId(userId)
+                .assets(new ArrayList<>())
+                .build();
+
+        when(portfolioGroupRepository.findByIdWithAssets(sourcePortfolioId))
+                .thenReturn(Optional.of(sourcePortfolio));
+        when(portfolioGroupRepository.findByIdWithAssets(targetPortfolioId))
+                .thenReturn(Optional.of(targetPortfolio));
+
+        AssetTransferredEvent event = AssetTransferredEvent.builder()
+                .sourcePortfolioId(sourcePortfolioId)
+                .targetPortfolioId(targetPortfolioId)
+                .stockId(100L)
+                .merged(false)
+                .build();
+
+        // when
+        assetEventService.handleAssetTransferredEvent(event);
+
+        // then
+        verify(portfolioGroupRepository).findByIdWithAssets(sourcePortfolioId);
+        verify(portfolioGroupRepository).findByIdWithAssets(targetPortfolioId);
+    }
+
+    @Test
+    @DisplayName("자산 이동 이벤트 처리 중 예외 발생 시 로그만 남기고 예외를 전파하지 않는다")
+    void handleAssetTransferredEvent_exception_not_propagated() {
+        // given
+        Long sourcePortfolioId = 1L;
+        Long targetPortfolioId = 2L;
+
+        when(portfolioGroupRepository.findByIdWithAssets(sourcePortfolioId))
+                .thenThrow(new RuntimeException("DB connection error"));
+
+        AssetTransferredEvent event = AssetTransferredEvent.builder()
+                .sourcePortfolioId(sourcePortfolioId)
+                .targetPortfolioId(targetPortfolioId)
+                .stockId(100L)
+                .merged(true)
+                .build();
+
+        // when & then
+        assertThatCode(() -> assetEventService.handleAssetTransferredEvent(event))
+                .doesNotThrowAnyException();
     }
 }

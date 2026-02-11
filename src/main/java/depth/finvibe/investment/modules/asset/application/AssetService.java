@@ -14,9 +14,11 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import depth.finvibe.investment.modules.asset.application.event.AssetTransferredEvent;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUseCase;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetQueryUseCase;
 import depth.finvibe.investment.modules.asset.application.port.out.AssetRepository;
@@ -51,6 +53,7 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
     private final TopHoldingStockCacheRepository topHoldingStockCacheRepository;
     private final WalletQueryUseCase walletQueryUseCase;
     private final PortfolioPerformanceSnapshotRepository portfolioPerformanceSnapshotRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional(readOnly = true)
@@ -326,12 +329,30 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
         PortfolioGroup sourcePortfolioGroup = findPortfolioGroupWithAssets(sourcePortfolioId);
         PortfolioGroup targetPortfolioGroup = findPortfolioGroupWithAssets(request.getTargetPortfolioId());
 
-        sourcePortfolioGroup.transferAssetTo(assetId, targetPortfolioGroup, requesterUserId)
-                .ifPresent(assetRepository::deleteById);
+        // 이동할 자산의 stockId 미리 추출
+        Asset transferringAsset = sourcePortfolioGroup.getAssets().stream()
+                .filter(asset -> asset.getId() != null && asset.getId().equals(assetId))
+                .findFirst()
+                .orElseThrow(() -> new DomainException(AssetErrorCode.ASSET_NOT_FOUND));
+        Long stockId = transferringAsset.getStockId();
+
+        // 자산 이동 및 병합 여부 판단
+        java.util.Optional<Long> deletedAssetId = sourcePortfolioGroup.transferAssetTo(assetId, targetPortfolioGroup, requesterUserId);
+        boolean merged = deletedAssetId.isPresent();
+        deletedAssetId.ifPresent(assetRepository::deleteById);
 
         HoldingMetricsSnapshot afterSnapshot = getHoldingMetricsSnapshot(requesterUserId);
         publishHoldingMetricsIfChanged(requesterUserId, beforeSnapshot, afterSnapshot);
         topHoldingStockCacheRepository.evictByUserId(requesterUserId);
+
+        // 이벤트 발행
+        AssetTransferredEvent event = AssetTransferredEvent.builder()
+                .sourcePortfolioId(sourcePortfolioId)
+                .targetPortfolioId(request.getTargetPortfolioId())
+                .stockId(stockId)
+                .merged(merged)
+                .build();
+        eventPublisher.publishEvent(event);
     }
 
     @Override

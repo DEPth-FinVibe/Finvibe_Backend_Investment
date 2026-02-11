@@ -7,11 +7,16 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
+import depth.finvibe.investment.modules.asset.application.event.AssetTransferredEvent;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUseCase;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetEventUseCase;
 import depth.finvibe.investment.modules.asset.application.port.in.ProfitCalculationUseCase;
+import depth.finvibe.investment.modules.asset.application.port.out.PortfolioGroupRepository;
 import depth.finvibe.investment.modules.asset.domain.Currency;
+import depth.finvibe.investment.modules.asset.domain.PortfolioGroup;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
 import depth.finvibe.investment.shared.dto.BatchPriceUpdatedEvent;
 import depth.finvibe.investment.shared.dto.SignUpEvent;
@@ -23,6 +28,7 @@ import depth.finvibe.investment.shared.dto.TradeExecutedEvent;
 public class AssetEventService implements AssetEventUseCase {
     private final AssetCommandUseCase commandUseCase;
     private final ProfitCalculationUseCase profitCalculationService;
+    private final PortfolioGroupRepository portfolioGroupRepository;
 
     @Transactional
     public void handleTradeExecutedEvent(TradeExecutedEvent event) {
@@ -74,5 +80,27 @@ public class AssetEventService implements AssetEventUseCase {
                 .amount(event.getAmount())
                 .currency(Currency.valueOf(event.getCurrency()))
                 .build();
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleAssetTransferredEvent(AssetTransferredEvent event) {
+        log.info("Handling asset transferred event. sourcePortfolioId={}, targetPortfolioId={}, stockId={}, merged={}",
+                event.getSourcePortfolioId(), event.getTargetPortfolioId(), event.getStockId(), event.isMerged());
+
+        try {
+            recalculatePortfolioValuation(event.getSourcePortfolioId());
+            recalculatePortfolioValuation(event.getTargetPortfolioId());
+            log.info("Successfully recalculated valuations for source and target portfolios.");
+        } catch (Exception e) {
+            log.error("Failed to recalculate valuation after asset transfer. sourcePortfolioId={}, targetPortfolioId={}",
+                    event.getSourcePortfolioId(), event.getTargetPortfolioId(), e);
+            // 실패해도 예외를 던지지 않음 - 다음 배치에서 재계산됨
+        }
+    }
+
+    @Transactional
+    public void recalculatePortfolioValuation(Long portfolioId) {
+        portfolioGroupRepository.findByIdWithAssets(portfolioId)
+                .ifPresent(PortfolioGroup::recalculateValuation);
     }
 }

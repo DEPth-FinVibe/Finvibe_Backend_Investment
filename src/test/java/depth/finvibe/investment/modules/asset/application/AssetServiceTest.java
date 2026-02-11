@@ -23,7 +23,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
+import depth.finvibe.investment.modules.asset.application.event.AssetTransferredEvent;
 import depth.finvibe.investment.modules.asset.application.port.out.AssetRepository;
 import depth.finvibe.investment.modules.asset.application.port.out.PortfolioGroupRepository;
 import depth.finvibe.investment.modules.asset.application.port.out.PortfolioPerformanceSnapshotRepository;
@@ -39,9 +41,9 @@ import depth.finvibe.investment.modules.asset.domain.error.AssetErrorCode;
 import depth.finvibe.investment.modules.asset.domain.enums.PortfolioChartInterval;
 import depth.finvibe.investment.modules.asset.dto.PortfolioPerformanceDto;
 import depth.finvibe.investment.modules.asset.dto.PortfolioGroupDto;
+import depth.finvibe.investment.modules.asset.dto.TopHoldingStockDto;
 import depth.finvibe.investment.modules.wallet.application.port.in.WalletQueryUseCase;
 import depth.finvibe.investment.modules.wallet.dto.WalletDto;
-import depth.finvibe.investment.modules.asset.dto.TopHoldingStockDto;
 import depth.finvibe.investment.shared.application.port.out.GamificationEventProducer;
 import depth.finvibe.investment.shared.error.DomainException;
 
@@ -65,6 +67,9 @@ class AssetServiceTest {
 
   @Mock
   PortfolioPerformanceSnapshotRepository portfolioPerformanceSnapshotRepository;
+
+  @Mock
+  ApplicationEventPublisher eventPublisher;
 
   @InjectMocks
   AssetService assetService;
@@ -297,6 +302,127 @@ class AssetServiceTest {
     assertThat(target.getAssets().get(0).getTotalPrice().getAmount()).isEqualByComparingTo(BigDecimal.valueOf(14_000));
     verify(assetRepository).deleteById(100L);
     verify(topHoldingStockCacheRepository).evictByUserId(userId);
+  }
+
+  @Test
+  @DisplayName("자산 이동 시 AssetTransferredEvent를 발행한다 - 순이동")
+  void transferAsset_publishes_event_simple_transfer() {
+    // given
+    UUID userId = UUID.randomUUID();
+    Long sourcePortfolioId = 1L;
+    Long targetPortfolioId = 2L;
+    Long assetId = 100L;
+    Long stockId = 10L;
+
+    PortfolioGroup source = PortfolioGroup.builder()
+        .id(sourcePortfolioId)
+        .name("원본")
+        .userId(userId)
+        .assets(new ArrayList<>())
+        .build();
+    Asset asset = Asset.builder()
+        .id(assetId)
+        .amount(BigDecimal.valueOf(2))
+        .totalPrice(Money.of(BigDecimal.valueOf(10_000), Currency.KRW))
+        .name("자산")
+        .stockId(stockId)
+        .userId(userId)
+        .build();
+    source.register(asset, userId);
+
+    PortfolioGroup target = PortfolioGroup.builder()
+        .id(targetPortfolioId)
+        .name("대상")
+        .userId(userId)
+        .assets(new ArrayList<>())
+        .build();
+
+    when(portfolioGroupRepository.findByIdWithAssets(sourcePortfolioId)).thenReturn(Optional.of(source));
+    when(portfolioGroupRepository.findByIdWithAssets(targetPortfolioId)).thenReturn(Optional.of(target));
+    when(portfolioGroupRepository.findAllByUserIdWithAssets(userId)).thenReturn(List.of(source, target));
+
+    PortfolioGroupDto.TransferAssetRequest request = PortfolioGroupDto.TransferAssetRequest.builder()
+        .targetPortfolioId(targetPortfolioId)
+        .build();
+
+    // when
+    assetService.transferAsset(sourcePortfolioId, assetId, request, userId);
+
+    // then
+    ArgumentCaptor<AssetTransferredEvent> eventCaptor =
+        ArgumentCaptor.forClass(AssetTransferredEvent.class);
+    verify(eventPublisher).publishEvent(eventCaptor.capture());
+
+    AssetTransferredEvent capturedEvent = eventCaptor.getValue();
+    assertThat(capturedEvent.getSourcePortfolioId()).isEqualTo(sourcePortfolioId);
+    assertThat(capturedEvent.getTargetPortfolioId()).isEqualTo(targetPortfolioId);
+    assertThat(capturedEvent.getStockId()).isEqualTo(stockId);
+    assertThat(capturedEvent.isMerged()).isFalse();
+  }
+
+  @Test
+  @DisplayName("자산 이동 시 AssetTransferredEvent를 발행한다 - 병합")
+  void transferAsset_publishes_event_merged() {
+    // given
+    UUID userId = UUID.randomUUID();
+    Long sourcePortfolioId = 1L;
+    Long targetPortfolioId = 2L;
+    Long assetId = 100L;
+    Long stockId = 10L;
+
+    PortfolioGroup source = PortfolioGroup.builder()
+        .id(sourcePortfolioId)
+        .name("원본")
+        .userId(userId)
+        .assets(new ArrayList<>())
+        .build();
+    Asset sourceAsset = Asset.builder()
+        .id(assetId)
+        .amount(BigDecimal.valueOf(2))
+        .totalPrice(Money.of(BigDecimal.valueOf(10_000), Currency.KRW))
+        .name("자산")
+        .stockId(stockId)
+        .userId(userId)
+        .build();
+    source.register(sourceAsset, userId);
+
+    PortfolioGroup target = PortfolioGroup.builder()
+        .id(targetPortfolioId)
+        .name("대상")
+        .userId(userId)
+        .assets(new ArrayList<>())
+        .build();
+    Asset targetAsset = Asset.builder()
+        .id(200L)
+        .amount(BigDecimal.valueOf(1))
+        .totalPrice(Money.of(BigDecimal.valueOf(4_000), Currency.KRW))
+        .name("자산")
+        .stockId(stockId)
+        .userId(userId)
+        .build();
+    target.register(targetAsset, userId);
+
+    when(portfolioGroupRepository.findByIdWithAssets(sourcePortfolioId)).thenReturn(Optional.of(source));
+    when(portfolioGroupRepository.findByIdWithAssets(targetPortfolioId)).thenReturn(Optional.of(target));
+    when(portfolioGroupRepository.findAllByUserIdWithAssets(userId)).thenReturn(List.of(source, target));
+
+    PortfolioGroupDto.TransferAssetRequest request = PortfolioGroupDto.TransferAssetRequest.builder()
+        .targetPortfolioId(targetPortfolioId)
+        .build();
+
+    // when
+    assetService.transferAsset(sourcePortfolioId, assetId, request, userId);
+
+    // then
+    ArgumentCaptor<AssetTransferredEvent> eventCaptor =
+        ArgumentCaptor.forClass(AssetTransferredEvent.class);
+    verify(eventPublisher).publishEvent(eventCaptor.capture());
+
+    AssetTransferredEvent capturedEvent = eventCaptor.getValue();
+    assertThat(capturedEvent.getSourcePortfolioId()).isEqualTo(sourcePortfolioId);
+    assertThat(capturedEvent.getTargetPortfolioId()).isEqualTo(targetPortfolioId);
+    assertThat(capturedEvent.getStockId()).isEqualTo(stockId);
+    assertThat(capturedEvent.isMerged()).isTrue();
   }
 
   @Test
