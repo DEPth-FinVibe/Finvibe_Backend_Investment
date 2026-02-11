@@ -182,7 +182,8 @@ class TradeServiceTest {
     @DisplayName("매도 거래 생성 성공")
     void createSellTrade_Success() {
         // given
-        stubTradeContexts();
+        given(assetClient.isExistPortfolio(eq(1L), eq(userId))).willReturn(true);
+        given(assetClient.hasSufficientStockAmount(eq(1L), eq(userId), eq(5930L), eq(5.0))).willReturn(true);
         TradeDto.TransactionRequest sellRequest = TradeDto.TransactionRequest.builder()
                 .stockId(5930L)
                 .amount(5.0)
@@ -282,6 +283,27 @@ class TradeServiceTest {
     }
 
     @Test
+    @DisplayName("매도 거래 생성 실패 - 보유 수량 부족")
+    void createSellTrade_InsufficientHoldingAmount() {
+        // given
+        given(assetClient.isExistPortfolio(eq(1L), eq(userId))).willReturn(true);
+        TradeDto.TransactionRequest sellRequest = TradeDto.TransactionRequest.builder()
+                .stockId(5930L)
+                .amount(5.0)
+                .price(75000L)
+                .portfolioId(1L)
+                .transactionType(TransactionType.SELL)
+                .tradeType(TradeOrderType.NORMAL)
+                .build();
+        given(assetClient.hasSufficientStockAmount(eq(1L), eq(userId), eq(5930L), eq(5.0))).willReturn(false);
+
+        // when & then
+        assertThatThrownBy(() -> tradeService.createTrade(sellRequest, requester))
+                .isInstanceOf(DomainException.class)
+                .hasFieldOrPropertyWithValue("errorCode", TradeErrorCode.INSUFFICIENT_HOLDING_AMOUNT);
+    }
+
+    @Test
     @DisplayName("예약 주문 체결 성공")
     void executeReservedTrade_Success() {
         // given
@@ -342,6 +364,36 @@ class TradeServiceTest {
         assertThatThrownBy(() -> tradeService.executeReservedTrade(1L))
                 .isInstanceOf(DomainException.class)
                 .hasFieldOrPropertyWithValue("errorCode", TradeErrorCode.INVALID_TRADE_TYPE);
+    }
+
+    @Test
+    @DisplayName("예약 주문 체결 실패 - 매도 보유 수량 부족")
+    void executeReservedTrade_SellInsufficientHoldingAmount() {
+        // given
+        Trade reservedSellTrade = Trade.create(
+                5930L,
+                10.0,
+                70000L,
+                1L,
+                userId,
+                TransactionType.SELL,
+                TradeType.RESERVED,
+                "삼성전자"
+        );
+        Trade spyReservedSellTrade = spy(reservedSellTrade);
+        given(tradeRepository.findById(1L)).willReturn(Optional.of(spyReservedSellTrade));
+        given(tradeRepository.save(any(Trade.class))).willReturn(spyReservedSellTrade);
+        given(assetClient.hasSufficientStockAmount(eq(1L), eq(userId), eq(5930L), eq(10.0))).willReturn(false);
+
+        // when
+        TradeDto.TradeResponse response = tradeService.executeReservedTrade(1L);
+
+        // then
+        assertThat(response.getTradeType()).isEqualTo(TradeType.FAILED);
+        verify(spyReservedSellTrade, never()).execute();
+        verify(spyReservedSellTrade, times(1)).fail();
+        verify(tradeRepository, times(1)).save(any(Trade.class));
+        verify(tradeEventProducer, never()).publishNormalTradeExecutedEvent(any(Trade.class));
     }
 
     @Test

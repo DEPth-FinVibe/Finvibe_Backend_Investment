@@ -29,6 +29,7 @@ public class TradeErrorHttpMapper implements DomainErrorHttpMapper {
                  CANNOT_CANCEL_NON_RESERVED_TRADE,
                  MARKET_CLOSED,
                  INSUFFICIENT_BALANCE,
+                 INSUFFICIENT_HOLDING_AMOUNT,
                  MARKET_PRICE_MISMATCH -> HttpStatus.BAD_REQUEST;
 
             case CANNOT_CANCEL_BY_OTHER_USER -> HttpStatus.FORBIDDEN;

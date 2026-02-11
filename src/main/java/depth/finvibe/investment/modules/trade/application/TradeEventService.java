@@ -29,7 +29,7 @@ public class TradeEventService implements TradeEventUseCase {
             TradeDto.TradeResponse response = tradeCommandUseCase.executeReservedTrade(tradeId);
 
             if (response.getTradeType() == TradeType.FAILED) {
-                log.warn("예약 거래 체결 실패(잔액 부족): tradeId={}, amount={}, price={}",
+                log.warn("예약 거래 체결 실패(체결 조건 부족): tradeId={}, amount={}, price={}",
                         response.getTradeId(),
                         response.getAmount(),
                         response.getPrice());

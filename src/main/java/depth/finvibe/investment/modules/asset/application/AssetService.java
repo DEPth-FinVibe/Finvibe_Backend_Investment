@@ -93,6 +93,26 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
 
     @Override
     @Transactional(readOnly = true)
+    public boolean hasSufficientStockAmount(Long portfolioId, UUID userId, Long stockId, Double amount) {
+        if (stockId == null || amount == null) {
+            return false;
+        }
+
+        PortfolioGroup portfolioGroup = findPortfolioGroupWithAssets(portfolioId);
+        if (!portfolioGroup.getUserId().equals(userId)) {
+            return false;
+        }
+
+        BigDecimal requiredAmount = BigDecimal.valueOf(amount);
+        return portfolioGroup.getAssets().stream()
+                .filter(asset -> stockId.equals(asset.getStockId()))
+                .findFirst()
+                .map(asset -> asset.getAmount().compareTo(requiredAmount) >= 0)
+                .orElse(false);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public TopHoldingStockDto.TopHoldingStockListResponse getTopHoldingStocks(UUID userId) {
         return topHoldingStockCacheRepository.find(TOP_HOLDING_STOCK_CACHE_KEY)
                 .orElseGet(this::getTopHoldingStocksFromSource);

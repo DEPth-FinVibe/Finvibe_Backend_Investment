@@ -105,9 +105,43 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
             throw new DomainException(TradeErrorCode.PORTFOLIO_NOT_FOUND);
         }
 
-        Long balance = walletClient.getWalletBalance(requester.getUuid());
-        if(balance < request.getAmount() * request.getPrice()) {
+        validateTransactionRequirements(request, requester.getUuid());
+    }
+
+    private void validateTransactionRequirements(TradeDto.TransactionRequest request, UUID userId) {
+        if (request.getTransactionType() == TransactionType.BUY) {
+            ensureSufficientBalanceForBuy(request, userId);
+            return;
+        }
+
+        if (request.getTransactionType() == TransactionType.SELL) {
+            ensureSufficientHoldingAmountForSell(request, userId);
+            return;
+        }
+
+        throw new DomainException(TradeErrorCode.INVALID_TRADE_TYPE);
+    }
+
+    private void ensureSufficientBalanceForBuy(TradeDto.TransactionRequest request, UUID userId) {
+        Long balance = walletClient.getWalletBalance(userId);
+        BigDecimal required = BigDecimal.valueOf(request.getAmount())
+                .multiply(BigDecimal.valueOf(request.getPrice()));
+
+        if (BigDecimal.valueOf(balance).compareTo(required) < 0) {
             throw new DomainException(TradeErrorCode.INSUFFICIENT_BALANCE);
+        }
+    }
+
+    private void ensureSufficientHoldingAmountForSell(TradeDto.TransactionRequest request, UUID userId) {
+        boolean hasSufficientStockAmount = assetClient.hasSufficientStockAmount(
+                request.getPortfolioId(),
+                userId,
+                request.getStockId(),
+                request.getAmount()
+        );
+
+        if (!hasSufficientStockAmount) {
+            throw new DomainException(TradeErrorCode.INSUFFICIENT_HOLDING_AMOUNT);
         }
     }
 
@@ -133,7 +167,7 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
 
         ensureTradeIsReserved(trade);
 
-        if (isInsufficientBalanceForReservedBuy(trade)) {
+        if (isInsufficientRequirementsForReservedTrade(trade)) {
             trade.fail();
             Trade failedTrade = tradeRepository.save(trade);
             return TradeDto.TradeResponse.from(failedTrade);
@@ -163,6 +197,24 @@ public class TradeService implements TradeCommandUseCase, TradeQueryUseCase {
                 .multiply(BigDecimal.valueOf(trade.getPrice()));
 
         return BigDecimal.valueOf(balance).compareTo(required) < 0;
+    }
+
+    private boolean isInsufficientHoldingAmountForReservedSell(Trade trade) {
+        if (trade.getTransactionType() != TransactionType.SELL) {
+            return false;
+        }
+
+        return !assetClient.hasSufficientStockAmount(
+                trade.getPortfolioId(),
+                trade.getUserId(),
+                trade.getStockId(),
+                trade.getAmount()
+        );
+    }
+
+    private boolean isInsufficientRequirementsForReservedTrade(Trade trade) {
+        return isInsufficientBalanceForReservedBuy(trade)
+                || isInsufficientHoldingAmountForReservedSell(trade);
     }
 
     private static void ensureTradeCancelable(Trade trade, Requester requester) {
