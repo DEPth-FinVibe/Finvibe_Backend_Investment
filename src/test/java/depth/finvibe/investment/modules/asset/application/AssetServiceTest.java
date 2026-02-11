@@ -24,6 +24,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import depth.finvibe.investment.modules.asset.application.port.out.AssetRepository;
 import depth.finvibe.investment.modules.asset.application.port.out.PortfolioGroupRepository;
 import depth.finvibe.investment.modules.asset.application.port.out.PortfolioPerformanceSnapshotRepository;
 import depth.finvibe.investment.modules.asset.application.port.out.TopHoldingStockCacheRepository;
@@ -49,6 +50,9 @@ class AssetServiceTest {
 
   @Mock
   PortfolioGroupRepository portfolioGroupRepository;
+
+  @Mock
+  AssetRepository assetRepository;
 
   @Mock
   GamificationEventProducer gamificationEventProducer;
@@ -129,6 +133,8 @@ class AssetServiceTest {
     PortfolioGroup portfolioGroup = org.mockito.Mockito.mock(PortfolioGroup.class);
     when(portfolioGroupRepository.findByIdWithAssets(1L)).thenReturn(Optional.of(portfolioGroup));
     when(portfolioGroupRepository.findAllByUserIdWithAssets(userId)).thenReturn(List.of());
+    when(portfolioGroup.unregister(eq(5L), eq(BigDecimal.valueOf(1.5)), any(Money.class), eq(userId)))
+        .thenReturn(Optional.empty());
 
     PortfolioGroupDto.UnregisterAssetRequest request = PortfolioGroupDto.UnregisterAssetRequest.builder()
         .stockId(5L)
@@ -144,9 +150,32 @@ class AssetServiceTest {
 
     // then
     verify(portfolioGroup).unregister(eq(5L), eq(BigDecimal.valueOf(1.5)), moneyCaptor.capture(), eq(userId));
+    verify(assetRepository, never()).deleteById(any());
     Money paidMoney = moneyCaptor.getValue();
     assertThat(paidMoney.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(3_000));
     assertThat(paidMoney.getCurrency()).isEqualTo(Currency.KRW);
+  }
+
+  @Test
+  @DisplayName("자산 해제 결과 삭제 대상이 있으면 자산을 명시 삭제한다.")
+  void unregisterAsset_deleteAsset_success() {
+    UUID userId = UUID.randomUUID();
+    PortfolioGroup portfolioGroup = org.mockito.Mockito.mock(PortfolioGroup.class);
+    when(portfolioGroupRepository.findByIdWithAssets(1L)).thenReturn(Optional.of(portfolioGroup));
+    when(portfolioGroupRepository.findAllByUserIdWithAssets(userId)).thenReturn(List.of());
+    when(portfolioGroup.unregister(eq(5L), eq(BigDecimal.valueOf(1.5)), any(Money.class), eq(userId)))
+        .thenReturn(Optional.of(77L));
+
+    PortfolioGroupDto.UnregisterAssetRequest request = PortfolioGroupDto.UnregisterAssetRequest.builder()
+        .stockId(5L)
+        .amount(BigDecimal.valueOf(1.5))
+        .stockPrice(BigDecimal.valueOf(3_000))
+        .currency(Currency.KRW)
+        .build();
+
+    assetService.unregisterAsset(1L, request, userId);
+
+    verify(assetRepository).deleteById(77L);
   }
 
   @Test
@@ -211,6 +240,8 @@ class AssetServiceTest {
     assertThat(target.getAssets()).hasSize(1);
     assertThat(target.getAssets().get(0).getStockId()).isEqualTo(10L);
     assertThat(target.getAssets().get(0).getPortfolioGroup()).isEqualTo(target);
+    assertThat(target.getAssets().get(0).getId()).isEqualTo(100L);
+    verify(assetRepository, never()).deleteById(any());
     verify(topHoldingStockCacheRepository).evictByUserId(userId);
   }
 
@@ -264,6 +295,7 @@ class AssetServiceTest {
     assertThat(target.getAssets()).hasSize(1);
     assertThat(target.getAssets().get(0).getAmount()).isEqualByComparingTo(BigDecimal.valueOf(3));
     assertThat(target.getAssets().get(0).getTotalPrice().getAmount()).isEqualByComparingTo(BigDecimal.valueOf(14_000));
+    verify(assetRepository).deleteById(100L);
     verify(topHoldingStockCacheRepository).evictByUserId(userId);
   }
 
@@ -565,6 +597,54 @@ class AssetServiceTest {
     // then
     assertThat(defaultGroup.getAssets()).hasSize(1);
     assertThat(defaultGroup.getAssets().get(0).getName()).isEqualTo("삼성전자");
+    verify(assetRepository).deleteAllById(List.of());
+    verify(portfolioGroupRepository).delete(existing);
+  }
+
+  @Test
+  @DisplayName("포트폴리오 그룹 삭제 시 중복 종목 병합으로 제거된 자산은 명시 삭제한다.")
+  void deletePortfolioGroup_deleteMergedAssets_success() {
+    UUID userId = UUID.randomUUID();
+    PortfolioGroup existing = PortfolioGroup.builder()
+        .id(1L)
+        .name("삭제할 그룹")
+        .userId(userId)
+        .isDefault(false)
+        .assets(new ArrayList<>())
+        .build();
+    Asset sourceAsset = Asset.builder()
+        .id(301L)
+        .amount(BigDecimal.valueOf(2))
+        .totalPrice(Money.of(BigDecimal.valueOf(20_000), Currency.KRW))
+        .name("삼성전자")
+        .stockId(1L)
+        .userId(userId)
+        .build();
+    existing.register(sourceAsset, userId);
+
+    PortfolioGroup defaultGroup = PortfolioGroup.builder()
+        .id(2L)
+        .name("기본 그룹")
+        .userId(userId)
+        .isDefault(true)
+        .assets(new ArrayList<>())
+        .build();
+    Asset defaultAsset = Asset.builder()
+        .id(401L)
+        .amount(BigDecimal.ONE)
+        .totalPrice(Money.of(BigDecimal.valueOf(10_000), Currency.KRW))
+        .name("삼성전자")
+        .stockId(1L)
+        .userId(userId)
+        .build();
+    defaultGroup.register(defaultAsset, userId);
+
+    when(portfolioGroupRepository.findByIdWithAssets(1L)).thenReturn(Optional.of(existing));
+    when(portfolioGroupRepository.findDefaultByUserId(userId)).thenReturn(Optional.of(defaultGroup));
+
+    assetService.deletePortfolioGroup(1L, userId);
+
+    verify(assetRepository).deleteAllById(List.of(301L));
     verify(portfolioGroupRepository).delete(existing);
   }
 

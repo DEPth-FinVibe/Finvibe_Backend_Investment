@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import depth.finvibe.investment.modules.asset.application.port.in.AssetCommandUseCase;
 import depth.finvibe.investment.modules.asset.application.port.in.AssetQueryUseCase;
+import depth.finvibe.investment.modules.asset.application.port.out.AssetRepository;
 import depth.finvibe.investment.modules.asset.application.port.out.PortfolioPerformanceSnapshotRepository;
 import depth.finvibe.investment.modules.asset.application.port.out.PortfolioGroupRepository;
 import depth.finvibe.investment.modules.asset.application.port.out.TopHoldingStockCacheRepository;
@@ -45,6 +46,7 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
     private static final UUID TOP_HOLDING_STOCK_CACHE_KEY = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
     private final PortfolioGroupRepository portfolioGroupRepository;
+    private final AssetRepository assetRepository;
     private final GamificationEventProducer gamificationEventProducer;
     private final TopHoldingStockCacheRepository topHoldingStockCacheRepository;
     private final WalletQueryUseCase walletQueryUseCase;
@@ -300,7 +302,7 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
                 request.getAmount(),
                 totalPrice,
                 requesterUserId
-        );
+        ).ifPresent(assetRepository::deleteById);
 
         HoldingMetricsSnapshot afterSnapshot = getHoldingMetricsSnapshot(requesterUserId);
         publishHoldingMetricsIfChanged(requesterUserId, beforeSnapshot, afterSnapshot);
@@ -324,7 +326,8 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
         PortfolioGroup sourcePortfolioGroup = findPortfolioGroupWithAssets(sourcePortfolioId);
         PortfolioGroup targetPortfolioGroup = findPortfolioGroupWithAssets(request.getTargetPortfolioId());
 
-        sourcePortfolioGroup.transferAssetTo(assetId, targetPortfolioGroup, requesterUserId);
+        sourcePortfolioGroup.transferAssetTo(assetId, targetPortfolioGroup, requesterUserId)
+                .ifPresent(assetRepository::deleteById);
 
         HoldingMetricsSnapshot afterSnapshot = getHoldingMetricsSnapshot(requesterUserId);
         publishHoldingMetricsIfChanged(requesterUserId, beforeSnapshot, afterSnapshot);
@@ -362,7 +365,8 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
 
         PortfolioGroup defaultGroup = findDefaultPortfolioGroup(requesterUserId);
 
-        existing.transferAssetsTo(defaultGroup);
+        List<Long> mergedSourceAssetIds = existing.transferAssetsTo(defaultGroup);
+        assetRepository.deleteAllById(mergedSourceAssetIds);
 
         portfolioGroupRepository.delete(existing);
     }

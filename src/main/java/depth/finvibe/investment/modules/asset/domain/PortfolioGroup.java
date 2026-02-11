@@ -53,7 +53,7 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
     @Builder.Default
     private Boolean isDefault = false;
 
-    @OneToMany(mappedBy = "portfolioGroup", fetch = FetchType.LAZY, orphanRemoval = true, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "portfolioGroup", fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @Builder.Default
     private List<Asset> assets = new ArrayList<>();
 
@@ -121,7 +121,7 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
         }
     }
 
-    public void unregister(Long stockId, BigDecimal amount, Money paidMoney, UUID requesterId) {
+    public Optional<Long> unregister(Long stockId, BigDecimal amount, Money paidMoney, UUID requesterId) {
         if(!this.userId.equals(requesterId)) {
             throw new DomainException(AssetErrorCode.ONLY_OWNER_CAN_UNREGISTER_ASSET);
         }
@@ -137,9 +137,13 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
         foundAsset.get().partialSell(amount, paidMoney);
 
         if (isEffectivelyZero(foundAsset.get().getAmount())) {
-            this.assets.remove(foundAsset.get()); // orphanRemoval을 사용해 0주가 된 자산을 자동으로 삭제
-            foundAsset.get().setPortfolioGroup(null);
+            Asset removedAsset = foundAsset.get();
+            this.assets.remove(removedAsset);
+            removedAsset.setPortfolioGroup(null);
+            // 삭제 실행은 서비스 계층에서 명시적으로 처리한다.
+            return Optional.ofNullable(removedAsset.getId());
         }
+        return Optional.empty();
     }
 
     private boolean isEffectivelyZero(BigDecimal amount) {
@@ -158,7 +162,8 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
         }
     }
 
-    public void transferAssetsTo(PortfolioGroup targetGroup) {
+    public List<Long> transferAssetsTo(PortfolioGroup targetGroup) {
+        List<Long> mergedSourceAssetIds = new ArrayList<>();
         for (Asset asset : new ArrayList<>(this.assets)) {
             Optional<Asset> existingAsset = targetGroup.assets.stream()
                     .filter(a -> a.getStockId().equals(asset.getStockId()))
@@ -166,16 +171,22 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
 
             if (existingAsset.isPresent()) {
                 existingAsset.get().additionalBuy(asset.getAmount(), asset.getTotalPrice());
+                this.assets.remove(asset);
                 asset.setPortfolioGroup(null);
             } else {
                 asset.setPortfolioGroup(targetGroup);
                 targetGroup.assets.add(asset);
+                this.assets.remove(asset);
+            }
+
+            if (existingAsset.isPresent() && asset.getId() != null) {
+                mergedSourceAssetIds.add(asset.getId());
             }
         }
-        this.assets.clear();
+        return mergedSourceAssetIds;
     }
 
-    public void transferAssetTo(Long assetId, PortfolioGroup targetGroup, UUID requesterId) {
+    public Optional<Long> transferAssetTo(Long assetId, PortfolioGroup targetGroup, UUID requesterId) {
         if (!this.userId.equals(requesterId) || !targetGroup.userId.equals(requesterId)) {
             throw new DomainException(AssetErrorCode.ONLY_OWNER_CAN_TRANSFER_ASSET);
         }
@@ -199,12 +210,13 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
             targetAsset.get().additionalBuy(sourceAsset.getAmount(), sourceAsset.getTotalPrice());
             this.assets.remove(sourceAsset);
             sourceAsset.setPortfolioGroup(null);
-            return;
+            return Optional.ofNullable(sourceAsset.getId());
         }
 
+        this.assets.remove(sourceAsset);
         sourceAsset.setPortfolioGroup(targetGroup);
         targetGroup.assets.add(sourceAsset);
-        this.assets.remove(sourceAsset);
+        return Optional.empty();
     }
 
     public void recalculateValuation() {

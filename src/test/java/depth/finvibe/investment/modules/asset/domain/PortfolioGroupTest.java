@@ -255,21 +255,36 @@ class PortfolioGroupTest {
         .userId(userId)
         .assets(new ArrayList<>())
         .build();
-    Asset asset1 = Asset.create(BigDecimal.valueOf(10), BigDecimal.valueOf(100), Currency.KRW, "자산1", 1L, userId);
+    Asset asset1 = Asset.builder()
+        .id(101L)
+        .amount(BigDecimal.valueOf(10))
+        .totalPrice(Money.of(BigDecimal.valueOf(1_000), Currency.KRW))
+        .name("자산1")
+        .stockId(1L)
+        .userId(userId)
+        .build();
     source.register(asset1, userId);
 
     PortfolioGroup target = PortfolioGroup.builder()
         .userId(userId)
         .assets(new ArrayList<>())
         .build();
-    Asset asset2 = Asset.create(BigDecimal.valueOf(5), BigDecimal.valueOf(100), Currency.KRW, "자산1", 1L, userId);
+    Asset asset2 = Asset.builder()
+        .id(102L)
+        .amount(BigDecimal.valueOf(5))
+        .totalPrice(Money.of(BigDecimal.valueOf(500), Currency.KRW))
+        .name("자산1")
+        .stockId(1L)
+        .userId(userId)
+        .build();
     target.register(asset2, userId);
 
     // when
-    source.transferAssetsTo(target);
+    var removedAssetIds = source.transferAssetsTo(target);
 
     // then
     assertThat(source.getAssets()).isEmpty();
+    assertThat(removedAssetIds).containsExactly(101L);
     assertThat(target.getAssets()).hasSize(1);
     assertThat(target.getAssets().get(0).getAmount()).isEqualByComparingTo(BigDecimal.valueOf(15));
     assertThat(target.getAssets().get(0).getTotalPrice().getAmount()).isEqualByComparingTo(BigDecimal.valueOf(1500));
@@ -293,10 +308,11 @@ class PortfolioGroupTest {
         .build();
 
     // when
-    source.transferAssetsTo(target);
+    var removedAssetIds = source.transferAssetsTo(target);
 
     // then
     assertThat(source.getAssets()).isEmpty();
+    assertThat(removedAssetIds).isEmpty();
     assertThat(target.getAssets()).hasSize(1);
     assertThat(target.getAssets().get(0).getName()).isEqualTo("자산1");
     assertThat(target.getAssets().get(0).getPortfolioGroup()).isEqualTo(target);
@@ -325,10 +341,12 @@ class PortfolioGroupTest {
         .assets(new ArrayList<>())
         .build();
 
-    source.transferAssetTo(11L, target, userId);
+    var result = source.transferAssetTo(11L, target, userId);
 
     assertThat(source.getAssets()).isEmpty();
     assertThat(target.getAssets()).hasSize(1);
+    assertThat(result).isEmpty();
+    assertThat(target.getAssets().get(0).getId()).isEqualTo(11L);
     assertThat(target.getAssets().get(0).getAmount()).isEqualByComparingTo(BigDecimal.valueOf(10));
     assertThat(target.getAssets().get(0).getPortfolioGroup()).isEqualTo(target);
   }
@@ -365,10 +383,11 @@ class PortfolioGroupTest {
         .build();
     target.register(targetAsset, userId);
 
-    source.transferAssetTo(21L, target, userId);
+    var result = source.transferAssetTo(21L, target, userId);
 
     assertThat(source.getAssets()).isEmpty();
     assertThat(target.getAssets()).hasSize(1);
+    assertThat(result).contains(21L);
     assertThat(target.getAssets().get(0).getAmount()).isEqualByComparingTo(BigDecimal.valueOf(5));
     assertThat(target.getAssets().get(0).getTotalPrice().getAmount()).isEqualByComparingTo(BigDecimal.valueOf(5_000));
   }

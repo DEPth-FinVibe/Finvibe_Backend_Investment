@@ -83,6 +83,7 @@ class PortfolioGroupTransferJpaTest {
 
     assertThat(movedSource.getAssets()).isEmpty();
     assertThat(movedTarget.getAssets()).hasSize(1);
+    assertThat(movedTarget.getAssets().get(0).getId()).isEqualTo(assetId);
     assertThat(movedTarget.getAssets().get(0).getStockId()).isEqualTo(100L);
   }
 
@@ -129,7 +130,13 @@ class PortfolioGroupTransferJpaTest {
     PortfolioGroup loadedTarget = portfolioGroupJpaRepository.findById(target.getId()).orElseThrow();
     Long assetId = loadedSource.getAssets().get(0).getId();
 
-    loadedSource.transferAssetTo(assetId, loadedTarget, userId);
+    loadedSource.transferAssetTo(assetId, loadedTarget, userId)
+        .ifPresent(removedAssetId -> {
+          Asset removed = entityManager.find(Asset.class, removedAssetId);
+          if (removed != null) {
+            entityManager.remove(removed);
+          }
+        });
     entityManager.flush();
     entityManager.clear();
 
