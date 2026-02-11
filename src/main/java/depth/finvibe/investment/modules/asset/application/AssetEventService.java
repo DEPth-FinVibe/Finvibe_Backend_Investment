@@ -6,6 +6,7 @@ import java.util.UUID;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -83,24 +84,22 @@ public class AssetEventService implements AssetEventUseCase {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional
+    @Async
     public void handleAssetTransferredEvent(AssetTransferredEvent event) {
         log.info("Handling asset transferred event. sourcePortfolioId={}, targetPortfolioId={}, stockId={}, merged={}",
                 event.getSourcePortfolioId(), event.getTargetPortfolioId(), event.getStockId(), event.isMerged());
 
         try {
-            recalculatePortfolioValuation(event.getSourcePortfolioId());
-            recalculatePortfolioValuation(event.getTargetPortfolioId());
+            portfolioGroupRepository.findByIdWithAssets(event.getSourcePortfolioId())
+                    .ifPresent(PortfolioGroup::recalculateValuation);
+            portfolioGroupRepository.findByIdWithAssets(event.getTargetPortfolioId())
+                    .ifPresent(PortfolioGroup::recalculateValuation);
             log.info("Successfully recalculated valuations for source and target portfolios.");
         } catch (Exception e) {
             log.error("Failed to recalculate valuation after asset transfer. sourcePortfolioId={}, targetPortfolioId={}",
                     event.getSourcePortfolioId(), event.getTargetPortfolioId(), e);
             // 실패해도 예외를 던지지 않음 - 다음 배치에서 재계산됨
         }
-    }
-
-    @Transactional
-    public void recalculatePortfolioValuation(Long portfolioId) {
-        portfolioGroupRepository.findByIdWithAssets(portfolioId)
-                .ifPresent(PortfolioGroup::recalculateValuation);
     }
 }
