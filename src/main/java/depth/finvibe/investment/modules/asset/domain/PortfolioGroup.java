@@ -175,6 +175,38 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
         this.assets.clear();
     }
 
+    public void transferAssetTo(Long assetId, PortfolioGroup targetGroup, UUID requesterId) {
+        if (!this.userId.equals(requesterId) || !targetGroup.userId.equals(requesterId)) {
+            throw new DomainException(AssetErrorCode.ONLY_OWNER_CAN_TRANSFER_ASSET);
+        }
+
+        Optional<Asset> foundAsset = this.assets.stream()
+                .filter(asset -> asset.getId() != null && asset.getId().equals(assetId))
+                .findFirst();
+
+        if (foundAsset.isEmpty()) {
+            throw new DomainException(AssetErrorCode.ASSET_NOT_FOUND);
+        }
+
+        Asset sourceAsset = foundAsset.get();
+        Long stockId = sourceAsset.getStockId();
+
+        Optional<Asset> targetAsset = targetGroup.assets.stream()
+                .filter(asset -> asset.getStockId().equals(stockId))
+                .findFirst();
+
+        if (targetAsset.isPresent()) {
+            targetAsset.get().additionalBuy(sourceAsset.getAmount(), sourceAsset.getTotalPrice());
+            this.assets.remove(sourceAsset);
+            sourceAsset.setPortfolioGroup(null);
+            return;
+        }
+
+        this.assets.remove(sourceAsset);
+        sourceAsset.setPortfolioGroup(targetGroup);
+        targetGroup.assets.add(sourceAsset);
+    }
+
     public void recalculateValuation() {
         List<Asset> valuedAssets = assets.stream()
                 .filter(asset -> asset.getValuation() != null)

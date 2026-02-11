@@ -309,6 +309,30 @@ public class AssetService implements AssetCommandUseCase, AssetQueryUseCase {
 
     @Override
     @Transactional
+    public void transferAsset(
+            Long sourcePortfolioId,
+            Long assetId,
+            PortfolioGroupDto.TransferAssetRequest request,
+            UUID requesterUserId
+    ) {
+        if (sourcePortfolioId.equals(request.getTargetPortfolioId())) {
+            throw new DomainException(AssetErrorCode.SAME_PORTFOLIO_GROUP_TRANSFER_NOT_ALLOWED);
+        }
+
+        HoldingMetricsSnapshot beforeSnapshot = getHoldingMetricsSnapshot(requesterUserId);
+
+        PortfolioGroup sourcePortfolioGroup = findPortfolioGroupWithAssets(sourcePortfolioId);
+        PortfolioGroup targetPortfolioGroup = findPortfolioGroupWithAssets(request.getTargetPortfolioId());
+
+        sourcePortfolioGroup.transferAssetTo(assetId, targetPortfolioGroup, requesterUserId);
+
+        HoldingMetricsSnapshot afterSnapshot = getHoldingMetricsSnapshot(requesterUserId);
+        publishHoldingMetricsIfChanged(requesterUserId, beforeSnapshot, afterSnapshot);
+        topHoldingStockCacheRepository.evictByUserId(requesterUserId);
+    }
+
+    @Override
+    @Transactional
     public void createPortfolioGroup(PortfolioGroupDto.CreatePortfolioGroupRequest request, UUID requesterUserId) {
         PortfolioGroup toSave = PortfolioGroup.create(
                 request.getName(),

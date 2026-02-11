@@ -22,6 +22,7 @@ public class AssetErrorHttpMapper implements DomainErrorHttpMapper {
             case CANNOT_SELL_NON_EXISTENT_ASSET,
                  INVALID_PORTFOLIO_GROUP_PARAMS,
                  INVALID_PORTFOLIO_CHART_DATE_RANGE,
+                 SAME_PORTFOLIO_GROUP_TRANSFER_NOT_ALLOWED,
                  CANNOT_MODIFY_DEFAULT_PORTFOLIO_GROUP,
                  CANNOT_DELETE_DEFAULT_PORTFOLIO_GROUP,
                  NEGATIVE_MONEY_AMOUNT,
@@ -31,6 +32,7 @@ public class AssetErrorHttpMapper implements DomainErrorHttpMapper {
 
             case ONLY_OWNER_CAN_UNREGISTER_ASSET,
                  ONLY_OWNER_CAN_REGISTER_ASSET,
+                 ONLY_OWNER_CAN_TRANSFER_ASSET,
                  ONLY_OWNER_CAN_VIEW_ASSETS,
                  ONLY_OWNER_CAN_DELETE_PORTFOLIO_GROUP -> HttpStatus.FORBIDDEN;
 

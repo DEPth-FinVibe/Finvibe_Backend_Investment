@@ -71,4 +71,16 @@ public class PortfolioController {
         commandUseCase.deletePortfolioGroup(portfolioGroupId, requester.getUuid());
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{sourcePortfolioId}/assets/{assetId}/transfer")
+    @Operation(summary = "자산 이동", description = "특정 자산을 다른 포트폴리오 그룹으로 이동합니다.")
+    public ResponseEntity<Void> transferAsset(
+            @Parameter(description = "원본 포트폴리오 그룹 ID", example = "1") @PathVariable Long sourcePortfolioId,
+            @Parameter(description = "자산 ID", example = "101") @PathVariable Long assetId,
+            @RequestBody @Valid PortfolioGroupDto.TransferAssetRequest request,
+            @Parameter(hidden = true) @AuthenticatedUser Requester requester
+    ) {
+        commandUseCase.transferAsset(sourcePortfolioId, assetId, request, requester.getUuid());
+        return ResponseEntity.noContent().build();
+    }
 }

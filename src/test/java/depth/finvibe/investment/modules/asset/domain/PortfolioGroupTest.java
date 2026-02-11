@@ -303,6 +303,83 @@ class PortfolioGroupTest {
   }
 
   @Test
+  @DisplayName("특정 종목 자산을 다른 그룹으로 전량 이동할 수 있다.")
+  void transferAssetTo_success() {
+    UUID userId = UUID.randomUUID();
+    PortfolioGroup source = PortfolioGroup.builder()
+        .userId(userId)
+        .assets(new ArrayList<>())
+        .build();
+    Asset asset = Asset.builder()
+        .id(11L)
+        .amount(BigDecimal.valueOf(10))
+        .totalPrice(Money.of(BigDecimal.valueOf(10_000), Currency.KRW))
+        .name("자산1")
+        .stockId(1L)
+        .userId(userId)
+        .build();
+    source.register(asset, userId);
+
+    PortfolioGroup target = PortfolioGroup.builder()
+        .userId(userId)
+        .assets(new ArrayList<>())
+        .build();
+
+    source.transferAssetTo(11L, target, userId);
+
+    assertThat(source.getAssets()).isEmpty();
+    assertThat(target.getAssets()).hasSize(1);
+    assertThat(target.getAssets().get(0).getAmount()).isEqualByComparingTo(BigDecimal.valueOf(10));
+    assertThat(target.getAssets().get(0).getPortfolioGroup()).isEqualTo(target);
+  }
+
+  @Test
+  @DisplayName("특정 종목 자산 이동 시 소유자가 아니면 예외가 발생한다.")
+  void transferAssetTo_notOwner_fail() {
+    UUID ownerId = UUID.randomUUID();
+    UUID otherId = UUID.randomUUID();
+    PortfolioGroup source = PortfolioGroup.builder()
+        .userId(ownerId)
+        .assets(new ArrayList<>())
+        .build();
+    Asset asset = Asset.builder()
+        .id(12L)
+        .amount(BigDecimal.valueOf(3))
+        .totalPrice(Money.of(BigDecimal.valueOf(3_000), Currency.KRW))
+        .name("자산1")
+        .stockId(1L)
+        .userId(ownerId)
+        .build();
+    source.register(asset, ownerId);
+    PortfolioGroup target = PortfolioGroup.builder()
+        .userId(ownerId)
+        .assets(new ArrayList<>())
+        .build();
+
+    assertThatThrownBy(() -> source.transferAssetTo(12L, target, otherId))
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).getErrorCode()).isEqualTo(AssetErrorCode.ONLY_OWNER_CAN_TRANSFER_ASSET));
+  }
+
+  @Test
+  @DisplayName("특정 종목 자산 이동 시 원본 그룹에 종목이 없으면 예외가 발생한다.")
+  void transferAssetTo_assetNotFound_fail() {
+    UUID userId = UUID.randomUUID();
+    PortfolioGroup source = PortfolioGroup.builder()
+        .userId(userId)
+        .assets(new ArrayList<>())
+        .build();
+    PortfolioGroup target = PortfolioGroup.builder()
+        .userId(userId)
+        .assets(new ArrayList<>())
+        .build();
+
+    assertThatThrownBy(() -> source.transferAssetTo(99L, target, userId))
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).getErrorCode()).isEqualTo(AssetErrorCode.ASSET_NOT_FOUND));
+  }
+
+  @Test
   @DisplayName("삭제 가능 여부 확인 - 성공")
   void ensureDeletable_success() {
     // given

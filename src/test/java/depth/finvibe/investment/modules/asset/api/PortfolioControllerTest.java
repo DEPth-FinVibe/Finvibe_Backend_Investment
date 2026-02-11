@@ -143,6 +143,27 @@ class PortfolioControllerTest {
         verify(commandUseCase).deletePortfolioGroup(portfolioGroupId, userId);
     }
 
+    @Test
+    @DisplayName("자산 이동 성공 API")
+    void transferAsset_Success() throws Exception {
+        Long sourcePortfolioId = 1L;
+        Long assetId = 101L;
+        UUID userId = UUID.randomUUID();
+        PortfolioGroupDto.TransferAssetRequest requestDto = PortfolioGroupDto.TransferAssetRequest.builder()
+                .targetPortfolioId(2L)
+                .build();
+
+        mockMvc.perform(patch("/portfolios/{sourcePortfolioId}/assets/{assetId}/transfer", sourcePortfolioId, assetId)
+                        .header("Authorization", bearerToken(userId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andDo(print())
+                .andExpect(status().isNoContent());
+
+        verify(commandUseCase).transferAsset(eq(sourcePortfolioId), eq(assetId),
+                any(PortfolioGroupDto.TransferAssetRequest.class), eq(userId));
+    }
+
     private String bearerToken(UUID userId) throws Exception {
         String header = Base64.getUrlEncoder().withoutPadding()
                 .encodeToString("{}".getBytes(StandardCharsets.UTF_8));

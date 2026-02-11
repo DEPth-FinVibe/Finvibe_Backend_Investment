@@ -171,6 +171,82 @@ class AssetServiceTest {
   }
 
   @Test
+  @DisplayName("자산 이동 시 원본 포트폴리오에서 대상 포트폴리오로 전량 이동한다.")
+  void transferAsset_success() {
+    UUID userId = UUID.randomUUID();
+    PortfolioGroup source = PortfolioGroup.builder()
+        .id(1L)
+        .name("원본")
+        .userId(userId)
+        .assets(new ArrayList<>())
+        .build();
+    Asset asset = Asset.builder()
+        .id(100L)
+        .amount(BigDecimal.valueOf(2))
+        .totalPrice(Money.of(BigDecimal.valueOf(10_000), Currency.KRW))
+        .name("자산")
+        .stockId(10L)
+        .userId(userId)
+        .build();
+    source.register(asset, userId);
+
+    PortfolioGroup target = PortfolioGroup.builder()
+        .id(2L)
+        .name("대상")
+        .userId(userId)
+        .assets(new ArrayList<>())
+        .build();
+
+    when(portfolioGroupRepository.findByIdWithAssets(1L)).thenReturn(Optional.of(source));
+    when(portfolioGroupRepository.findByIdWithAssets(2L)).thenReturn(Optional.of(target));
+    when(portfolioGroupRepository.findAllByUserIdWithAssets(userId)).thenReturn(List.of(source, target));
+
+    PortfolioGroupDto.TransferAssetRequest request = PortfolioGroupDto.TransferAssetRequest.builder()
+        .targetPortfolioId(2L)
+        .build();
+
+    assetService.transferAsset(1L, 100L, request, userId);
+
+    assertThat(source.getAssets()).isEmpty();
+    assertThat(target.getAssets()).hasSize(1);
+    assertThat(target.getAssets().get(0).getStockId()).isEqualTo(10L);
+    verify(topHoldingStockCacheRepository).evictByUserId(userId);
+  }
+
+  @Test
+  @DisplayName("자산 이동 시 원본/대상 포트폴리오가 동일하면 예외를 던진다.")
+  void transferAsset_samePortfolio_fail() {
+    UUID userId = UUID.randomUUID();
+    PortfolioGroupDto.TransferAssetRequest request = PortfolioGroupDto.TransferAssetRequest.builder()
+        .targetPortfolioId(1L)
+        .build();
+
+    assertThatThrownBy(() -> assetService.transferAsset(1L, 100L, request, userId))
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).getErrorCode())
+            .isEqualTo(AssetErrorCode.SAME_PORTFOLIO_GROUP_TRANSFER_NOT_ALLOWED));
+
+    verify(portfolioGroupRepository, never()).findByIdWithAssets(any());
+  }
+
+  @Test
+  @DisplayName("자산 이동 시 원본 포트폴리오가 없으면 예외를 던진다.")
+  void transferAsset_sourcePortfolioNotFound_fail() {
+    UUID userId = UUID.randomUUID();
+    PortfolioGroupDto.TransferAssetRequest request = PortfolioGroupDto.TransferAssetRequest.builder()
+        .targetPortfolioId(2L)
+        .build();
+
+    when(portfolioGroupRepository.findAllByUserIdWithAssets(userId)).thenReturn(List.of());
+    when(portfolioGroupRepository.findByIdWithAssets(1L)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> assetService.transferAsset(1L, 100L, request, userId))
+        .isInstanceOf(DomainException.class)
+        .satisfies(ex -> assertThat(((DomainException) ex).getErrorCode())
+            .isEqualTo(AssetErrorCode.PORTFOLIO_GROUP_NOT_FOUND));
+  }
+
+  @Test
   @DisplayName("포트폴리오 그룹을 생성하면 리포지토리에 저장된다.")
   void createPortfolioGroup_success() {
     // given

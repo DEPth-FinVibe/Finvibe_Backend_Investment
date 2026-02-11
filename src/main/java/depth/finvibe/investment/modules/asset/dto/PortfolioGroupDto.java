@@ -132,6 +132,17 @@ public class PortfolioGroupDto {
     @NoArgsConstructor
     @Data
     @Builder
+    @Schema(name = "TransferAssetRequest", description = "자산 이동 요청")
+    public static class TransferAssetRequest {
+        @NotNull
+        @Schema(description = "이동 대상 포트폴리오 그룹 ID", example = "2")
+        private Long targetPortfolioId;
+    }
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Data
+    @Builder
     @Schema(name = "AssetAllocationResponse", description = "전체 자산 배분 응답")
     public static class AssetAllocationResponse {
         @Schema(description = "현금 금액", example = "3500000")

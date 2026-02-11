@@ -9,6 +9,8 @@ public interface AssetCommandUseCase {
 
     void unregisterAsset(Long portfolioId, PortfolioGroupDto.UnregisterAssetRequest request, UUID requesterUserId);
 
+    void transferAsset(Long sourcePortfolioId, Long assetId, PortfolioGroupDto.TransferAssetRequest request, UUID requesterUserId);
+
     void createPortfolioGroup(PortfolioGroupDto.CreatePortfolioGroupRequest request, UUID requesterUserId);
 
     void updatePortfolioGroup(Long portfolioGroupId, PortfolioGroupDto.UpdatePortfolioGroupRequest request, UUID requesterUserId);
