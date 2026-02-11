@@ -202,9 +202,9 @@ public class PortfolioGroup extends TimeStampedBaseEntity {
             return;
         }
 
-        this.assets.remove(sourceAsset);
         sourceAsset.setPortfolioGroup(targetGroup);
         targetGroup.assets.add(sourceAsset);
+        this.assets.remove(sourceAsset);
     }
 
     public void recalculateValuation() {

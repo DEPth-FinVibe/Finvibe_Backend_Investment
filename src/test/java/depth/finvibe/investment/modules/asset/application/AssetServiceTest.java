@@ -210,6 +210,60 @@ class AssetServiceTest {
     assertThat(source.getAssets()).isEmpty();
     assertThat(target.getAssets()).hasSize(1);
     assertThat(target.getAssets().get(0).getStockId()).isEqualTo(10L);
+    assertThat(target.getAssets().get(0).getPortfolioGroup()).isEqualTo(target);
+    verify(topHoldingStockCacheRepository).evictByUserId(userId);
+  }
+
+  @Test
+  @DisplayName("자산 이동 시 대상 포트폴리오에 동일 종목이 있으면 합산된다.")
+  void transferAsset_mergeToExistingStock_success() {
+    UUID userId = UUID.randomUUID();
+    PortfolioGroup source = PortfolioGroup.builder()
+        .id(1L)
+        .name("원본")
+        .userId(userId)
+        .assets(new ArrayList<>())
+        .build();
+    Asset sourceAsset = Asset.builder()
+        .id(100L)
+        .amount(BigDecimal.valueOf(2))
+        .totalPrice(Money.of(BigDecimal.valueOf(10_000), Currency.KRW))
+        .name("자산")
+        .stockId(10L)
+        .userId(userId)
+        .build();
+    source.register(sourceAsset, userId);
+
+    PortfolioGroup target = PortfolioGroup.builder()
+        .id(2L)
+        .name("대상")
+        .userId(userId)
+        .assets(new ArrayList<>())
+        .build();
+    Asset targetAsset = Asset.builder()
+        .id(200L)
+        .amount(BigDecimal.valueOf(1))
+        .totalPrice(Money.of(BigDecimal.valueOf(4_000), Currency.KRW))
+        .name("자산")
+        .stockId(10L)
+        .userId(userId)
+        .build();
+    target.register(targetAsset, userId);
+
+    when(portfolioGroupRepository.findByIdWithAssets(1L)).thenReturn(Optional.of(source));
+    when(portfolioGroupRepository.findByIdWithAssets(2L)).thenReturn(Optional.of(target));
+    when(portfolioGroupRepository.findAllByUserIdWithAssets(userId)).thenReturn(List.of(source, target));
+
+    PortfolioGroupDto.TransferAssetRequest request = PortfolioGroupDto.TransferAssetRequest.builder()
+        .targetPortfolioId(2L)
+        .build();
+
+    assetService.transferAsset(1L, 100L, request, userId);
+
+    assertThat(source.getAssets()).isEmpty();
+    assertThat(target.getAssets()).hasSize(1);
+    assertThat(target.getAssets().get(0).getAmount()).isEqualByComparingTo(BigDecimal.valueOf(3));
+    assertThat(target.getAssets().get(0).getTotalPrice().getAmount()).isEqualByComparingTo(BigDecimal.valueOf(14_000));
     verify(topHoldingStockCacheRepository).evictByUserId(userId);
   }
 

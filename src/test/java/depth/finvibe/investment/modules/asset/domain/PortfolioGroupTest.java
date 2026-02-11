@@ -334,6 +334,46 @@ class PortfolioGroupTest {
   }
 
   @Test
+  @DisplayName("특정 종목 자산 이동 시 대상 그룹에 동일 종목이 있으면 병합된다.")
+  void transferAssetTo_merge_success() {
+    UUID userId = UUID.randomUUID();
+    PortfolioGroup source = PortfolioGroup.builder()
+        .userId(userId)
+        .assets(new ArrayList<>())
+        .build();
+    Asset sourceAsset = Asset.builder()
+        .id(21L)
+        .amount(BigDecimal.valueOf(3))
+        .totalPrice(Money.of(BigDecimal.valueOf(3_000), Currency.KRW))
+        .name("자산1")
+        .stockId(1L)
+        .userId(userId)
+        .build();
+    source.register(sourceAsset, userId);
+
+    PortfolioGroup target = PortfolioGroup.builder()
+        .userId(userId)
+        .assets(new ArrayList<>())
+        .build();
+    Asset targetAsset = Asset.builder()
+        .id(22L)
+        .amount(BigDecimal.valueOf(2))
+        .totalPrice(Money.of(BigDecimal.valueOf(2_000), Currency.KRW))
+        .name("자산1")
+        .stockId(1L)
+        .userId(userId)
+        .build();
+    target.register(targetAsset, userId);
+
+    source.transferAssetTo(21L, target, userId);
+
+    assertThat(source.getAssets()).isEmpty();
+    assertThat(target.getAssets()).hasSize(1);
+    assertThat(target.getAssets().get(0).getAmount()).isEqualByComparingTo(BigDecimal.valueOf(5));
+    assertThat(target.getAssets().get(0).getTotalPrice().getAmount()).isEqualByComparingTo(BigDecimal.valueOf(5_000));
+  }
+
+  @Test
   @DisplayName("특정 종목 자산 이동 시 소유자가 아니면 예외가 발생한다.")
   void transferAssetTo_notOwner_fail() {
     UUID ownerId = UUID.randomUUID();
