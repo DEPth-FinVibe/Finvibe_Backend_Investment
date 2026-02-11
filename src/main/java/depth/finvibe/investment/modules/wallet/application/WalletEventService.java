@@ -23,9 +23,9 @@ public class WalletEventService implements WalletEventUseCase {
         UUID userId = UUID.fromString(event.getUserId());
 
         if (event.getType().equals("BUY")) {
-            commandUseCase.withdraw(userId, event.getPrice().longValue());
+            commandUseCase.withdraw(userId, event.getPrice() * event.getAmount().longValue());
         } else if (event.getType().equals("SELL")) {
-            commandUseCase.deposit(userId, event.getPrice().longValue());
+            commandUseCase.deposit(userId, event.getPrice() * event.getAmount().longValue());
         } else {
             log.warn("Ignoring trade event of type: {}", event.getType());
         }
