@@ -53,9 +53,14 @@ public class ReservationRepositoryImpl implements ReservationRepository {
     @Override
     public void deleteByTradeId(Long tradeId) {
         String infoKey = keyForInfo(tradeId);
+        String reservationJson = redisTemplate.opsForValue().get(infoKey);
+
+        if (reservationJson == null) {
+            return;
+        }
 
         Reservation reservation = objectMapper.readValue(
-                Objects.requireNonNull(redisTemplate.opsForValue().get(infoKey)),
+                reservationJson,
                 Reservation.class
         );
 
