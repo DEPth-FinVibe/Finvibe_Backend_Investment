@@ -26,7 +26,7 @@ public class UserProfitRankingDto {
     @Schema(description = "사용자 ID")
     private UUID userId;
     @Schema(description = "사용자 닉네임", example = "투자고수")
-    private String userNickname;
+    private String nickname;
     @Schema(description = "수익률", example = "12.34")
     private BigDecimal returnRate;
     @Schema(description = "수익금", example = "150000")
@@ -36,7 +36,7 @@ public class UserProfitRankingDto {
       return RankingItem.builder()
         .rank(ranking.getRank())
         .userId(ranking.getUserId())
-        .userNickname(ranking.getUserNickname())
+        .nickname(ranking.getUserNickname())
         .returnRate(ranking.getTotalReturnRate())
         .profitLoss(ranking.getTotalProfitLoss())
         .build();
