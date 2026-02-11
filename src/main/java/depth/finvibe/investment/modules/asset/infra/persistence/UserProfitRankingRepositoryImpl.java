@@ -39,9 +39,9 @@ public class UserProfitRankingRepositoryImpl implements UserProfitRankingReposit
 
     // 2. 정렬: totalReturnRate 내림차순, 동점일 경우 totalProfitLoss 내림차순
     List<UserProfitRankingData> sortedRankings = rankings.stream()
-      .sorted(Comparator
-        .comparing(UserProfitRankingData::totalReturnRate).reversed()
-        .thenComparing(UserProfitRankingData::totalProfitLoss).reversed()
+      .sorted(
+        Comparator.comparing(UserProfitRankingData::totalReturnRate, Comparator.reverseOrder())
+          .thenComparing(UserProfitRankingData::totalProfitLoss, Comparator.reverseOrder())
       )
       .toList();
 
