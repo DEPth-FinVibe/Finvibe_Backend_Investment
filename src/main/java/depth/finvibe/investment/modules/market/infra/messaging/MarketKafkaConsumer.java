@@ -29,7 +29,10 @@ public class MarketKafkaConsumer {
 
     @KafkaListener(
             topics = "trade.trade-cancelled.v1",
-            groupId = "market-group"
+            groupId = "market-group",
+            properties = {
+                    "spring.json.value.default.type=java.lang.Long"
+            }
     )
     public void consumeTradeReserveCanceledEvent(ConsumerRecord<String, Long> record) {
         log.info("Consumed TradeReserveCancelledEvent: {}", record.key());
